@@ -1,0 +1,500 @@
+/* Custom Premium CSS System for Anesthesia Portal */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --bg-gradient: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+  --card-bg: rgba(30, 41, 59, 0.45);
+  --card-bg-hover: rgba(30, 41, 59, 0.6);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(59, 130, 246, 0.3);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #2563eb;
+  --accent-indigo: #6366f1;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+}
+
+/* Base Overrides */
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 20px 10px;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .title, .subtitle {
+  font-family: 'Outfit', sans-serif !important;
+  color: var(--text-main) !important;
+}
+
+.title.is-2 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.date-header {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: -5px;
+  margin-bottom: 25px;
+}
+
+/* Glassmorphism Container */
+.container {
+  max-width: 540px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 1080px;
+  }
+}
+
+/* Premium Card System */
+.day-section, .week-block, .portal-login-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.day-section:hover, .week-block:hover {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.section-title {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--accent-indigo);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 6px;
+}
+
+/* Entry rows */
+.entry {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.entry-content {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.entry-content > .has-text-weight-bold {
+  font-size: 1.05rem;
+  font-weight: 600 !important;
+  color: var(--text-main);
+}
+
+/* Badges */
+.num-badge {
+  background: var(--accent-blue);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  min-width: 75px;
+  text-align: center;
+  font-size: 0.8rem;
+  margin-right: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+}
+
+/* Custom premium color badges */
+.num-badge[style*="background-color: #48c78e"],
+.num-badge[style*="background-color: rgb(72, 199, 142)"] {
+  background-color: var(--accent-emerald) !important;
+}
+
+/* Strikethrough & Grayscale for Departed CRNAs */
+.strikethrough {
+  opacity: 0.35;
+  filter: grayscale(80%);
+}
+.strikethrough .has-text-weight-bold {
+  text-decoration: line-through;
+}
+
+/* Time display pills */
+.arrival-time-display, .departure-time-display {
+  font-size: 0.75rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.departure-time-display {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* Controls wrapper */
+.controls-wrapper {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  min-width: 80px;
+}
+
+.entry-page .controls-wrapper {
+  min-width: 170px;
+}
+
+/* Custom switch toggle styles (iOS style) */
+.switch-container {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-input {
+  display: none;
+}
+
+.switch-track {
+  width: 44px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+  position: relative;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.switch-thumb {
+  width: 20px;
+  height: 20px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35);
+}
+
+.switch-input:checked + .switch-track {
+  background-color: var(--accent-emerald);
+}
+
+.switch-input:checked + .switch-track .switch-thumb {
+  transform: translateX(20px);
+}
+
+/* Specialized switch colors (for arrival) */
+.arrival-switch .switch-input:checked + .switch-track {
+  background-color: var(--accent-blue);
+}
+
+/* Date picker & Input styles */
+.input, .select select {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-main) !important;
+  border-radius: 8px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.input:focus, .select select:focus, .input:active, .select select:active {
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+.label {
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+}
+
+/* Time inputs and clocks */
+.time-input-wrapper {
+  position: relative;
+  width: 36px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-trigger-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.time-input-wrapper:hover .time-trigger-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-blue);
+}
+
+.arrival-time-input, .departure-time-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0;
+  z-index: 2;
+  cursor: pointer;
+  margin: 0 !important;
+  appearance: none;
+}
+
+.time-input-wrapper.has-value {
+  width: 90px;
+}
+
+.time-input-wrapper.has-value .arrival-time-input,
+.time-input-wrapper.has-value .departure-time-input {
+  position: static;
+  opacity: 1;
+}
+
+.time-input-wrapper.has-value .time-trigger-btn {
+  display: none;
+}
+
+/* Buttons */
+.button.is-link {
+  background-color: var(--accent-blue) !important;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  border: none !important;
+}
+
+.button.is-link:hover {
+  background-color: var(--accent-blue-hover) !important;
+  transform: translateY(-1px);
+}
+
+.button.is-light {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-main) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.button.is-light:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Spinner */
+.loading-wrap {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-wrap p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 10px;
+}
+
+.button.is-loading.is-white {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+.button.is-loading.is-white::after {
+  border-color: transparent transparent var(--accent-blue) var(--accent-blue) !important;
+}
+
+/* Notification colors */
+.notification.is-danger {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+  color: #fda4af !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  border-radius: 10px;
+}
+
+/* Shift card list (Locum Portal) */
+.week-title {
+  background: rgba(15, 23, 42, 0.5);
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  color: var(--accent-indigo);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.05em;
+}
+
+.shift-card {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.shift-card:last-child {
+  border-bottom: none;
+}
+
+.day-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.date-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+.assignment-box {
+  text-align: right;
+}
+
+.assignment-tag {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  font-family: 'Outfit', sans-serif;
+  display: inline-block;
+}
+
+/* Header Labels in Sign-offs Page */
+.header-labels {
+  display: flex;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  width: 170px;
+  justify-content: flex-end;
+  text-transform: uppercase;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.05em;
+}
+
+.header-labels span {
+  width: 80px;
+  text-align: center;
+}
+
+.italic-grey {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Mobile Responsiveness for Sign-offs Row */
+@media screen and (max-width: 768px) {
+  body {
+    padding: 10px 5px;
+  }
+  
+  .day-section, .week-block {
+    padding: 16px;
+  }
+
+  .entry {
+    padding: 12px 0;
+  }
+
+  .entry-content > .has-text-weight-bold {
+    font-size: 0.95rem;
+  }
+
+  .num-badge {
+    min-width: 60px;
+    margin-right: 10px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .entry-page .controls-wrapper {
+    min-width: 140px;
+    gap: 4px;
+  }
+
+  .entry-page .entry-content > .has-text-weight-bold {
+    font-size: 0.85rem;
+  }
+
+  .entry-page .num-badge {
+    min-width: 50px;
+    margin-right: 6px;
+    padding: 3px 6px;
+    font-size: 0.7rem;
+  }
+
+  .time-prefix {
+    display: none;
+  }
+
+  .header-labels {
+    width: 140px;
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+  
+  .header-labels span {
+    width: 68px;
+  }
+}

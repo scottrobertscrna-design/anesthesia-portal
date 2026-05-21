@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Daily Sign-offs (Timekeeper)</title>
+  
+  <!-- Bulma and Custom Premium Stylesheet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://img.icons8.com/color/48/medical-doctor.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://img.icons8.com/color/192/medical-doctor.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://img.icons8.com/color/180/medical-doctor.png">
+</head>
+
+<body>
+  <div class="container mt-4">
+    <div class="mb-4 is-flex is-justify-content-center">
+      <div class="is-size-7 has-text-grey-light">
+        Last updated: <span id="timestamp-display">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Date selector for entry page -->
+    <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center" style="display: flex; gap: 10px;">
+      <label class="label mb-0" for="entry-date-picker" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Select Date:</label>
+      <div class="control">
+        <input class="input is-small" type="date" id="entry-date-picker" style="max-width: 160px; font-weight: 600;">
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="content" class="entry-page">
+      <div class="loading-wrap">
+        <button class="button is-loading is-white is-large"></button>
+        <p>Analyzing schedules and mapping physicians...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Configuration & API Helper first -->
+  <script src="config.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    const currentPage = "entry";
+    const IS_READ_ONLY = false;
+
+    window.onload = () => {
+      const picker = document.getElementById('entry-date-picker');
+      const todayLocal = new Date();
+      const yyyy = todayLocal.getFullYear();
+      const mm = String(todayLocal.getMonth() + 1).padStart(2, '0');
+      const dd = String(todayLocal.getDate()).padStart(2, '0');
+      picker.value = `${yyyy}-${mm}-${dd}`;
+      
+      picker.onchange = () => {
+        fetchFreshData(picker.value);
+      };
+
+      fetchFreshData(picker.value);
+    };
+
+    // Poll for updates every 30 seconds
+    setInterval(pollSignOffs, 30000);
+
+    async function pollSignOffs() {
+      try {
+        const liveSignOffs = await callApi("getAllActiveSignOffs");
+        syncCheckboxes(liveSignOffs);
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }
+
+    function syncCheckboxes(liveSignOffs) {
+      const signedOffKeys = new Map(liveSignOffs.map(s => [`${s.name}|${s.role}|${s.dateStr}`, s]));
+      const isEntry = (currentPage === "entry");
+
+      document.querySelectorAll('.entry').forEach(entryRow => {
+        const content = entryRow.querySelector('.entry-content');
+        if (!content) return;
+
+        const arrivalCb = entryRow.querySelector('.arrival-checkbox');
+        const departureCb = entryRow.querySelector('.departure-checkbox') || entryRow.querySelector('.gone-home-checkbox');
+        
+        if (!departureCb) return;
+
+        const name = departureCb.dataset.name;
+        const role = departureCb.dataset.role;
+        const dateStr = departureCb.dataset.date;
+        const key = `${name}|${role}|${dateStr}`;
+        const data = signedOffKeys.get(key);
+
+        const arrivalTimeWrapper = entryRow.querySelector('.arrival-time-wrapper');
+        const departureTimeWrapper = entryRow.querySelector('.departure-time-wrapper');
+        const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
+        const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
+
+        // Clear existing display spans
+        content.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
+
+        if (data) {
+          // Sync Arrival (Entry Mode Only)
+          if (isEntry && arrivalCb) {
+            arrivalCb.checked = !!data.arrivalTime;
+            if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = data.arrivalTime ? 'none' : 'flex';
+            if (arrivalTimeInput) {
+              arrivalTimeInput.value = data.arrivalTime ? formatTimeForInput(data.arrivalTime) : '';
+              updateTimeDisplay(arrivalTimeInput);
+            }
+          } else if (arrivalCb) {
+            arrivalCb.style.display = 'none';
+          }
+          if (isEntry && data.arrivalTime) {
+            const span = document.createElement('span');
+            span.className = 'arrival-time-display';
+            span.innerHTML = '<span class="time-prefix">IN @ </span>';
+            span.appendChild(document.createTextNode(data.arrivalTime));
+            content.appendChild(span);
+          }
+
+          // Sync Departure
+          if (departureCb) departureCb.checked = !!data.time;
+          if (departureTimeWrapper) departureTimeWrapper.style.display = data.time ? 'none' : 'flex';
+          if (departureTimeInput) {
+            departureTimeInput.value = data.time ? formatTimeForInput(data.time) : '';
+            updateTimeDisplay(departureTimeInput);
+          }
+          if (data.time) {
+            const span = document.createElement('span');
+            span.className = 'departure-time-display';
+            span.innerHTML = '<span class="time-prefix">GONE @ </span>';
+            span.appendChild(document.createTextNode(data.time));
+            content.appendChild(span);
+            content.classList.add('strikethrough');
+          } else {
+            content.classList.remove('strikethrough');
+          }
+        } else {
+          // No sign-off data, ensure everything is unchecked and visible
+          if (arrivalCb) arrivalCb.checked = false;
+          if (departureCb) departureCb.checked = false;
+          content.classList.remove('strikethrough');
+          if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = isEntry ? 'flex' : 'none'; 
+          if (departureTimeWrapper) { 
+            departureTimeWrapper.style.display = 'flex'; 
+            if (departureTimeInput) { 
+              departureTimeInput.value = ''; 
+              updateTimeDisplay(departureTimeInput); 
+            } 
+          }
+        }
+      });
+    }
+
+    async function fetchFreshData(customDate) {
+      document.getElementById('content').innerHTML = `
+        <div class="loading-wrap">
+          <button class="button is-loading is-white is-large"></button>
+        </div>`;
+      try {
+        const data = await callApi("getDailySnapshotData", { customDateStr: customDate });
+        const now = new Date();
+        document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        render(data);
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<div class="notification is-danger">Error loading data: ${err.message}</div>`;
+      }
+    }
+
+    function formatTimeForInput(timeStr) {
+      if (!timeStr) return '';
+      const [time, ampm] = timeStr.split(' ');
+      let [h, m] = time.split(':');
+      h = parseInt(h, 10);
+      if (ampm === 'PM' && h !== 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return `${String(h).padStart(2, '0')}:${m}`;
+    }
+
+    async function toggleArrival(checkbox, name, role, dateStr, targetId) {
+      const row = document.getElementById(targetId);
+      const content = row.querySelector('.entry-content');
+      const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
+      const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
+      const manualTime = (arrivalTimeInput && checkbox.checked) ? arrivalTimeInput.value : null;
+
+      if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+
+      try {
+        const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
+        const existingArrivalDisplay = content.querySelector('.arrival-time-display');
+        if (existingArrivalDisplay) existingArrivalDisplay.remove();
+
+        if (res.status && res.timestamp) {
+          const span = document.createElement('span');
+          span.className = 'arrival-time-display';
+          span.innerHTML = '<span class="time-prefix">IN @ </span>';
+          span.appendChild(document.createTextNode(res.timestamp));
+          content.appendChild(span);
+        } else if (!res.status && arrivalTimeInput) {
+          arrivalTimeInput.value = '';
+          updateTimeDisplay(arrivalTimeInput);
+        }
+      } catch (err) {
+        alert("Arrival action failed: " + err.message);
+        checkbox.checked = !checkbox.checked;
+        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      }
+    }
+
+    async function toggleDeparture(checkbox, name, role, dateStr, targetId) {
+      const row = document.getElementById(targetId);
+      const content = row.querySelector('.entry-content');
+      const departureTimeWrapper = row.querySelector('.departure-time-wrapper');
+      const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
+      const manualTime = (departureTimeInput && checkbox.checked) ? departureTimeInput.value : null;
+
+      content.classList.toggle('strikethrough', checkbox.checked);
+      if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+
+      try {
+        const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
+        const existingDepartureDisplay = content.querySelector('.departure-time-display');
+        if (existingDepartureDisplay) existingDepartureDisplay.remove();
+
+        if (res.status && res.timestamp) {
+          const span = document.createElement('span');
+          span.className = 'departure-time-display';
+          span.innerHTML = '<span class="time-prefix">GONE @ </span>';
+          span.appendChild(document.createTextNode(res.timestamp));
+          content.appendChild(span);
+
+          if (res.arrivalTime) {
+            const arrivalCb = row.querySelector('.arrival-checkbox');
+            const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
+            if (arrivalCb && !arrivalCb.checked) {
+              arrivalCb.checked = true;
+              if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
+              
+              if (!content.querySelector('.arrival-time-display')) {
+                const aSpan = document.createElement('span');
+                aSpan.className = 'arrival-time-display';
+                aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
+                aSpan.appendChild(document.createTextNode(res.arrivalTime));
+                content.appendChild(aSpan);
+              }
+            }
+          }
+        } else if (!res.status && departureTimeInput) {
+          departureTimeInput.value = '';
+          updateTimeDisplay(departureTimeInput);
+        }
+      } catch (err) {
+        alert("Departure action failed: " + err.message);
+        checkbox.checked = !checkbox.checked;
+        content.classList.toggle('strikethrough', checkbox.checked);
+        if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      }
+    }
+
+    function updateTimeDisplay(input) {
+      if (!input) return;
+      const wrapper = input.closest('.time-input-wrapper');
+      if (input.value) {
+        wrapper.classList.add('has-value');
+      } else {
+        wrapper.classList.remove('has-value');
+      }
+    }
+
+    function forcePicker(el) {
+      const input = el.querySelector('input[type="time"]');
+      if (input && !input.value) {
+        try {
+          if (typeof input.showPicker === 'function') input.showPicker();
+          else input.focus();
+        } catch (e) {
+          input.style.opacity = "1";
+        }
+      }
+    }
+
+    function render(data) {
+      let html = '<div class="columns is-multiline">';
+      data.forEach(day => {
+        html += `<div class="column is-6-desktop is-12-tablet">${renderDay(day)}</div>`;
+      });
+      html += '</div>';
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function renderDay(day) {
+      const isWeekend = day.viewType === "WEEKEND";
+      const isToday = day.isEditable;
+      const isEntry = (currentPage === "entry");
+      const dateId = (day.dateStr || '').replace(/[^a-zA-Z0-9]/g, '');
+
+      const getSignOff = (name, role) => {
+        if (!day.signOffs) return null;
+        return day.signOffs.find(s =>
+          String(s.name) === String(name) && String(s.role) === String(role)
+        );
+      };
+
+      let html = `
+          <div class="day-section">
+            <h1 class="title is-2 mb-2">${day.viewTitle}</h1>
+            <div class="date-header">${day.dateStr}</div>
+
+            <div class="section-title">LMH Coverage</div>
+            <div class="mb-5">
+              <div class="entry" id="row-${dateId}-ac">
+                <div class="entry-content">
+                  <span class="num-badge" style="background-color: #48c78e;">MD CALL</span>
+                  <span class="has-text-weight-bold">${day.docs.ac}</span>
+                </div>
+              </div>
+              ${!isWeekend ? `
+              <div class="entry" id="row-${dateId}-pc">
+                <div class="entry-content">
+                  <span class="num-badge" style="background-color: #48c78e;">PAIN</span>
+                  <span class="has-text-weight-bold">${day.docs.pc}</span>
+                </div>
+              </div>` : ''}
+              <div class="entry" id="row-${dateId}-backup">
+                <div class="entry-content">
+                  <span class="num-badge">CRNA BACKUP</span>
+                  <span class="has-text-weight-bold">${day.backupCRNA}</span>
+                </div>
+              </div>
+            </div>`;
+
+      if (!isWeekend) {
+        html += `
+            <div class="section-title">
+              LSC
+              ${(isToday && isEntry) ? '<div class="header-labels"><span>In</span><span>Out</span></div>' : ''}
+            </div>
+            <div class="mb-5">
+              <div class="entry" id="row-${dateId}-lscdoc">
+                <div class="entry-content">
+                  <span class="num-badge" style="background-color: #48c78e;">DOC</span>
+                  <span class="has-text-weight-bold">${day.docs.lsc}</span>
+                </div>
+              </div>
+              ${day.lsc.length ? day.lsc.map((name, i) => {
+                const off = getSignOff(name, 'LSC');
+                return `
+                <div class="entry" id="row-${dateId}-lsc-${i}">
+                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                    <span class="num-badge">CRNA</span>
+                    <span class="has-text-weight-bold">${name}</span>
+                    ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">GONE @ </span>${off.time}</span>` : ''}
+                  </div>
+                  ${isToday ? `
+                    <div class="controls-wrapper">
+                      ${isEntry ? `
+                        <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                          <div class="time-trigger-btn">🏥</div>
+                          <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                        </div>
+                        <label class="switch-container arrival-switch">
+                          <input type="checkbox" class="switch-input arrival-checkbox" 
+                              data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
+                              ${off && off.arrivalTime ? 'checked' : ''} 
+                              onchange="toggleArrival(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
+                          <span class="switch-track"><span class="switch-thumb"></span></span>
+                        </label>
+                      ` : ''}
+                      <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                          <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                          <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                      </div>
+                      <label class="switch-container">
+                        <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
+                          data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
+                          ${off && off.time ? 'checked' : ''} 
+                          onchange="toggleDeparture(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>` : ''}
+                </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
+            </div>
+
+            <div class="section-title">
+              CRNA Coverage
+              ${(isToday && isEntry) ? '<div class="header-labels"><span>In</span><span>Out</span></div>' : ''}
+            </div>
+            <div>
+              ${day.numbered.length ? day.numbered.map((e, i) => {
+                const off = getSignOff(e.name, e.num);
+                return `
+                <div class="entry" id="row-${dateId}-num-${i}">
+                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                    <span class="num-badge">${e.num}</span>
+                    <span class="has-text-weight-bold">${e.name}</span>
+                    ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">GONE @ </span>${off.time}</span>` : ''}
+                  </div>
+                  ${isToday ? `
+                    <div class="controls-wrapper">
+                      ${isEntry ? `
+                        <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                          <div class="time-trigger-btn">🏥</div>
+                          <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                        </div>
+                        <label class="switch-container arrival-switch">
+                          <input type="checkbox" class="switch-input arrival-checkbox" 
+                              data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}"
+                              ${off && off.arrivalTime ? 'checked' : ''} 
+                              onchange="toggleArrival(this, '${e.name}', '${e.num}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
+                          <span class="switch-track"><span class="switch-thumb"></span></span>
+                        </label>
+                      ` : ''}
+                      <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                          <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                          <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                      </div>
+                      <label class="switch-container">
+                        <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
+                          data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}"
+                          ${off && off.time ? 'checked' : ''} 
+                          onchange="toggleDeparture(this, '${e.name}', '${e.num}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>` : ''}
+                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
+            </div>`;
+      }
+
+      html += `</div>`;
+      return html;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Provider Portal</title>
+  
+  <!-- Bulma and Custom Premium Stylesheet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://img.icons8.com/color/48/medical-doctor.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://img.icons8.com/color/192/medical-doctor.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://img.icons8.com/color/180/medical-doctor.png">
+</head>
+
+<body>
+  <div class="container">
+    
+    <!-- Login Card -->
+    <div id="login-section" class="portal-login-card mx-auto mt-6" style="max-width: 450px;">
+      <h1 class="title is-4 has-text-centered mb-5">Locum Provider Portal</h1>
+      
+      <div class="field mb-4">
+        <label class="label">Select Your Name</label>
+        <div class="control select is-fullwidth">
+          <select id="name-select" onchange="updatePinPlaceholder()">
+            <option>Loading names...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="field mb-5">
+        <label class="label" id="pin-label">Enter PIN</label>
+        <div class="control">
+          <input class="input" type="password" id="pin-input" placeholder="####" pattern="\d*">
+        </div>
+      </div>
+      
+      <button class="button is-link is-fullwidth" id="login-btn" onclick="loadPortal()">Access Portal</button>
+      <p id="login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
+    </div>
+
+    <!-- Schedule Display Content -->
+    <div id="portal-content" style="display:none;" class="mt-4">
+      <div class="level is-mobile mb-4">
+        <div class="level-left">
+          <h2 class="title is-4 mb-0" id="user-title">MY UPCOMING SHIFTS</h2>
+        </div>
+        <div class="level-right">
+           <span id="pin-status-tag" class="tag is-success is-light" style="display:none; font-weight: 700;">PIN Registered</span>
+        </div>
+      </div>
+      
+      <div id="my-schedule"></div>
+      
+      <div class="mt-6 has-text-centered">
+        <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Configuration & API Helper first -->
+  <script src="config.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    window.onload = async () => {
+      try {
+        const items = await callApi("getLocumNames");
+        const select = document.getElementById('name-select');
+        select.innerHTML = items.map(item => 
+          `<option value="${item.name}" data-haspin="${item.hasPin}">${item.name}</option>`
+        ).join('');
+        updatePinPlaceholder();
+      } catch (err) {
+        document.getElementById('name-select').innerHTML = `<option>Error loading names</option>`;
+        console.error("Failed to load names:", err);
+      }
+    };
+
+    function updatePinPlaceholder() {
+      const select = document.getElementById('name-select');
+      const selectedOption = select.options[select.selectedIndex];
+      if (!selectedOption) return;
+      const hasPin = selectedOption.getAttribute('data-haspin') === 'true';
+      const pinInput = document.getElementById('pin-input');
+      const pinLabel = document.getElementById('pin-label');
+
+      if (hasPin) {
+        pinLabel.innerText = "Enter PIN";
+        pinInput.placeholder = "Enter existing PIN";
+      } else {
+        pinLabel.innerText = "First-time Setup: Create PIN";
+        pinInput.placeholder = "Choose a 4-digit PIN";
+      }
+    }
+
+    function loadPortal() {
+      const select = document.getElementById('name-select');
+      const name = select.value;
+      const selectedOption = select.options[select.selectedIndex];
+      const hasPin = selectedOption.getAttribute('data-haspin') === 'true';
+      const pin = document.getElementById('pin-input').value;
+      const btn = document.getElementById('login-btn');
+      const err = document.getElementById('login-error');
+
+      if (!pin) { 
+        alert("Please enter your PIN"); 
+        return; 
+      }
+      
+      btn.classList.add('is-loading');
+      err.style.display = 'none';
+
+      refreshData(name, pin, !hasPin);
+    }
+
+    async function refreshData(name, pin, isFirstTime) {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('portal-content').style.display = 'block';
+      document.getElementById('user-title').innerText = `SCHEDULE FOR ${name.toUpperCase()}`;
+      
+      const schedDiv = document.getElementById('my-schedule');
+      const loadingText = isFirstTime ? "Registering your PIN and fetching shifts..." : "Fetching your shifts...";
+      schedDiv.innerHTML = `<div class="loading-wrap"><button class="button is-loading is-white is-large"></button><p>${loadingText}</p></div>`;
+
+      try {
+        const result = await callApi("getLocumSchedule", { name, pin });
+        
+        if (result.isNewPin) {
+          document.getElementById('pin-status-tag').style.display = 'inline-flex';
+        }
+
+        if (result.schedule.length === 0) { 
+          schedDiv.innerHTML = '<p class="has-text-centered has-text-grey py-5 italic-grey">No upcoming shifts.</p>'; 
+          return; 
+        }
+        
+        // Helper to get Week Number (ISO)
+        const getWeek = (sortDate) => {
+          const date = new Date(sortDate);
+          const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+          const dayNum = d.getUTCDay() || 7;
+          d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+          const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+          return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        };
+
+        // Group data by Year + Week
+        const groupedByWeek = result.schedule.reduce((acc, curr) => {
+          const weekNum = getWeek(curr.sortDate); 
+          const year = new Date(curr.sortDate).getFullYear();
+          const key = `Year ${year} - Week ${weekNum}`;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(curr);
+          return acc;
+        }, {});
+
+        let html = '<div class="columns is-multiline">';
+        for (const weekKey in groupedByWeek) {
+          html += `
+            <div class="column is-6-desktop is-12-tablet">
+              <div class="week-block" style="padding:0;">
+                <div class="week-title">${weekKey}</div>
+                ${groupedByWeek[weekKey].map(s => `
+                  <div class="shift-card">
+                    <div class="date-box">
+                      <div class="day-name">${s.dayName}</div>
+                      <div class="date-val">${s.dateStr}</div>
+                    </div>
+                    <div class="assignment-box">
+                      ${s.isPending ? '<span class="tag is-warning is-light is-size-7 mb-1" style="font-weight:700;">PENDING CONFIRMATION</span>' : ''}
+                      <div class="assignment-tag" style="${s.isPending ? 'border-color: #ffe08a; background-color: #fffdf5;' : ''}">${s.assignment}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>`;
+        }
+        html += '</div>';
+        schedDiv.innerHTML = html;
+      } catch (error) {
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('portal-content').style.display = 'none';
+        
+        const btn = document.getElementById('login-btn');
+        btn.classList.remove('is-loading');
+        
+        const err = document.getElementById('login-error');
+        err.innerText = error.message;
+        err.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
