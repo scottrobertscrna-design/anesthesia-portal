@@ -61,7 +61,7 @@
     --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.15);
   }
 
-  .input, .select select {
+  .input, .select select, input[type="date"], #entry-date-picker {
     background-color: #ffffff !important;
     border: 1px solid rgba(15, 23, 42, 0.15) !important;
     color: var(--text-main) !important;
@@ -310,7 +310,7 @@ h1, h2, h3, .title, .subtitle {
 }
 
 /* Date picker & Input styles */
-.input, .select select {
+.input, .select select, input[type="date"], #entry-date-picker {
   background-color: rgba(15, 23, 42, 0.6) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: var(--text-main) !important;
