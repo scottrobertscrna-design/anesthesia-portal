@@ -87,8 +87,8 @@
         const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
         const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
 
-        // Clear existing display spans
-        content.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
+        // Clear existing display spans across the whole row
+        entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
 
         if (data) {
           // Sync Arrival (Entry Mode Only)
@@ -107,7 +107,13 @@
             span.className = 'arrival-time-display';
             span.innerHTML = '<span class="time-prefix">IN @ </span>';
             span.appendChild(document.createTextNode(data.arrivalTime));
-            content.appendChild(span);
+            
+            const arrivalSwitch = entryRow.querySelector('.arrival-switch');
+            if (arrivalSwitch) {
+              arrivalSwitch.before(span);
+            } else {
+              content.appendChild(span);
+            }
           }
 
           // Sync Departure
@@ -122,7 +128,13 @@
             span.className = 'departure-time-display';
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
-            content.appendChild(span);
+            
+            const departureSwitch = departureCb.closest('.switch-container');
+            if (departureSwitch) {
+              departureSwitch.before(span);
+            } else {
+              content.appendChild(span);
+            }
             content.classList.add('strikethrough');
           } else {
             content.classList.remove('strikethrough');
@@ -181,7 +193,7 @@
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingArrivalDisplay = content.querySelector('.arrival-time-display');
+        const existingArrivalDisplay = row.querySelector('.arrival-time-display');
         if (existingArrivalDisplay) existingArrivalDisplay.remove();
 
         if (res.status && res.timestamp) {
@@ -189,7 +201,13 @@
           span.className = 'arrival-time-display';
           span.innerHTML = '<span class="time-prefix">IN @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
-          content.appendChild(span);
+          
+          const arrivalSwitch = row.querySelector('.arrival-switch');
+          if (arrivalSwitch) {
+            arrivalSwitch.before(span);
+          } else {
+            content.appendChild(span);
+          }
         } else if (!res.status && arrivalTimeInput) {
           arrivalTimeInput.value = '';
           updateTimeDisplay(arrivalTimeInput);
@@ -216,7 +234,7 @@
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingDepartureDisplay = content.querySelector('.departure-time-display');
+        const existingDepartureDisplay = row.querySelector('.departure-time-display');
         if (existingDepartureDisplay) existingDepartureDisplay.remove();
 
         if (res.status && res.timestamp) {
@@ -224,7 +242,13 @@
           span.className = 'departure-time-display';
           span.innerHTML = '<span class="time-prefix">OUT @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
-          content.appendChild(span);
+          
+          const departureSwitch = checkbox.closest('.switch-container');
+          if (departureSwitch) {
+            departureSwitch.before(span);
+          } else {
+            content.appendChild(span);
+          }
 
           if (res.arrivalTime) {
             const arrivalCb = row.querySelector('.arrival-checkbox');
@@ -233,11 +257,18 @@
               arrivalCb.checked = true;
               if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
               
-              if (!content.querySelector('.arrival-time-display')) {
-                const aSpan = document.createElement('span');
-                aSpan.className = 'arrival-time-display';
-                aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
-                aSpan.appendChild(document.createTextNode(res.arrivalTime));
+              const existingArrivalDisplay = row.querySelector('.arrival-time-display');
+              if (existingArrivalDisplay) existingArrivalDisplay.remove();
+
+              const aSpan = document.createElement('span');
+              aSpan.className = 'arrival-time-display';
+              aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
+              aSpan.appendChild(document.createTextNode(res.arrivalTime));
+              
+              const arrivalSwitch = row.querySelector('.arrival-switch');
+              if (arrivalSwitch) {
+                arrivalSwitch.before(aSpan);
+              } else {
                 content.appendChild(aSpan);
               }
             }
@@ -348,12 +379,13 @@
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">CRNA</span>
                     <span class="has-text-weight-bold">${name}</span>
-                    ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                    ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                    ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
                   ${isToday ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
+                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                         <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">🏥</div>
                           <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
@@ -366,6 +398,7 @@
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
+                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
@@ -393,12 +426,13 @@
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">${e.num}</span>
                     <span class="has-text-weight-bold">${e.name}</span>
-                    ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                    ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                    ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
                   ${isToday ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
+                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                         <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">🏥</div>
                           <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
@@ -411,6 +445,7 @@
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
+                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
