@@ -202,13 +202,20 @@ h1, h2, h3, .title, .subtitle {
   background-color: var(--accent-emerald) !important;
 }
 
-/* Strikethrough & Grayscale for Departed CRNAs */
-.strikethrough {
-  opacity: 0.35;
-  filter: grayscale(80%);
+/* Strikethrough for Departed CRNAs — subtle fade, name struck through */
+.strikethrough .num-badge,
+.strikethrough .has-text-weight-bold {
+  opacity: 0.55;
+  filter: grayscale(30%);
 }
 .strikethrough .has-text-weight-bold {
   text-decoration: line-through;
+}
+/* Time pills stay vivid even on departed rows */
+.strikethrough .arrival-time-display,
+.strikethrough .departure-time-display {
+  opacity: 1;
+  filter: none;
 }
 
 /* Time display pills — color-coded for arrival (blue) and departure (green) */
@@ -482,22 +489,26 @@ h1, h2, h3, .title, .subtitle {
   display: inline-block;
 }
 
-/* Header Labels (In / Out) — blue to match section headings, larger */
+/* Header Labels (IN / OUT) — IN=blue, OUT=green, all caps */
 .header-labels {
   display: flex;
   font-size: 1.05rem;
-  color: var(--accent-blue);
   width: 170px;
   justify-content: flex-end;
   font-weight: 700;
   gap: 8px;
-  letter-spacing: 0.02em;
-  text-transform: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .header-labels span {
   width: 80px;
   text-align: center;
+  color: var(--accent-blue);   /* IN — blue */
+}
+
+.header-labels span:last-child {
+  color: var(--accent-emerald); /* OUT — green */
 }
 
 .italic-grey {

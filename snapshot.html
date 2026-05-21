@@ -120,7 +120,7 @@
           if (data.time) {
             const span = document.createElement('span');
             span.className = 'departure-time-display';
-            span.innerHTML = '<span class="time-prefix">GONE @ </span>';
+            span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
             content.appendChild(span);
             content.classList.add('strikethrough');
@@ -222,7 +222,7 @@
         if (res.status && res.timestamp) {
           const span = document.createElement('span');
           span.className = 'departure-time-display';
-          span.innerHTML = '<span class="time-prefix">GONE @ </span>';
+          span.innerHTML = '<span class="time-prefix">OUT @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
           content.appendChild(span);
 
@@ -332,7 +332,7 @@
         html += `
             <div class="section-title">
               LSC
-              ${(isToday && isEntry) ? '<div class="header-labels"><span>In</span><span>Out</span></div>' : ''}
+              ${(isToday && isEntry) ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
             </div>
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-lscdoc">
@@ -349,7 +349,7 @@
                     <span class="num-badge">CRNA</span>
                     <span class="has-text-weight-bold">${name}</span>
                     ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">GONE @ </span>${off.time}</span>` : ''}
+                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
                   ${isToday ? `
                     <div class="controls-wrapper">
@@ -383,7 +383,7 @@
 
             <div class="section-title">
               CRNA Coverage
-              ${(isToday && isEntry) ? '<div class="header-labels"><span>In</span><span>Out</span></div>' : ''}
+              ${(isToday && isEntry) ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
             </div>
             <div>
               ${day.numbered.length ? day.numbered.map((e, i) => {
@@ -394,7 +394,7 @@
                     <span class="num-badge">${e.num}</span>
                     <span class="has-text-weight-bold">${e.name}</span>
                     ${(isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">GONE @ </span>${off.time}</span>` : ''}
+                    ${off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
                   ${isToday ? `
                     <div class="controls-wrapper">
