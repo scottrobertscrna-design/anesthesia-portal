@@ -203,12 +203,13 @@ h1, h2, h3, .title, .subtitle {
 }
 
 /* Strikethrough for Departed CRNAs — subtle fade, name struck through */
-.strikethrough .num-badge,
+.strikethrough .num-badge {
+  opacity: 0.35;
+  filter: grayscale(100%);
+}
 .strikethrough .has-text-weight-bold {
   opacity: 0.55;
   filter: grayscale(30%);
-}
-.strikethrough .has-text-weight-bold {
   text-decoration: line-through;
 }
 /* Time pills stay vivid even on departed rows */
