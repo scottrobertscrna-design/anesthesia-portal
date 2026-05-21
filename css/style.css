@@ -565,8 +565,32 @@ input[type="date"],
   }
 
   .entry-page .controls-wrapper {
-    min-width: 140px;
-    gap: 4px;
+    min-width: 110px;
+    gap: 3px;
+  }
+
+  /* Compact switches on mobile — controls shrink, names stay the same */
+  .switch-track {
+    width: 36px;
+    height: 20px;
+  }
+
+  .switch-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  .switch-input:checked + .switch-track .switch-thumb {
+    transform: translateX(16px);
+  }
+
+  .time-input-wrapper {
+    width: 28px;
+    height: 22px;
+  }
+
+  .time-trigger-btn {
+    font-size: 0.8rem;
   }
 
   .entry-page .entry-content > .has-text-weight-bold {
