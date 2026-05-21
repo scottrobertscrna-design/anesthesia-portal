@@ -40,6 +40,9 @@
   <script>
     const currentPage = "snapshot";
     const IS_READ_ONLY = false;
+    // Tracks row IDs that are mid-flight (awaiting API response) so the
+    // background poll does not reset their visual state prematurely.
+    const pendingRows = new Set();
 
     window.onload = () => {
       fetchFreshData();
@@ -64,6 +67,9 @@
       document.querySelectorAll('.entry').forEach(entryRow => {
         const content = entryRow.querySelector('.entry-content');
         if (!content) return;
+
+        // Skip rows that have a pending API call in progress
+        if (pendingRows.has(entryRow.id)) return;
 
         const arrivalCb = entryRow.querySelector('.arrival-checkbox');
         const departureCb = entryRow.querySelector('.departure-checkbox') || entryRow.querySelector('.gone-home-checkbox');
@@ -172,6 +178,7 @@
 
       if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
 
+      pendingRows.add(targetId);
       try {
         const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
         const existingArrivalDisplay = content.querySelector('.arrival-time-display');
@@ -191,6 +198,8 @@
         alert("Arrival action failed: " + err.message);
         checkbox.checked = !checkbox.checked;
         if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      } finally {
+        pendingRows.delete(targetId);
       }
     }
 
@@ -204,6 +213,7 @@
       content.classList.toggle('strikethrough', checkbox.checked);
       if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
 
+      pendingRows.add(targetId);
       try {
         const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
         const existingDepartureDisplay = content.querySelector('.departure-time-display');
@@ -241,6 +251,8 @@
         checkbox.checked = !checkbox.checked;
         content.classList.toggle('strikethrough', checkbox.checked);
         if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      } finally {
+        pendingRows.delete(targetId);
       }
     }
 
