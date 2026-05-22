@@ -372,46 +372,55 @@
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
               </div>
-              ${day.lsc.length ? day.lsc.map((name, i) => {
-                const off = getSignOff(name, 'LSC');
-                return `
+              ${(() => {
+                // Client-side Nancy rule: only show her in LSC if she appears as "Nancy (1500)".
+                // If the API sends plain "Nancy" (e.g. cell says "holiday"), she is excluded.
+                const filteredLsc = day.lsc.filter(name => {
+                  if (name.toLowerCase().includes('nancy')) {
+                    return name.includes('(1500)');
+                  }
+                  return true;
+                });
+                return filteredLsc.length ? filteredLsc.map((name, i) => `
                 <div class="entry" id="row-${dateId}-lsc-${i}">
-                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                  <div class="entry-content ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'strikethrough' : ''; })()}">
                     <span class="num-badge">CRNA</span>
                     <span class="has-text-weight-bold">${name}</span>
-                    ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                    ${(!isToday && isEntry && (() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''; })())}
+                    ${(!isToday && (() => { const off = getSignOff(name, 'LSC'); return off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''; })())}
                   </div>
                   ${isToday ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
-                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                        <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                        ${(() => { const off = getSignOff(name, 'LSC'); return (off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''; })()}
+                        <div class="time-input-wrapper arrival-time-wrapper ${(() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? 'has-value' : ''; })()}" style="${(() => { const off = getSignOff(name, 'LSC'); return (off && off.arrivalTime) ? 'display:none' : 'display:flex'; })()}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">🏥</div>
                           <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
                         </div>
                         <label class="switch-container arrival-switch">
                           <input type="checkbox" class="switch-input arrival-checkbox" 
                               data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
-                              ${off && off.arrivalTime ? 'checked' : ''} 
+                              ${(() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? 'checked' : ''; })()}
                               onchange="toggleArrival(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                      <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                      ${(() => { const off = getSignOff(name, 'LSC'); return (off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''; })()}
+                      <div class="time-input-wrapper departure-time-wrapper ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'has-value' : ''; })()}" style="${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'display:none' : 'display:flex'; })()}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
                       </div>
                       <label class="switch-container">
                         <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
                           data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
-                          ${off && off.time ? 'checked' : ''} 
+                          ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'checked' : ''; })()}
                           onchange="toggleDeparture(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
                     </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
+                </div>`).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
+              })()}
+
             </div>
 
             <div class="section-title">
