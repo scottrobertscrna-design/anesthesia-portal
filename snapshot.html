@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="css/style.css?v=7">
   
   <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest_snapshot.json?v=2">
+  <link rel="manifest" href="manifest_snapshot.json?v=3">
+
 
 
 
@@ -392,45 +393,49 @@
                   }
                   return true;
                 });
-                return filteredLsc.length ? filteredLsc.map((name, i) => `
-                <div class="entry" id="row-${dateId}-lsc-${i}">
-                  <div class="entry-content ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'strikethrough' : ''; })()}">
-                    <span class="num-badge">CRNA</span>
-                    <span class="has-text-weight-bold">${name}</span>
-                    ${(!isToday && isEntry && (() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''; })())}
-                    ${(!isToday && (() => { const off = getSignOff(name, 'LSC'); return off && off.time ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''; })())}
-                  </div>
-                  ${isToday ? `
-                    <div class="controls-wrapper">
-                      ${isEntry ? `
-                        ${(() => { const off = getSignOff(name, 'LSC'); return (off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''; })()}
-                        <div class="time-input-wrapper arrival-time-wrapper ${(() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? 'has-value' : ''; })()}" style="${(() => { const off = getSignOff(name, 'LSC'); return (off && off.arrivalTime) ? 'display:none' : 'display:flex'; })()}" onclick="forcePicker(this)">
-                          <div class="time-trigger-btn">🏥</div>
-                          <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                return filteredLsc.length ? filteredLsc.map((name, i) => {
+                  const off = getSignOff(name, 'LSC');
+                  return `
+                  <div class="entry" id="row-${dateId}-lsc-${i}">
+                    <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                      <span class="num-badge">CRNA</span>
+                      <span class="has-text-weight-bold">${name}</span>
+                      ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                      ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                    </div>
+                    ${isToday ? `
+                      <div class="controls-wrapper">
+                        ${isEntry ? `
+                          ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                          <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                            <div class="time-trigger-btn">🏥</div>
+                            <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                          </div>
+                          <label class="switch-container arrival-switch">
+                            <input type="checkbox" class="switch-input arrival-checkbox" 
+                                data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
+                                ${off && off.arrivalTime ? 'checked' : ''}
+                                onchange="toggleArrival(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
+                            <span class="switch-track"><span class="switch-thumb"></span></span>
+                          </label>
+                        ` : ''}
+                        ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                        <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                            <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                            <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
                         </div>
-                        <label class="switch-container arrival-switch">
-                          <input type="checkbox" class="switch-input arrival-checkbox" 
-                              data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
-                              ${(() => { const off = getSignOff(name, 'LSC'); return off && off.arrivalTime ? 'checked' : ''; })()}
-                              onchange="toggleArrival(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
+                        <label class="switch-container">
+                          <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
+                            data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
+                            ${off && off.time ? 'checked' : ''}
+                            onchange="toggleDeparture(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
-                      ` : ''}
-                      ${(() => { const off = getSignOff(name, 'LSC'); return (off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''; })()}
-                      <div class="time-input-wrapper departure-time-wrapper ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'has-value' : ''; })()}" style="${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'display:none' : 'display:flex'; })()}" onclick="forcePicker(this)">
-                          <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
-                          <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
-                      </div>
-                      <label class="switch-container">
-                        <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
-                          data-name="${name}" data-role="LSC" data-date="${day.dateStr}"
-                          ${(() => { const off = getSignOff(name, 'LSC'); return off && off.time ? 'checked' : ''; })()}
-                          onchange="toggleDeparture(this, '${name}', 'LSC', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
-                        <span class="switch-track"><span class="switch-thumb"></span></span>
-                      </label>
-                    </div>` : ''}
-                </div>`).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
+                      </div>` : ''}
+                  </div>`;
+                }).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
               })()}
+
 
             </div>
 
@@ -507,7 +512,7 @@
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js')
+      navigator.serviceWorker.register('./sw.js', { scope: './snapshot.html' })
         .then(reg => console.log('SW registered:', reg.scope))
         .catch(err => console.warn('SW registration failed:', err));
     }
