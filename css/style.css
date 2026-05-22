@@ -60,13 +60,6 @@
     --shadow-card: 0 4px 16px rgba(15, 23, 42, 0.1);
     --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.15);
   }
-
-  .input {
-    background-color: #ffffff !important;
-    border: 1px solid rgba(15, 23, 42, 0.15) !important;
-    color: var(--text-main) !important;
-    color-scheme: light !important;
-  }
 }
 
 /* Base Overrides */
@@ -309,17 +302,8 @@ h1, h2, h3, .title, .subtitle {
   background-color: var(--accent-blue);
 }
 
-/* Date picker & Input styles */
-.input {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: var(--text-main) !important;
-  border-radius: 8px !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-  color-scheme: dark !important;
-}
-
-/* Select / Dropdown elements — always light style matching the date/time selectors */
+/* Date picker, Input, and Select/Dropdown styles — always light style matching the date/time selectors */
+.input,
 .select select {
   background-color: #ffffff !important;
   border: 1px solid rgba(15, 23, 42, 0.2) !important;
