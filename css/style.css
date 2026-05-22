@@ -400,6 +400,25 @@ input[type="date"],
   display: none;
 }
 
+/* When a time value has been entered, show it like the date display:
+   white background, dark readable text, matching the date picker style */
+.time-input-wrapper.has-value .arrival-time-input,
+.time-input-wrapper.has-value .departure-time-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  color-scheme: light !important;
+  border: 1px solid rgba(15, 23, 42, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 3px 7px !important;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  width: 90px !important;
+  height: 28px !important;
+  cursor: pointer;
+}
+
+
 /* Buttons */
 .button.is-link {
   background-color: var(--accent-blue) !important;
