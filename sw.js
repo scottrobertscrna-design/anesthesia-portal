@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v12';
+const CACHE_NAME = 'lawrence-anaesthesia-v13';
 
 const APP_SHELL = [
   './portal.html',
@@ -28,10 +28,26 @@ const APP_SHELL = [
 ];
 
 
-// ── Install: pre-cache the app shell ───────────────────────────────────────────
+// ── Install: pre-cache the app shell, bypassing browser HTTP cache ─────────────
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(async cache => {
+      console.log('Pre-caching app shell with cache-busting...');
+      const promises = APP_SHELL.map(async url => {
+        try {
+          const requestOptions = url.startsWith('http') ? {} : { cache: 'reload' };
+          const response = await fetch(new Request(url, requestOptions));
+          if (!response.ok) {
+            throw new Error(`Request failed for ${url} with status ${response.status}`);
+          }
+          await cache.put(url, response);
+        } catch (err) {
+          console.warn(`Failed to fetch ${url} with cache:reload, falling back to cache.add:`, err);
+          await cache.add(url);
+        }
+      });
+      await Promise.all(promises);
+    })
   );
   self.skipWaiting();
 });

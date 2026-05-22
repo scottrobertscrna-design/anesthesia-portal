@@ -11,19 +11,19 @@
   --card-bg: rgba(30, 41, 59, 0.5);
   --card-bg-hover: rgba(30, 41, 59, 0.7);
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(59, 130, 246, 0.3);
+  --border-glow: rgba(50, 115, 220, 0.3);
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --text-row: #f1f5f9;
-  --accent-blue: #3b82f6;
-  --accent-blue-hover: #2563eb;
+  --accent-blue: #3273dc;
+  --accent-blue-hover: #1967d2;
   --accent-indigo: #818cf8;
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
   --arrival-color: #60a5fa;       /* blue-400 — arrival pill text */
-  --arrival-bg: rgba(59, 130, 246, 0.15);
-  --arrival-border: rgba(59, 130, 246, 0.3);
+  --arrival-bg: rgba(50, 115, 220, 0.15);
+  --arrival-border: rgba(50, 115, 220, 0.3);
   --departure-color: #34d399;     /* emerald-400 — departure pill text */
   --departure-bg: rgba(16, 185, 129, 0.15);
   --departure-border: rgba(16, 185, 129, 0.3);
@@ -41,19 +41,19 @@
     --card-bg: rgba(255, 255, 255, 0.85);
     --card-bg-hover: rgba(255, 255, 255, 0.98);
     --border-color: rgba(15, 23, 42, 0.1);
-    --border-glow: rgba(59, 130, 246, 0.25);
+    --border-glow: rgba(50, 115, 220, 0.25);
     --text-main: #0f172a;
     --text-muted: #475569;
     --text-row: #0f172a;
-    --accent-blue: #2563eb;
-    --accent-blue-hover: #1d4ed8;
+    --accent-blue: #3273dc;
+    --accent-blue-hover: #1967d2;
     --accent-indigo: #4f46e5;
     --accent-emerald: #059669;
     --accent-amber: #d97706;
     --accent-rose: #e11d48;
-    --arrival-color: #1d4ed8;       /* blue-700 — readable on white */
-    --arrival-bg: rgba(37, 99, 235, 0.1);
-    --arrival-border: rgba(37, 99, 235, 0.25);
+    --arrival-color: #1967d2;       /* blue-700 — readable on white */
+    --arrival-bg: rgba(50, 115, 220, 0.1);
+    --arrival-border: rgba(50, 115, 220, 0.25);
     --departure-color: #047857;     /* emerald-700 — readable on white */
     --departure-bg: rgba(5, 150, 105, 0.1);
     --departure-border: rgba(5, 150, 105, 0.25);
@@ -137,7 +137,7 @@ h1, h2, h3, .title, .subtitle {
 
 .day-section:hover {
   border-color: var(--accent-blue-hover);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.18);
+  box-shadow: 0 4px 20px rgba(50, 115, 220, 0.18);
 }
 
 /* Section headings — blue to match CRNA buttons, full-width underline */
@@ -358,7 +358,7 @@ input[type="date"],
 .input:active, 
 .select select:active {
   border-color: var(--accent-blue) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(50, 115, 220, 0.25) !important;
 }
 
 .label {
