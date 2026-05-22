@@ -303,6 +303,10 @@ h1, h2, h3, .title, .subtitle {
 }
 
 /* Date picker, Input, and Select/Dropdown styles — always light style matching the date/time selectors */
+#pin-input,
+input.input,
+input[type="password"],
+input[type="text"],
 .input,
 .select select {
   background-color: #ffffff !important;
@@ -311,6 +315,25 @@ h1, h2, h3, .title, .subtitle {
   border-radius: 8px !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
   color-scheme: light !important;
+}
+
+/* Ensure placeholder is visible and dark enough on light background */
+#pin-input::placeholder,
+.input::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* Fix autofill colors */
+#pin-input:-webkit-autofill,
+#pin-input:-webkit-autofill:hover, 
+#pin-input:-webkit-autofill:focus,
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 .select::after {
@@ -328,7 +351,12 @@ input[type="date"],
   padding: 4px 8px !important;
 }
 
-.input:focus, .select select:focus, .input:active, .select select:active {
+#pin-input:focus,
+#pin-input:active,
+.input:focus, 
+.select select:focus, 
+.input:active, 
+.select select:active {
   border-color: var(--accent-blue) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
 }
