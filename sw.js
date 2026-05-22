@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v2';
+const CACHE_NAME = 'lawrence-anaesthesia-v3';
 
 const APP_SHELL = [
   './portal.html',
@@ -17,10 +17,15 @@ const APP_SHELL = [
   './js/api.js',
   './config.js',
   './snoozle.png',
+  './snoozle_maskable.png',
+  './manifest_portal.json',
+  './manifest_snapshot.json',
+  './manifest_timekeeper.json',
   './offline.html',
   'https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap'
 ];
+
 
 // ── Install: pre-cache the app shell ───────────────────────────────────────────
 self.addEventListener('install', event => {

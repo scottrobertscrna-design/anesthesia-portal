@@ -1,7 +1,8 @@
 {
-  "name": "Lawrence Anaesthesia",
-  "short_name": "Anaesthesia",
-  "description": "CRNA scheduling and daily snapshot for Lawrence Anaesthesia",
+  "name": "Timekeeper Entry",
+  "short_name": "Timekeeper",
+  "description": "CRNA Sign-in/out Entry for Lawrence Anaesthesia",
+  "start_url": "./timekeeper.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
