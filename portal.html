@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_portal.json?v=4">
@@ -181,14 +181,14 @@
                   const isGreenBadge = ['MD CALL', 'PAIN', 'DOC'].includes(s.assignment.toUpperCase().trim());
                   const badgeStyle = isGreenBadge ? 'background-color: #48c78e;' : '';
                   return `
-                  <div class="shift-card">
-                    <div class="entry-content">
-                      <span class="num-badge" style="${badgeStyle}">${s.assignment}</span>
-                      <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
-                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; line-height: 1.2;">${s.dayName}</span>
-                        <span class="has-text-weight-bold" style="font-size: 1.05rem; color: var(--text-main); line-height: 1.2;">${s.dateStr}</span>
-                      </div>
-                      ${s.isPending ? '<span class="tag is-warning is-light is-size-7 ml-auto" style="font-weight:700; align-self: center;">PENDING CONFIRMATION</span>' : ''}
+                  <div class="shift-card" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
+                      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; line-height: 1.2;">${s.dayName}</span>
+                      <span class="has-text-weight-bold" style="font-size: 1.05rem; color: var(--text-main); line-height: 1.2;">${s.dateStr}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: row; align-items: center; gap: 8px; flex-shrink: 0;">
+                      ${s.isPending ? '<span class="tag is-warning is-light is-size-7" style="font-weight:700;">PENDING CONFIRMATION</span>' : ''}
+                      <span class="num-badge" style="margin-right: 0; margin-left: 10px; ${badgeStyle}">${s.assignment}</span>
                     </div>
                   </div>
                   `;
@@ -215,6 +215,16 @@
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
+      // Auto-reload the page when a new service worker takes control (e.g. cache bump)
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          console.log('New service worker activated. Reloading...');
+          window.location.reload();
+        }
+      });
+
       navigator.serviceWorker.getRegistrations().then(registrations => {
         const targetScope = new URL('./portal.html', window.location.href).href;
         let unregisteredOld = false;

@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=3">
@@ -501,6 +501,16 @@
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
+      // Auto-reload the page when a new service worker takes control (e.g. cache bump)
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          console.log('New service worker activated. Reloading...');
+          window.location.reload();
+        }
+      });
+
       navigator.serviceWorker.getRegistrations().then(registrations => {
         const targetScope = new URL('./timekeeper.html', window.location.href).href;
         let unregisteredOld = false;
