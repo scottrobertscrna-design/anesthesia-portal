@@ -1,6 +1,6 @@
 {
-  "name": "Provider Portal",
-  "short_name": "Portal",
+  "name": "LAPA Portal",
+  "short_name": "LAPA Portal",
   "description": "Locum Provider Portal for Lawrence Anaesthesia",
   "id": "portal",
   "start_url": "./portal.html",
@@ -11,13 +11,13 @@
   "background_color": "#0f172a",
   "icons": [
     {
-      "src": "snoozle.png",
+      "src": "snoozle_yellow.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "snoozle_maskable.png",
+      "src": "snoozle_yellow.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

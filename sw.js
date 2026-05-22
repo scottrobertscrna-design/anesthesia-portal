@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v6';
+const CACHE_NAME = 'lawrence-anaesthesia-v7';
 
 const APP_SHELL = [
   './portal.html',
@@ -18,6 +18,7 @@ const APP_SHELL = [
   './config.js',
   './snoozle.png',
   './snoozle_maskable.png',
+  './snoozle_yellow.png',
   './manifest_portal.json',
   './manifest_snapshot.json',
   './manifest_timekeeper.json',
