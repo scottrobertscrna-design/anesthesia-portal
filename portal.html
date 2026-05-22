@@ -211,9 +211,29 @@
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js', { scope: './portal.html' })
-        .then(reg => console.log('SW registered:', reg.scope))
-        .catch(err => console.warn('SW registration failed:', err));
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        const targetScope = new URL('./portal.html', window.location.href).href;
+        let unregisteredOld = false;
+        const promises = registrations.map(reg => {
+          if (reg.scope !== targetScope) {
+            console.log('Unregistering old or conflicting SW scope:', reg.scope);
+            unregisteredOld = true;
+            return reg.unregister();
+          }
+          return Promise.resolve(false);
+        });
+        Promise.all(promises).then(() => {
+          navigator.serviceWorker.register('./sw.js', { scope: './portal.html' })
+            .then(reg => {
+              console.log('SW registered with scope:', reg.scope);
+              if (unregisteredOld) {
+                // Reload to let the new scoped service worker take control immediately
+                window.location.reload();
+              }
+            })
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      });
     }
   </script>
 </body>
