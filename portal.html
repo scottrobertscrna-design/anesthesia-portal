@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=11">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_portal.json?v=4">
@@ -177,18 +177,22 @@
             <div class="column is-6-desktop is-12-tablet">
               <div class="week-block" style="padding:0;">
                 <div class="week-title">${weekKey}</div>
-                ${groupedByWeek[weekKey].map(s => `
+                ${groupedByWeek[weekKey].map(s => {
+                  const isGreenBadge = ['MD CALL', 'PAIN', 'DOC'].includes(s.assignment.toUpperCase().trim());
+                  const badgeStyle = isGreenBadge ? 'background-color: #48c78e;' : '';
+                  return `
                   <div class="shift-card">
-                    <div class="date-box">
-                      <div class="day-name">${s.dayName}</div>
-                      <div class="date-val">${s.dateStr}</div>
-                    </div>
-                    <div class="assignment-box">
-                      ${s.isPending ? '<span class="tag is-warning is-light is-size-7 mb-1" style="font-weight:700;">PENDING CONFIRMATION</span>' : ''}
-                      <div class="assignment-tag" style="${s.isPending ? 'border-color: #ffe08a; background-color: #fffdf5;' : ''}">${s.assignment}</div>
+                    <div class="entry-content">
+                      <span class="num-badge" style="${badgeStyle}">${s.assignment}</span>
+                      <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; line-height: 1.2;">${s.dayName}</span>
+                        <span class="has-text-weight-bold" style="font-size: 1.05rem; color: var(--text-main); line-height: 1.2;">${s.dateStr}</span>
+                      </div>
+                      ${s.isPending ? '<span class="tag is-warning is-light is-size-7 ml-auto" style="font-weight:700; align-self: center;">PENDING CONFIRMATION</span>' : ''}
                     </div>
                   </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>`;
         }
