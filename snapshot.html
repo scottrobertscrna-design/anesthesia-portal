@@ -428,7 +428,18 @@
               ${(isToday && isEntry) ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
             </div>
             <div>
-              ${day.numbered.length ? day.numbered.map((e, i) => {
+              ${(() => {
+                // Filter out MD Locum rows where the cell value is a non-assignment word
+                // (e.g. "Holiday", "Vacation") — the backend doesn't catch these.
+                const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
+                const filteredNumbered = day.numbered.filter(e => {
+                  if (e.num === 'MD Locum') {
+                    return !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim());
+                  }
+                  return true;
+                });
+                return filteredNumbered;
+              })().map((e, i) => {
                 const off = getSignOff(e.name, e.num);
                 return `
                 <div class="entry" id="row-${dateId}-num-${i}">
@@ -467,7 +478,13 @@
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
                     </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
+                 </div>`}).join('')}
+              ${(() => {
+                const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
+                const filteredNumbered = day.numbered.filter(e => e.num !== 'MD Locum' || !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim()));
+                return filteredNumbered.length === 0 ? '<p class="italic-grey py-2">No numbered shifts assigned</p>' : '';
+              })()}
+
             </div>`;
       }
 
