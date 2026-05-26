@@ -705,13 +705,15 @@ input[type="date"],
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-muted);
   border-radius: 8px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  min-width: 90px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
@@ -751,12 +753,14 @@ input[type="date"],
 /* Responsive optimization: Hide text label on mobile screens and keep only emojis */
 @media screen and (max-width: 768px) {
   .break-lunch-controls {
-    gap: 4px;
+    gap: 6px;
   }
   .break-lunch-controls button {
-    padding: 6px 8px;
-    font-size: 0.95rem;
+    padding: 6px 12px;
+    font-size: 1.05rem;
     border-radius: 6px;
+    min-width: 65px;
+    justify-content: center;
   }
   .break-lunch-controls button .btn-text {
     display: none;
