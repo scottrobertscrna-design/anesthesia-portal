@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=16">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -141,7 +141,8 @@
 
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
-        const bl = blState[key] || { break: false, lunch: false };
+        const blKey = `${name}|${role}`;
+        const bl = blState[blKey] || { break: false, lunch: false };
 
         // Clear existing display spans across the whole row
         entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
