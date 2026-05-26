@@ -691,3 +691,75 @@ input[type="date"],
   }
 }
 
+/* Break and Lunch Toggles styling */
+.break-lunch-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.break-lunch-controls button {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.break-lunch-controls button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.break-lunch-controls button:active {
+  transform: scale(0.95);
+}
+
+/* Active states */
+.break-lunch-controls button.btn-break.active {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.break-lunch-controls button.btn-lunch.active {
+  background-color: rgba(129, 140, 248, 0.18) !important;
+  border-color: rgba(129, 140, 248, 0.4) !important;
+  color: #a5b4fc !important;
+  box-shadow: 0 0 10px rgba(129, 140, 248, 0.1);
+}
+
+/* Disabled state when provider went home */
+.break-lunch-controls.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Responsive optimization: Hide text label on mobile screens and keep only emojis */
+@media screen and (max-width: 768px) {
+  .break-lunch-controls {
+    gap: 4px;
+  }
+  .break-lunch-controls button {
+    padding: 6px 8px;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .break-lunch-controls button .btn-text {
+    display: none;
+  }
+}
+

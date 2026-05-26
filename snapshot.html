@@ -84,15 +84,18 @@
 
     async function pollSignOffs() {
       try {
-        const liveSignOffs = await callApi("getAllActiveSignOffs");
-        syncCheckboxes(liveSignOffs);
+        const picker = document.getElementById('entry-date-picker');
+        const activeDate = picker ? picker.value : '';
+        const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
+        syncCheckboxes(update.signOffs, update.breakLunchStates);
       } catch (err) {
         console.error("Polling error:", err);
       }
     }
 
-    function syncCheckboxes(liveSignOffs) {
+    function syncCheckboxes(liveSignOffs, breakLunchStates) {
       const signedOffKeys = new Map(liveSignOffs.map(s => [`${s.name}|${s.role}|${s.dateStr}`, s]));
+      const blState = breakLunchStates || {};
 
       document.querySelectorAll('.entry').forEach(entryRow => {
         const content = entryRow.querySelector('.entry-content');
@@ -108,6 +111,7 @@
 
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
+        const bl = blState[key] || { break: false, lunch: false };
 
         // Clear existing display spans across the whole row
         entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
@@ -136,6 +140,33 @@
         } else {
           content.classList.remove('strikethrough');
         }
+
+        // Hide break/lunch buttons entirely if they are signed off (home)
+        const blControls = entryRow.querySelector('.break-lunch-controls');
+        if (data && data.time) {
+          if (blControls) blControls.remove();
+        } else {
+          // If not home, ensure break/lunch buttons exist and have correct active states
+          if (blControls) {
+            const btnBreak = blControls.querySelector('.btn-break');
+            const btnLunch = blControls.querySelector('.btn-lunch');
+            if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
+            if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
+          } else {
+            // Re-render controls if they were removed but signoff got cleared
+            const newControls = document.createElement('div');
+            newControls.className = 'break-lunch-controls';
+            newControls.innerHTML = `
+              <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'break')">
+                ☕ <span class="btn-text">Break</span>
+              </button>
+              <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'lunch')">
+                🍱 <span class="btn-text">Lunch</span>
+              </button>
+            `;
+            entryRow.appendChild(newControls);
+          }
+        }
       });
     }
 
@@ -151,6 +182,24 @@
         render(data);
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Error loading data: ${err.message}</div>`;
+      }
+    }
+
+    async function toggleBreakLunch(btn, name, role, dateStr, type) {
+      const isChecked = !btn.classList.contains('active');
+      btn.classList.add('is-loading');
+      
+      try {
+        const res = await callApi("toggleBreakLunch", { name, role, dateStr, type, isChecked });
+        btn.classList.remove('is-loading');
+        if (res && res.success) {
+          btn.classList.toggle('active', isChecked);
+        } else {
+          alert("Error: " + (res.error || "failed to update status."));
+        }
+      } catch (err) {
+        btn.classList.remove('is-loading');
+        alert("Action failed: " + err.message);
       }
     }
 
@@ -306,6 +355,7 @@
       const isToday = day.isEditable;
       const isEntry = (currentPage === "entry");
       const dateId = (day.dateStr || '').replace(/[^a-zA-Z0-9]/g, '');
+      const blState = day.breakLunchStates || {};
 
       const getSignOff = (name, role) => {
         if (!day.signOffs) return null;
@@ -365,6 +415,8 @@
                 });
                 return filteredLsc.length ? filteredLsc.map((name, i) => {
                   const off = getSignOff(name, 'LSC');
+                  const bl = blState[`${name}|LSC`] || { break: false, lunch: false };
+                  const isHome = !!(off && off.time);
                   return `
                   <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="LSC" data-date="${day.dateStr}">
                     <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
@@ -373,6 +425,15 @@
                       ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                       ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                     </div>
+                    ${!isHome ? `
+                    <div class="break-lunch-controls">
+                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'break')">
+                        ☕ <span class="btn-text">Break</span>
+                      </button>
+                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'lunch')">
+                        🍱 <span class="btn-text">Lunch</span>
+                      </button>
+                    </div>` : ''}
                   </div>`;
                 }).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
               })()}
@@ -397,6 +458,8 @@
                 return filteredNumbered;
               })().map((e, i) => {
                 const off = getSignOff(e.name, e.num);
+                const bl = blState[`${e.name}|${e.num}`] || { break: false, lunch: false };
+                const isHome = !!(off && off.time);
                 return `
                 <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
@@ -405,6 +468,15 @@
                     ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
+                  ${!isHome ? `
+                  <div class="break-lunch-controls">
+                    <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'break')">
+                      ☕ <span class="btn-text">Break</span>
+                    </button>
+                    <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
+                      🍱 <span class="btn-text">Lunch</span>
+                    </button>
+                  </div>` : ''}
                  </div>`}).join('')}
               ${(() => {
                 const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
