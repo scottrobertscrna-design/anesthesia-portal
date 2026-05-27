@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=16">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -485,9 +485,11 @@
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
                 ${isToday ? `
-                <button class="view-toggle-btn ${viewMode === 'break' ? 'active' : ''}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
-                  ${viewMode === 'time' ? '☕ Breaks' : '⏰ Times'}
-                </button>` : ''}
+                <div class="toggle-wrapper ${viewMode === 'time' ? 'time-mode' : 'break-mode'}">
+                  <button class="view-toggle-btn ${viewMode === 'break' ? 'active' : ''}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
+                    ${viewMode === 'time' ? '☕ Break View' : '⏰ Time View'}
+                  </button>
+                </div>` : ''}
               </div>
               ${day.lsc.length ? day.lsc.map((name, i) => {
                 const off = getSignOff(name, 'LSC');

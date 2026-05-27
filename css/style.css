@@ -768,6 +768,29 @@ input[type="date"],
 }
 
 /* View Toggle Button (Timekeeper: Time ↔ Break mode) */
+.toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.toggle-wrapper.time-mode {
+  min-width: 170px;
+}
+.toggle-wrapper.break-mode {
+  min-width: 186px;
+}
+
+@media screen and (max-width: 768px) {
+  .toggle-wrapper.time-mode {
+    min-width: 110px;
+  }
+  .toggle-wrapper.break-mode {
+    min-width: 136px;
+  }
+}
+
 .view-toggle-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -780,7 +803,6 @@ input[type="date"],
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
   flex-shrink: 0;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
