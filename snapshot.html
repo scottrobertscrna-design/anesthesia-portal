@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=19">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -42,6 +42,9 @@
       <div class="control">
         <input class="input is-small" type="date" id="entry-date-picker" style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
       </div>
+      <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()" title="Force refresh schedule from Google Sheets" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
+        🔄 Refresh
+      </button>
     </div>
 
     <!-- Main Content Area -->
@@ -213,6 +216,30 @@
         render(data);
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Error loading data: ${err.message}</div>`;
+      }
+    }
+
+    async function forceRefreshSchedule() {
+      const picker = document.getElementById('entry-date-picker');
+      const dateVal = picker ? picker.value : '';
+      
+      const btn = document.getElementById('btn-force-refresh');
+      if (btn) btn.classList.add('is-loading');
+      
+      document.getElementById('content').innerHTML = `
+        <div class="loading-wrap">
+          <button class="button is-loading is-white is-large"></button>
+        </div>`;
+      try {
+        const data = await callApi("getDailySnapshotData", { customDateStr: dateVal, forceRefresh: true });
+        const now = new Date();
+        document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        render(data);
+        showToast("Schedule refreshed from Sheet!", "success");
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<div class="notification is-danger">Error refreshing data: ${err.message}</div>`;
+      } finally {
+        if (btn) btn.classList.remove('is-loading');
       }
     }
 
