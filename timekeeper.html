@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=21">
+  <link rel="stylesheet" href="css/style.css?v=22">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -555,17 +555,36 @@
             <div class="section-title">
               LSC
               ${(isToday && isEntry && viewMode === 'time') ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
+              ${(isToday && isEntry && viewMode === 'break') ? `
+                <div class="toggle-wrapper break-mode" style="margin-left: 15px; margin-right: auto;">
+                  <button class="view-toggle-btn break-active" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
+                    ☕ Break View ⇄
+                  </button>
+                </div>
+                <div class="break-lunch-header-labels-text">
+                  <span>Break</span>
+                  <span>Lunch</span>
+                </div>` : ''}
             </div>
             <div class="mb-5">
-              <div class="entry" id="row-${dateId}-lscdoc">
+              <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
-                ${isToday ? `
-                <div class="toggle-wrapper ${viewMode === 'time' ? 'time-mode' : 'break-mode'}">
-                  <button class="view-toggle-btn ${viewMode === 'time' ? 'time-active' : 'break-active'}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
-                    ${viewMode === 'time' ? '⏰ Time View ⇄' : '☕ Break View ⇄'}
+                ${isToday && viewMode === 'time' ? `
+                <div class="toggle-wrapper time-mode">
+                  <button class="view-toggle-btn time-active" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
+                    ⏰ Time View ⇄
+                  </button>
+                </div>` : ''}
+                ${isToday && viewMode === 'break' ? `
+                <div class="break-lunch-controls">
+                  <button class="btn-break ${blState[`${day.docs.lsc}|LSC Doc`]?.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'break')">
+                    <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
+                  </button>
+                  <button class="btn-lunch ${blState[`${day.docs.lsc}|LSC Doc`]?.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'lunch')">
+                    <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                   </button>
                 </div>` : ''}
               </div>
