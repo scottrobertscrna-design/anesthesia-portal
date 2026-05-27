@@ -742,9 +742,10 @@ input[type="date"],
   transform: scale(1.15);
 }
 
-/* Active states - both break and lunch are green (darker fill, dark green text/borders) */
+/* Active states - break, lunch, and ob are green (darker fill, dark green text/borders) */
 .break-lunch-controls button.btn-break.active,
-.break-lunch-controls button.btn-lunch.active {
+.break-lunch-controls button.btn-lunch.active,
+.break-lunch-controls button.btn-ob.active {
   background-color: rgba(16, 185, 129, 0.25) !important;
   border-color: rgba(16, 185, 129, 0.55) !important;
   color: #34d399 !important;
@@ -896,7 +897,8 @@ input[type="date"],
     color: var(--text-main) !important;
   }
   .break-lunch-controls button.btn-break.active,
-  .break-lunch-controls button.btn-lunch.active {
+  .break-lunch-controls button.btn-lunch.active,
+  .break-lunch-controls button.btn-ob.active {
     background-color: rgba(5, 150, 105, 0.16) !important;
     border-color: rgba(5, 150, 105, 0.45) !important;
     color: #047857 !important;

@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -145,7 +145,7 @@
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
         const blKey = `${name}|${role}`;
-        const bl = blState[blKey] || { break: false, lunch: false };
+        const bl = blState[blKey] || { break: false, lunch: false, ob: false };
 
         // Clear existing display spans across the whole row
         entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
@@ -186,18 +186,29 @@
             const btnLunch = blControls.querySelector('.btn-lunch');
             if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
             if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
+
+            const btnOb = blControls.querySelector('.btn-ob');
+            if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
           } else {
             // Re-render controls if they were removed but signoff got cleared
             const newControls = document.createElement('div');
             newControls.className = 'break-lunch-controls';
-            newControls.innerHTML = `
-              <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'break')">
-                <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
-              </button>
-              <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'lunch')">
-                <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
-              </button>
-            `;
+            if (role === 'MD Call') {
+              newControls.innerHTML = `
+                <button class="btn-ob ${bl.ob ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'ob')">
+                  <span class="btn-icon">👶</span> <span class="btn-text">OB</span>
+                </button>
+              `;
+            } else {
+              newControls.innerHTML = `
+                <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'break')">
+                  <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
+                </button>
+                <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'lunch')">
+                  <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
+                </button>
+              `;
+            }
             entryRow.appendChild(newControls);
           }
         }
@@ -430,10 +441,15 @@
 
             <div class="section-title">LMH Coverage</div>
             <div class="mb-5">
-              <div class="entry" id="row-${dateId}-ac">
+              <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">MD CALL</span>
                   <span class="has-text-weight-bold">${day.docs.ac}</span>
+                </div>
+                <div class="break-lunch-controls">
+                  <button class="btn-ob ${blState[`${day.docs.ac}|MD Call`]?.ob ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
+                    <span class="btn-icon">👶</span> <span class="btn-text">OB</span>
+                  </button>
                 </div>
               </div>
               ${!isWeekend ? `
