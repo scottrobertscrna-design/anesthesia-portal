@@ -914,7 +914,7 @@
       targetBtn.classList.add("is-loading");
       
       try {
-        const res = await callApi("timecardClockPunch", { sheetId, action, prnFlag });
+        const res = await callApi("timecardClockPunch", { sheetId, punchAction: action, prnFlag });
         targetBtn.classList.remove("is-loading");
         
         document.getElementById("tc-prn-checkbox").checked = false;
