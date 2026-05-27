@@ -64,6 +64,63 @@
     // background poll does not reset their visual state prematurely.
     const pendingRows = new Set();
 
+    // View mode: 'time' (IN/OUT) or 'break' (☕/🍴)
+    let viewMode = 'time';
+    // Cache the latest data so we can re-render when toggling views
+    let cachedData = null;
+
+    function showToast(message, type = 'danger') {
+      let toast = document.getElementById('api-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'api-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.padding = '12px 24px';
+        toast.style.borderRadius = '8px';
+        toast.style.color = '#fff';
+        toast.style.zIndex = '9999';
+        toast.style.fontWeight = '600';
+        toast.style.fontSize = '0.9rem';
+        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease, bottom 0.3s ease';
+        document.body.appendChild(toast);
+      }
+      toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
+      toast.innerText = message;
+      toast.style.opacity = '1';
+      toast.style.bottom = '30px';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.bottom = '20px';
+      }, 4000);
+    }
+
+    function toggleViewMode() {
+      viewMode = (viewMode === 'time') ? 'break' : 'time';
+      if (cachedData) render(cachedData);
+    }
+
+    async function toggleBreakLunch(btn, name, role, dateStr, type) {
+      const isChecked = !btn.classList.contains('active');
+      btn.classList.add('is-loading');
+      try {
+        const res = await callApi("toggleBreakLunch", { name, role, dateStr, type, isChecked });
+        btn.classList.remove('is-loading');
+        if (res && res.success) {
+          btn.classList.toggle('active', isChecked);
+          showToast("Status updated successfully!", "success");
+        } else {
+          showToast("Error: " + (res.error || "failed to update status."));
+        }
+      } catch (err) {
+        btn.classList.remove('is-loading');
+        showToast("Action failed: " + err.message);
+      }
+    }
+
     window.onload = () => {
       const picker = document.getElementById('entry-date-picker');
       const todayLocal = new Date();
@@ -84,15 +141,18 @@
 
     async function pollSignOffs() {
       try {
-        const liveSignOffs = await callApi("getAllActiveSignOffs");
-        syncCheckboxes(liveSignOffs);
+        const picker = document.getElementById('entry-date-picker');
+        const activeDate = picker ? picker.value : '';
+        const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
+        syncCheckboxes(update.signOffs, update.breakLunchStates);
       } catch (err) {
         console.error("Polling error:", err);
       }
     }
 
-    function syncCheckboxes(liveSignOffs) {
+    function syncCheckboxes(liveSignOffs, breakLunchStates) {
       const signedOffKeys = new Map(liveSignOffs.map(s => [`${s.name}|${s.role}|${s.dateStr}`, s]));
+      const blState = breakLunchStates || {};
       const isEntry = (currentPage === "entry");
 
       document.querySelectorAll('.entry').forEach(entryRow => {
@@ -105,11 +165,11 @@
         const arrivalCb = entryRow.querySelector('.arrival-checkbox');
         const departureCb = entryRow.querySelector('.departure-checkbox') || entryRow.querySelector('.gone-home-checkbox');
         
-        if (!departureCb) return;
-
-        const name = departureCb.dataset.name;
-        const role = departureCb.dataset.role;
-        const dateStr = departureCb.dataset.date;
+        // In break view mode, time controls may not exist — use row data-* attributes instead
+        const name = departureCb ? departureCb.dataset.name : entryRow.dataset.name;
+        const role = departureCb ? departureCb.dataset.role : entryRow.dataset.role;
+        const dateStr = departureCb ? departureCb.dataset.date : entryRow.dataset.date;
+        if (!name || !role || !dateStr) return;
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
 
@@ -160,7 +220,7 @@
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
             
-            const departureSwitch = departureCb.closest('.switch-container');
+            const departureSwitch = departureCb ? departureCb.closest('.switch-container') : null;
             if (departureSwitch) {
               departureSwitch.before(span);
             } else {
@@ -184,6 +244,21 @@
             } 
           }
         }
+
+        // Sync break/lunch buttons if in break view
+        if (viewMode === 'break') {
+          const blKey = `${name}|${role}`;
+          const bl = blState[blKey] || { break: false, lunch: false };
+          const blControls = entryRow.querySelector('.break-lunch-controls');
+          if (data && data.time) {
+            if (blControls) blControls.remove();
+          } else if (blControls) {
+            const btnBreak = blControls.querySelector('.btn-break');
+            const btnLunch = blControls.querySelector('.btn-lunch');
+            if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
+            if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
+          }
+        }
       });
     }
 
@@ -194,6 +269,7 @@
         </div>`;
       try {
         const data = await callApi("getDailySnapshotData", { customDateStr: customDate });
+        cachedData = data;
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         render(data);
@@ -354,6 +430,7 @@
       const isToday = day.isEditable;
       const isEntry = (currentPage === "entry");
       const dateId = (day.dateStr || '').replace(/[^a-zA-Z0-9]/g, '');
+      const blState = day.breakLunchStates || {};
 
       const getSignOff = (name, role) => {
         if (!day.signOffs) return null;
@@ -394,7 +471,7 @@
         html += `
             <div class="section-title">
               LSC
-              ${(isToday && isEntry) ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
+              ${(isToday && isEntry && viewMode === 'time') ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
             </div>
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-lscdoc">
@@ -402,18 +479,24 @@
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
+                ${isToday ? `
+                <button class="view-toggle-btn ${viewMode === 'break' ? 'active' : ''}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
+                  ${viewMode === 'time' ? '☕ Breaks' : '⏰ Times'}
+                </button>` : ''}
               </div>
               ${day.lsc.length ? day.lsc.map((name, i) => {
                 const off = getSignOff(name, 'LSC');
+                const bl = blState[`${name}|LSC`] || { break: false, lunch: false };
+                const isHome = !!(off && off.time);
                 return `
-                <div class="entry" id="row-${dateId}-lsc-${i}">
+                <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="LSC" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">CRNA</span>
                     <span class="has-text-weight-bold">${name}</span>
                     ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
-                  ${isToday ? `
+                  ${isToday && viewMode === 'time' ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
                         ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
@@ -442,25 +525,36 @@
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
                     </div>` : ''}
+                  ${isToday && viewMode === 'break' && !isHome ? `
+                    <div class="break-lunch-controls">
+                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'break')">
+                        ☕ <span class="btn-text">Break</span>
+                      </button>
+                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'lunch')">
+                        🍴 <span class="btn-text">Lunch</span>
+                      </button>
+                    </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
             </div>
 
             <div class="section-title">
               CRNA Coverage
-              ${(isToday && isEntry) ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
+              ${(isToday && isEntry && viewMode === 'time') ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
             </div>
             <div>
               ${day.numbered.length ? day.numbered.map((e, i) => {
                 const off = getSignOff(e.name, e.num);
+                const bl = blState[`${e.name}|${e.num}`] || { break: false, lunch: false };
+                const isHome = !!(off && off.time);
                 return `
-                <div class="entry" id="row-${dateId}-num-${i}">
+                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">${e.num}</span>
                     <span class="has-text-weight-bold">${e.name}</span>
                     ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
-                  ${isToday ? `
+                  ${isToday && viewMode === 'time' ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
                         ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
@@ -488,6 +582,15 @@
                           onchange="toggleDeparture(this, '${e.name}', '${e.num}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
+                    </div>` : ''}
+                  ${isToday && viewMode === 'break' && !isHome ? `
+                    <div class="break-lunch-controls">
+                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'break')">
+                        ☕ <span class="btn-text">Break</span>
+                      </button>
+                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
+                        🍴 <span class="btn-text">Lunch</span>
+                      </button>
                     </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
             </div>`;

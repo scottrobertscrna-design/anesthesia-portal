@@ -767,3 +767,50 @@ input[type="date"],
   }
 }
 
+/* View Toggle Button (Timekeeper: Time ↔ Break mode) */
+.view-toggle-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  font-family: 'Inter', sans-serif;
+}
+
+.view-toggle-btn:hover {
+  background: rgba(50, 115, 220, 0.12);
+  border-color: rgba(50, 115, 220, 0.35);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.view-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.view-toggle-btn.active {
+  background: rgba(50, 115, 220, 0.18);
+  border-color: rgba(50, 115, 220, 0.4);
+  color: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(50, 115, 220, 0.12);
+}
+
+@media screen and (max-width: 768px) {
+  .view-toggle-btn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+}
+
