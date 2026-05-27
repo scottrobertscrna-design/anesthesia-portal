@@ -37,13 +37,16 @@
     </div>
 
     <!-- Date selector container -->
-    <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center" style="display: flex; gap: 10px;">
+    <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center" style="display: flex; gap: 10px; flex-wrap: wrap;">
       <label class="label mb-0" for="entry-date-picker" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Select Date:</label>
       <div class="control">
         <input class="input is-small" type="date" id="entry-date-picker" style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
       </div>
       <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()" title="Force refresh schedule from Google Sheets" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
         🔄 Refresh
+      </button>
+      <button class="button is-small is-link" id="btn-open-timecard" onclick="openTimecard()" title="Open Personal Timecard" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
+        🕰️ My Timecard
       </button>
     </div>
 
@@ -53,6 +56,134 @@
         <button class="button is-loading is-white is-large"></button>
         <p>Analyzing schedules and mapping physicians...</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Timecard Auth Modal -->
+  <div id="timecard-auth-modal" class="modal">
+    <div class="modal-background" onclick="closeTimecardAuthModal()"></div>
+    <div class="modal-card" style="max-width: 400px; width: 90%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+        <p class="modal-card-title has-text-weight-bold" style="font-size: 1.25rem; color: var(--text-main) !important;">🕰️ Timecard Portal</p>
+        <button class="delete" aria-label="close" onclick="closeTimecardAuthModal()"></button>
+      </header>
+      <section class="modal-card-body" style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        <div class="field mb-4">
+          <label class="label">Select Your Name</label>
+          <div class="control select is-fullwidth">
+            <select id="tc-name-select" style="background-color: #ffffff !important; color: #0f172a !important;">
+              <option>Loading employees...</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="field mb-5">
+          <label class="label" id="tc-pin-label">Enter PIN</label>
+          <div class="control">
+            <input class="input" type="password" id="tc-pin-input" placeholder="####" pattern="\d*">
+          </div>
+        </div>
+
+        <button class="button is-link is-fullwidth" id="tc-login-btn" onclick="submitTimecardLogin()">Access Timecard</button>
+        <p id="tc-login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Timecard Dashboard Modal -->
+  <div id="timecard-dashboard-modal" class="modal">
+    <div class="modal-background" onclick="closeTimecardDashboardModal()"></div>
+    <div class="modal-card" style="max-width: 500px; width: 92%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+        <p id="tc-dash-title" class="modal-card-title has-text-weight-bold" style="font-size: 1.25rem; color: var(--text-main) !important;">TIMECARD</p>
+        <button class="delete" aria-label="close" onclick="closeTimecardDashboardModal()"></button>
+      </header>
+      <section class="modal-card-body" style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        
+        <!-- Sheet Linking UI -->
+        <div id="tc-link-section" style="display:none;" class="mb-5">
+          <div class="notification is-warning is-light p-3 is-size-7" style="border-radius: 8px;">
+            <strong>⚠️ No Spreadsheet Linked:</strong> Please link your personal Google Sheet to enable clocking and reports from the portal.
+          </div>
+          <div class="field mb-3">
+            <label class="label is-small">Google Sheet URL or ID</label>
+            <div class="control">
+              <input class="input is-small" type="text" id="tc-sheet-url-input" placeholder="Paste Google Sheet share link here...">
+            </div>
+          </div>
+          <button class="button is-small is-link is-fullwidth" id="tc-link-btn" onclick="submitTimecardLink()">Link Spreadsheet</button>
+          <p id="tc-link-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
+        </div>
+
+        <!-- Dashboard UI -->
+        <div id="tc-main-section" style="display:none;">
+          <!-- Live Clock Punch Status -->
+          <div class="box has-text-centered p-4 mb-4" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none;">
+            <div class="is-size-7 has-text-grey-light uppercase" style="letter-spacing: 0.05em; font-weight: 600;">Current Status</div>
+            <div id="tc-clock-status-text" class="is-size-2 has-text-weight-bold my-2" style="color: var(--accent-rose);">CLOCKED OUT</div>
+            <div id="tc-last-punch-text" class="is-size-7 has-text-grey-light mb-3">Last punch: None</div>
+            
+            <div class="buttons is-centered mb-0" style="display: flex; gap: 10px; justify-content: center;">
+              <button class="button is-medium is-success" id="tc-clock-in-btn" onclick="submitClockPunch('Begin Work')" style="font-weight:700; width:130px; border-radius:10px;">
+                🟢 Clock In
+              </button>
+              <button class="button is-medium is-danger" id="tc-clock-out-btn" onclick="submitClockPunch('End Work')" style="font-weight:700; width:130px; border-radius:10px;">
+                🔴 Clock Out
+              </button>
+            </div>
+            
+            <label class="checkbox is-size-7 has-text-grey-light mt-3" style="display: inline-flex; align-items: center; gap: 4px;">
+              <input type="checkbox" id="tc-prn-checkbox"> Mark punch as PRN
+            </label>
+          </div>
+
+          <!-- Timesheet Tools Section -->
+          <div class="section-title" style="font-size: 0.95rem; margin-top: 25px; margin-bottom: 12px; border-bottom-width: 1px;">Timesheet Calculations</div>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px;" class="mb-4">
+            <!-- Build Overtime -->
+            <div class="box p-3 mb-0" style="background: var(--card-bg); border: 1px solid var(--border-color); width: 100%; border-radius: 10px; box-shadow: none;">
+              <label class="label is-size-7 mb-2">Build Overtime (Select Start Monday)</label>
+              <div class="is-flex" style="gap:8px;">
+                <input class="input is-small" type="date" id="tc-overtime-date-picker" style="max-width:180px;">
+                <button class="button is-small is-link mb-0" id="tc-overtime-btn" onclick="submitBuildOvertime()" style="font-weight:700; flex-grow:1;">
+                  Build Worksheet
+                </button>
+              </div>
+            </div>
+            
+            <!-- Update PRN/Call -->
+            <div class="box p-3 mb-0" style="background: var(--card-bg); border: 1px solid var(--border-color); width: 100%; border-radius: 10px; box-shadow: none;">
+              <label class="label is-size-7 mb-2">Sync Schedule (PRN / Call Backup)</label>
+              <div class="is-flex" style="gap:8px; align-items: center; flex-wrap: wrap;">
+                <label class="checkbox is-size-7 mr-2" style="white-space:nowrap; display: inline-flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" id="tc-custom-range-toggle" onchange="toggleCustomRangeView()"> Custom Dates
+                </label>
+                <div id="tc-custom-range-inputs" style="display:none; gap:4px; align-items:center;">
+                  <input class="input is-small" type="date" id="tc-prn-start-date" style="max-width:110px;">
+                  <span class="is-size-7">-</span>
+                  <input class="input is-small" type="date" id="tc-prn-end-date" style="max-width:110px;">
+                </div>
+                <button class="button is-small is-link mb-0" id="tc-prn-btn" onclick="submitUpdatePrnCall()" style="font-weight:700; flex-grow:1;">
+                  Sync Shifts
+                </button>
+              </div>
+            </div>
+
+            <!-- Email Timecard -->
+            <button class="button is-light is-fullwidth py-4 mb-0" id="tc-email-btn" onclick="submitEmailTimecard()" style="font-weight:700; border-radius:10px; height: auto;">
+              📧 Email Timesheet to Bhanika
+            </button>
+          </div>
+          
+          <div class="has-text-centered mt-4">
+            <button class="button is-small is-light" onclick="logoutTimecard()" style="font-size:0.75rem;">
+              Logout / Disconnect
+            </button>
+          </div>
+        </div>
+
+      </section>
     </div>
   </div>
 
@@ -576,6 +707,306 @@
 
       html += `</div>`;
       return html;
+    }
+
+    /* ============================================================================
+       TIMECARD FRONTEND PORTAL (OPTION 3)
+       ============================================================================ */
+    
+    function openTimecard() {
+      const storedName = localStorage.getItem("tc_name");
+      const storedPin = localStorage.getItem("tc_pin");
+      
+      if (storedName && storedPin) {
+        showTimecardDashboard(storedName, storedPin);
+      } else {
+        showTimecardAuth();
+      }
+    }
+
+    async function showTimecardAuth() {
+      const modal = document.getElementById("timecard-auth-modal");
+      modal.classList.add("is-active");
+      
+      const select = document.getElementById("tc-name-select");
+      select.innerHTML = "<option>Loading employees...</option>";
+      
+      try {
+        const list = await callApi("getEmployeeNames");
+        select.innerHTML = list.map(emp => 
+          `<option value="${emp.name}">${emp.name}</option>`
+        ).join('');
+      } catch (err) {
+        select.innerHTML = "<option>Error loading employees</option>";
+        console.error("Failed to load names:", err);
+      }
+    }
+
+    function closeTimecardAuthModal() {
+      document.getElementById("timecard-auth-modal").classList.remove("is-active");
+    }
+
+    function closeTimecardDashboardModal() {
+      document.getElementById("timecard-dashboard-modal").classList.remove("is-active");
+    }
+
+    async function submitTimecardLogin() {
+      const name = document.getElementById("tc-name-select").value;
+      const pin = document.getElementById("tc-pin-input").value;
+      const btn = document.getElementById("tc-login-btn");
+      const err = document.getElementById("tc-login-error");
+      
+      if (!pin) {
+        alert("Please enter your PIN");
+        return;
+      }
+      
+      btn.classList.add("is-loading");
+      err.style.display = "none";
+      
+      try {
+        const res = await callApi("timecardLogin", { name, pin });
+        localStorage.setItem("tc_name", name);
+        localStorage.setItem("tc_pin", pin);
+        if (res.sheetId) {
+          localStorage.setItem("tc_sheet_id", res.sheetId);
+        }
+        
+        closeTimecardAuthModal();
+        btn.classList.remove("is-loading");
+        document.getElementById("tc-pin-input").value = "";
+        
+        showTimecardDashboard(name, pin, res);
+      } catch (e) {
+        btn.classList.remove("is-loading");
+        err.innerText = e.message;
+        err.style.display = "block";
+      }
+    }
+
+    async function showTimecardDashboard(name, pin, preloadedRes = null) {
+      const dashModal = document.getElementById("timecard-dashboard-modal");
+      dashModal.classList.add("is-active");
+      
+      document.getElementById("tc-dash-title").innerText = `TIMECARD: ${name.toUpperCase()}`;
+      
+      let res = preloadedRes;
+      if (!res) {
+        try {
+          res = await callApi("timecardLogin", { name, pin });
+          if (res.sheetId) {
+            localStorage.setItem("tc_sheet_id", res.sheetId);
+          }
+        } catch (e) {
+          logoutTimecard();
+          alert("Session expired. Please log in again. Error: " + e.message);
+          return;
+        }
+      }
+      
+      if (res.hasSheetLinked) {
+        document.getElementById("tc-link-section").style.display = "none";
+        document.getElementById("tc-main-section").style.display = "block";
+        
+        const otPicker = document.getElementById("tc-overtime-date-picker");
+        if (!otPicker.value) {
+          const d = new Date();
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          const mon = new Date(d.setDate(diff));
+          otPicker.value = mon.toISOString().split('T')[0];
+        }
+        
+        const prnStart = document.getElementById("tc-prn-start-date");
+        const prnEnd = document.getElementById("tc-prn-end-date");
+        if (!prnStart.value || !prnEnd.value) {
+          const today = new Date();
+          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 24);
+          const currentMonth = new Date(today.getFullYear(), today.getMonth(), 24);
+          prnStart.value = lastMonth.toISOString().split('T')[0];
+          prnEnd.value = currentMonth.toISOString().split('T')[0];
+        }
+        
+        refreshClockStatus(res.sheetId);
+      } else {
+        document.getElementById("tc-link-section").style.display = "block";
+        document.getElementById("tc-main-section").style.display = "none";
+      }
+    }
+
+    async function submitTimecardLink() {
+      const urlInput = document.getElementById("tc-sheet-url-input").value;
+      const name = localStorage.getItem("tc_name");
+      const pin = localStorage.getItem("tc_pin");
+      const btn = document.getElementById("tc-link-btn");
+      const err = document.getElementById("tc-link-error");
+      
+      if (!urlInput) {
+        alert("Please paste your spreadsheet URL or ID.");
+        return;
+      }
+      
+      btn.classList.add("is-loading");
+      err.style.display = "none";
+      
+      try {
+        const res = await callApi("timecardLinkSheet", { name, pin, sheetUrlOrId: urlInput });
+        localStorage.setItem("tc_sheet_id", res.sheetId);
+        btn.classList.remove("is-loading");
+        document.getElementById("tc-sheet-url-input").value = "";
+        
+        showTimecardDashboard(name, pin);
+        showToast("Spreadsheet linked successfully!", "success");
+      } catch (e) {
+        btn.classList.remove("is-loading");
+        err.innerText = e.message;
+        err.style.display = "block";
+      }
+    }
+
+    async function refreshClockStatus(sheetId) {
+      const statusText = document.getElementById("tc-clock-status-text");
+      const punchText = document.getElementById("tc-last-punch-text");
+      const clockInBtn = document.getElementById("tc-clock-in-btn");
+      const clockOutBtn = document.getElementById("tc-clock-out-btn");
+      
+      statusText.innerText = "REFRESHING...";
+      statusText.style.color = "var(--text-muted)";
+      clockInBtn.disabled = true;
+      clockOutBtn.disabled = true;
+      
+      try {
+        const res = await callApi("timecardGetClockStatus", { sheetId });
+        
+        if (res.status === "IN") {
+          statusText.innerText = "CLOCKED IN";
+          statusText.style.color = "var(--accent-emerald)";
+          clockInBtn.style.display = "none";
+          clockOutBtn.style.display = "inline-flex";
+        } else {
+          statusText.innerText = "CLOCKED OUT";
+          statusText.style.color = "var(--accent-rose)";
+          clockInBtn.style.display = "inline-flex";
+          clockOutBtn.style.display = "none";
+        }
+        
+        punchText.innerText = res.lastPunch ? `Last punch: ${res.lastPunch}` : "Last punch: None";
+      } catch (err) {
+        statusText.innerText = "ERROR LOADING STATUS";
+        statusText.style.color = "var(--accent-rose)";
+        punchText.innerText = err.message;
+        clockInBtn.style.display = "inline-flex";
+        clockOutBtn.style.display = "none";
+      } finally {
+        clockInBtn.disabled = false;
+        clockOutBtn.disabled = false;
+      }
+    }
+
+    async function submitClockPunch(action) {
+      const sheetId = localStorage.getItem("tc_sheet_id");
+      const prnFlag = document.getElementById("tc-prn-checkbox").checked;
+      
+      const clockInBtn = document.getElementById("tc-clock-in-btn");
+      const clockOutBtn = document.getElementById("tc-clock-out-btn");
+      
+      const targetBtn = (action === "Begin Work") ? clockInBtn : clockOutBtn;
+      targetBtn.classList.add("is-loading");
+      
+      try {
+        const res = await callApi("timecardClockPunch", { sheetId, action, prnFlag });
+        targetBtn.classList.remove("is-loading");
+        
+        document.getElementById("tc-prn-checkbox").checked = false;
+        
+        refreshClockStatus(sheetId);
+        showToast(`Successfully punched: ${res.action} at ${res.timestamp}!`, "success");
+      } catch (err) {
+        targetBtn.classList.remove("is-loading");
+        alert("Punch action failed: " + err.message);
+      }
+    }
+
+    async function submitBuildOvertime() {
+      const sheetId = localStorage.getItem("tc_sheet_id");
+      const dateVal = document.getElementById("tc-overtime-date-picker").value;
+      const btn = document.getElementById("tc-overtime-btn");
+      
+      if (!dateVal) {
+        alert("Please select a starting Monday.");
+        return;
+      }
+      
+      btn.classList.add("is-loading");
+      try {
+        const dateObj = new Date(dateVal);
+        await callApi("timecardBuildOvertime", { sheetId, startDateString: dateObj.toISOString() });
+        btn.classList.remove("is-loading");
+        showToast("Overtime worksheet built successfully!", "success");
+      } catch (err) {
+        btn.classList.remove("is-loading");
+        alert("Build Overtime failed: " + err.message);
+      }
+    }
+
+    function toggleCustomRangeView() {
+      const toggle = document.getElementById("tc-custom-range-toggle");
+      const inputs = document.getElementById("tc-custom-range-inputs");
+      inputs.style.display = toggle.checked ? "inline-flex" : "none";
+    }
+
+    async function submitUpdatePrnCall() {
+      const sheetId = localStorage.getItem("tc_sheet_id");
+      const toggle = document.getElementById("tc-custom-range-toggle");
+      const btn = document.getElementById("tc-prn-btn");
+      
+      let customStart = null;
+      let customEnd = null;
+      
+      if (toggle.checked) {
+        customStart = document.getElementById("tc-prn-start-date").value;
+        customEnd = document.getElementById("tc-prn-end-date").value;
+        if (!customStart || !customEnd) {
+          alert("Please select start and end dates.");
+          return;
+        }
+      }
+      
+      btn.classList.add("is-loading");
+      try {
+        const resultRange = await callApi("timecardUpdatePrnCall", { sheetId, customStart, customEnd });
+        btn.classList.remove("is-loading");
+        showToast(`Timesheet synced: ${resultRange}`, "success");
+      } catch (err) {
+        btn.classList.remove("is-loading");
+        alert("Sync Shifts failed: " + err.message);
+      }
+    }
+
+    async function submitEmailTimecard() {
+      const sheetId = localStorage.getItem("tc_sheet_id");
+      const btn = document.getElementById("tc-email-btn");
+      
+      if (!confirm("Are you sure you want to export and email your timesheet to Bhanika?")) {
+        return;
+      }
+      
+      btn.classList.add("is-loading");
+      try {
+        await callApi("timecardEmail", { sheetId });
+        btn.classList.remove("is-loading");
+        showToast("Timesheet emailed successfully!", "success");
+      } catch (err) {
+        btn.classList.remove("is-loading");
+        alert("Failed to email timesheet: " + err.message);
+      }
+    }
+
+    function logoutTimecard() {
+      localStorage.removeItem("tc_name");
+      localStorage.removeItem("tc_pin");
+      localStorage.removeItem("tc_sheet_id");
+      closeTimecardDashboardModal();
     }
   </script>
 
