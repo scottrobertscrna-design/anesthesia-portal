@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -195,7 +195,7 @@
                 <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
               </button>
               <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'lunch')">
-                <span class="btn-icon">🍱</span> <span class="btn-text">Lunch</span>
+                <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
               </button>
             `;
             entryRow.appendChild(newControls);
@@ -462,6 +462,14 @@
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
+                <div class="break-lunch-header-labels">
+                  <div class="header-pill">
+                    <span class="btn-icon">☕</span><span class="btn-text">Break</span>
+                  </div>
+                  <div class="header-pill">
+                    <span class="btn-icon">🥪</span><span class="btn-text">Lunch</span>
+                  </div>
+                </div>
               </div>
               ${(() => {
                 // Client-side Nancy rule: only show her in LSC if she appears as "Nancy (1500)".
@@ -490,7 +498,7 @@
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                       </button>
                       <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'lunch')">
-                        <span class="btn-icon">🍱</span> <span class="btn-text">Lunch</span>
+                        <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
                     </div>` : ''}
                   </div>`;
@@ -533,7 +541,7 @@
                       <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                     </button>
                     <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
-                      <span class="btn-icon">🍱</span> <span class="btn-text">Lunch</span>
+                      <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                     </button>
                   </div>` : ''}
                  </div>`}).join('')}

@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -616,7 +616,7 @@
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                       </button>
                       <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'lunch')">
-                        <span class="btn-icon">🍱</span> <span class="btn-text">Lunch</span>
+                        <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
                     </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
@@ -674,7 +674,7 @@
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                       </button>
                       <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
-                        <span class="btn-icon">🍱</span> <span class="btn-text">Lunch</span>
+                        <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
                     </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}

@@ -763,6 +763,38 @@ input[type="date"],
   pointer-events: none;
 }
 
+/* Breaks/Lunches Header Labels for LSC Doc Row */
+.break-lunch-header-labels {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.break-lunch-header-labels .header-pill {
+  background: var(--departure-bg) !important;
+  border: 1px solid var(--departure-border) !important;
+  color: var(--departure-color) !important;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 90px;
+  user-select: none;
+}
+
+.break-lunch-header-labels .header-pill .btn-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
 /* Responsive optimization: Hide text label on mobile screens and keep only emojis */
 @media screen and (max-width: 768px) {
   .break-lunch-controls {
@@ -779,6 +811,24 @@ input[type="date"],
     display: none;
   }
   .break-lunch-controls button .btn-icon {
+    font-size: 1.35rem;
+  }
+
+  /* Mobile responsiveness for header labels */
+  .break-lunch-header-labels {
+    gap: 6px;
+  }
+  .break-lunch-header-labels .header-pill {
+    padding: 6px 12px;
+    font-size: 1.05rem;
+    border-radius: 6px;
+    min-width: 65px;
+    justify-content: center;
+  }
+  .break-lunch-header-labels .header-pill .btn-text {
+    display: none;
+  }
+  .break-lunch-header-labels .header-pill .btn-icon {
     font-size: 1.35rem;
   }
 }
