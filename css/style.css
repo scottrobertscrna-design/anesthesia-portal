@@ -742,14 +742,21 @@ input[type="date"],
   transform: scale(1.15);
 }
 
-/* Active states - break, lunch, and ob are green (darker fill, dark green text/borders) */
+/* Active states - break and lunch are green (darker fill, dark green text/borders) */
 .break-lunch-controls button.btn-break.active,
-.break-lunch-controls button.btn-lunch.active,
-.break-lunch-controls button.btn-ob.active {
+.break-lunch-controls button.btn-lunch.active {
   background-color: rgba(16, 185, 129, 0.25) !important;
   border-color: rgba(16, 185, 129, 0.55) !important;
   color: #34d399 !important;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
+/* Active state for OB button - bold red/rose */
+.break-lunch-controls button.btn-ob.active {
+  background-color: rgba(244, 63, 94, 0.25) !important;
+  border-color: rgba(244, 63, 94, 0.55) !important;
+  color: #f43f5e !important;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
 }
 
 /* Disabled state when provider went home */
@@ -897,11 +904,15 @@ input[type="date"],
     color: var(--text-main) !important;
   }
   .break-lunch-controls button.btn-break.active,
-  .break-lunch-controls button.btn-lunch.active,
-  .break-lunch-controls button.btn-ob.active {
+  .break-lunch-controls button.btn-lunch.active {
     background-color: rgba(5, 150, 105, 0.16) !important;
     border-color: rgba(5, 150, 105, 0.45) !important;
     color: #047857 !important;
+  }
+  .break-lunch-controls button.btn-ob.active {
+    background-color: rgba(225, 29, 72, 0.15) !important;
+    border-color: rgba(225, 29, 72, 0.45) !important;
+    color: #e11d48 !important;
   }
 }
 

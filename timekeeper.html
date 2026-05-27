@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=24">
+  <link rel="stylesheet" href="css/style.css?v=25">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -297,11 +297,11 @@
           }
         }
 
-        // Sync break/lunch buttons if in break view
-        if (viewMode === 'break') {
-          const blKey = `${name}|${role}`;
-          const bl = blState[blKey] || { break: false, lunch: false, ob: false };
-          const blControls = entryRow.querySelector('.break-lunch-controls');
+        // Sync break/lunch/ob buttons
+        const blKey = `${name}|${role}`;
+        const bl = blState[blKey] || { break: false, lunch: false, ob: false };
+        const blControls = entryRow.querySelector('.break-lunch-controls');
+        if (viewMode === 'break' || role === 'MD Call') {
           if (data && data.time) {
             if (blControls) blControls.remove();
           } else if (blControls) {
@@ -537,7 +537,7 @@
                   <span class="num-badge" style="background-color: #48c78e;">MD CALL</span>
                   <span class="has-text-weight-bold">${day.docs.ac}</span>
                 </div>
-                ${isToday && viewMode === 'break' ? `
+                ${isToday ? `
                 <div class="break-lunch-controls">
                   <button class="btn-ob ${blState[`${day.docs.ac}|MD Call`]?.ob ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
                     <span class="btn-icon">👶</span> <span class="btn-text">OB</span>
