@@ -1,3 +1,3 @@
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbzYiRhVGwTJmsT39ufituyMv4m4Usp1JyAeYQMH-jP-woUBdts57iZWke5NMpc5N_cJhA/exec"
+  API_URL: "https://anesthesia-api-relay.scott-roberts-crna.workers.dev"
 };
