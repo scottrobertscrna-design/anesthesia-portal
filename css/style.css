@@ -701,8 +701,8 @@ input[type="date"],
 }
 
 .break-lunch-controls button {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-muted);
   border-radius: 8px;
   padding: 6px 12px;
@@ -719,14 +719,27 @@ input[type="date"],
 }
 
 .break-lunch-controls button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
   color: var(--text-main);
   transform: translateY(-1px);
 }
 
 .break-lunch-controls button:active {
   transform: scale(0.95);
+}
+
+/* Icon inside break/lunch button */
+.break-lunch-controls button .btn-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.break-lunch-controls button:hover .btn-icon {
+  transform: scale(1.15);
 }
 
 /* Active states */
@@ -764,6 +777,9 @@ input[type="date"],
   }
   .break-lunch-controls button .btn-text {
     display: none;
+  }
+  .break-lunch-controls button .btn-icon {
+    font-size: 1.35rem;
   }
 }
 
@@ -844,6 +860,26 @@ input[type="date"],
     background: rgba(217, 119, 6, 0.1) !important;
     border-color: rgba(217, 119, 6, 0.3) !important;
     color: #b45309 !important;
+  }
+  .break-lunch-controls button {
+    background: rgba(15, 23, 42, 0.05) !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    color: var(--text-muted) !important;
+  }
+  .break-lunch-controls button:hover {
+    background: rgba(15, 23, 42, 0.09) !important;
+    border-color: rgba(15, 23, 42, 0.22) !important;
+    color: var(--text-main) !important;
+  }
+  .break-lunch-controls button.btn-break.active {
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    border-color: rgba(217, 119, 6, 0.35) !important;
+    color: #b45309 !important;
+  }
+  .break-lunch-controls button.btn-lunch.active {
+    background-color: rgba(79, 70, 229, 0.12) !important;
+    border-color: rgba(79, 70, 229, 0.35) !important;
+    color: #4f46e5 !important;
   }
 }
 
