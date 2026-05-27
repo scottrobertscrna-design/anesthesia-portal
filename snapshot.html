@@ -45,6 +45,9 @@
       <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()" title="Force refresh schedule from Google Sheets" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
         🔄 Refresh
       </button>
+      <button class="button is-small is-link" id="btn-open-timecard" onclick="openTimecard()" title="Open Personal Timecard" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
+        🕰️ My Timecard
+      </button>
     </div>
 
     <!-- Main Content Area -->
@@ -100,15 +103,16 @@
         <!-- Sheet Linking UI -->
         <div id="tc-link-section" style="display:none;" class="mb-5">
           <div class="notification is-warning is-light p-3 is-size-7" style="border-radius: 8px;">
-            <strong>⚠️ No Spreadsheet Linked:</strong> Please link your personal Google Sheet to enable clocking and reports from the portal.
+            <strong>⚠️ Setup Required:</strong> To enable clocking and timesheet reports, the portal needs to create your personal timecard spreadsheet.
           </div>
           <div class="field mb-3">
-            <label class="label is-small">Google Sheet URL or ID</label>
+            <label class="label is-small">Google Email Address</label>
             <div class="control">
-              <input class="input is-small" type="text" id="tc-sheet-url-input" placeholder="Paste Google Sheet share link here...">
+              <input class="input is-small" type="email" id="tc-email-input" placeholder="Enter your Google email (e.g. gmail)...">
             </div>
+            <p class="help is-size-7" style="color: var(--text-muted); margin-top: 4px;">We'll automatically create your spreadsheet and share it with this email address.</p>
           </div>
-          <button class="button is-small is-link is-fullwidth" id="tc-link-btn" onclick="submitTimecardLink()">Link Spreadsheet</button>
+          <button class="button is-small is-link is-fullwidth" id="tc-link-btn" onclick="submitTimecardCreate()">🆕 Create My Spreadsheet</button>
           <p id="tc-link-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
         </div>
 
@@ -843,15 +847,15 @@
       }
     }
 
-    async function submitTimecardLink() {
-      const urlInput = document.getElementById("tc-sheet-url-input").value;
+    async function submitTimecardCreate() {
+      const email = document.getElementById("tc-email-input").value;
       const name = localStorage.getItem("tc_name");
       const pin = localStorage.getItem("tc_pin");
       const btn = document.getElementById("tc-link-btn");
       const err = document.getElementById("tc-link-error");
       
-      if (!urlInput) {
-        alert("Please paste your spreadsheet URL or ID.");
+      if (!email) {
+        alert("Please enter your Google email address.");
         return;
       }
       
@@ -859,13 +863,13 @@
       err.style.display = "none";
       
       try {
-        const res = await callApi("timecardLinkSheet", { name, pin, sheetUrlOrId: urlInput });
+        const res = await callApi("timecardCreateSheet", { name, pin, email });
         localStorage.setItem("tc_sheet_id", res.sheetId);
         btn.classList.remove("is-loading");
-        document.getElementById("tc-sheet-url-input").value = "";
+        document.getElementById("tc-email-input").value = "";
         
         showTimecardDashboard(name, pin);
-        showToast("Spreadsheet linked successfully!", "success");
+        showToast("Spreadsheet created and linked successfully!", "success");
       } catch (e) {
         btn.classList.remove("is-loading");
         err.innerText = e.message;
