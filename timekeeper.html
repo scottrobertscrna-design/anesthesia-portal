@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=16">
+  <link rel="stylesheet" href="css/style.css?v=17">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -486,8 +486,8 @@
                 </div>
                 ${isToday ? `
                 <div class="toggle-wrapper ${viewMode === 'time' ? 'time-mode' : 'break-mode'}">
-                  <button class="view-toggle-btn ${viewMode === 'break' ? 'active' : ''}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
-                    ${viewMode === 'time' ? '☕ Break View' : '⏰ Time View'}
+                  <button class="view-toggle-btn ${viewMode === 'time' ? 'time-active' : 'break-active'}" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
+                    ${viewMode === 'time' ? '⏰ Time View ⇄' : '☕ Break View ⇄'}
                   </button>
                 </div>` : ''}
               </div>

@@ -812,21 +812,39 @@ input[type="date"],
 }
 
 .view-toggle-btn:hover {
-  background: rgba(50, 115, 220, 0.12);
-  border-color: rgba(50, 115, 220, 0.35);
-  color: var(--text-main);
   transform: translateY(-1px);
+  filter: brightness(1.15);
 }
 
 .view-toggle-btn:active {
   transform: scale(0.95);
 }
 
-.view-toggle-btn.active {
-  background: rgba(50, 115, 220, 0.18);
-  border-color: rgba(50, 115, 220, 0.4);
-  color: var(--accent-blue);
-  box-shadow: 0 0 12px rgba(50, 115, 220, 0.12);
+.view-toggle-btn.time-active {
+  background: rgba(50, 115, 220, 0.15) !important;
+  border-color: rgba(50, 115, 220, 0.45) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(50, 115, 220, 0.15);
+}
+
+.view-toggle-btn.break-active {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
+
+@media (prefers-color-scheme: light) {
+  .view-toggle-btn.time-active {
+    background: rgba(50, 115, 220, 0.1) !important;
+    border-color: rgba(50, 115, 220, 0.3) !important;
+    color: #1967d2 !important;
+  }
+  .view-toggle-btn.break-active {
+    background: rgba(217, 119, 6, 0.1) !important;
+    border-color: rgba(217, 119, 6, 0.3) !important;
+    color: #b45309 !important;
+  }
 }
 
 @media screen and (max-width: 768px) {
