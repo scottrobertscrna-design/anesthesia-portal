@@ -132,9 +132,21 @@
               </button>
             </div>
             
-            <label class="checkbox is-size-7 has-text-grey-light mt-3" style="display: inline-flex; align-items: center; gap: 4px;">
-              <input type="checkbox" id="tc-prn-checkbox"> Mark punch as PRN
-            </label>
+            <div class="is-flex is-justify-content-center" style="gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="tc-prn-checkbox"> Mark as PRN
+              </label>
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="tc-callback-checkbox"> Callback Override
+              </label>
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="tc-backtime-checkbox" onchange="toggleBacktimeView()"> Back-time Punch
+              </label>
+            </div>
+            <div id="tc-backtime-container" style="display: none; margin-top: 12px; justify-content: center; align-items: center; gap: 8px;">
+              <label class="label is-size-7 mb-0 has-text-grey-light">Punch Date & Time:</label>
+              <input class="input is-small" type="datetime-local" id="tc-custom-time-input" style="max-width: 220px; border-radius: 6px;">
+            </div>
           </div>
 
           <!-- Timesheet Tools Section -->
@@ -903,9 +915,32 @@
       }
     }
 
+    function toggleBacktimeView() {
+      const isChecked = document.getElementById("tc-backtime-checkbox").checked;
+      const container = document.getElementById("tc-backtime-container");
+      const input = document.getElementById("tc-custom-time-input");
+      container.style.display = isChecked ? "flex" : "none";
+      if (isChecked && !input.value) {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+        input.value = localISOTime;
+      }
+    }
+
     async function submitClockPunch(action) {
       const sheetId = localStorage.getItem("tc_sheet_id");
       const prnFlag = document.getElementById("tc-prn-checkbox").checked;
+      const callbackFlag = document.getElementById("tc-callback-checkbox").checked;
+      
+      let customTime = null;
+      if (document.getElementById("tc-backtime-checkbox").checked) {
+        customTime = document.getElementById("tc-custom-time-input").value;
+        if (!customTime) {
+          alert("Please select a date and time for back-timing.");
+          return;
+        }
+      }
       
       const clockInBtn = document.getElementById("tc-clock-in-btn");
       const clockOutBtn = document.getElementById("tc-clock-out-btn");
@@ -914,10 +949,13 @@
       targetBtn.classList.add("is-loading");
       
       try {
-        const res = await callApi("timecardClockPunch", { sheetId, punchAction: action, prnFlag });
+        const res = await callApi("timecardClockPunch", { sheetId, punchAction: action, prnFlag, callbackFlag, customTime });
         targetBtn.classList.remove("is-loading");
         
         document.getElementById("tc-prn-checkbox").checked = false;
+        document.getElementById("tc-callback-checkbox").checked = false;
+        document.getElementById("tc-backtime-checkbox").checked = false;
+        toggleBacktimeView();
         
         refreshClockStatus(sheetId);
         showToast(`Successfully punched: ${res.action} at ${res.timestamp}!`, "success");
