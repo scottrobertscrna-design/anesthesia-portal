@@ -98,9 +98,14 @@
       }, 4000);
     }
 
-    function toggleViewMode() {
+    async function toggleViewMode() {
       viewMode = (viewMode === 'time') ? 'break' : 'time';
-      if (cachedData) render(cachedData);
+      const picker = document.getElementById('entry-date-picker');
+      if (picker) {
+        await fetchFreshData(picker.value);
+      } else if (cachedData) {
+        render(cachedData);
+      }
     }
 
     async function toggleBreakLunch(btn, name, role, dateStr, type) {
