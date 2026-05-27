@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=23">
+  <link rel="stylesheet" href="css/style.css?v=24">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=4">
@@ -565,14 +565,10 @@
               LSC
               ${(isToday && isEntry && viewMode === 'time') ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
               ${(isToday && isEntry && viewMode === 'break') ? `
-                <div class="toggle-wrapper break-mode" style="margin-left: 15px; margin-right: auto;">
+                <div class="toggle-wrapper break-mode" style="margin-left: auto;">
                   <button class="view-toggle-btn break-active" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
                     ☕ Break View ⇄
                   </button>
-                </div>
-                <div class="break-lunch-header-labels-text">
-                  <span>Break</span>
-                  <span>Lunch</span>
                 </div>` : ''}
             </div>
             <div class="mb-5">
