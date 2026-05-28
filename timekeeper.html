@@ -177,9 +177,14 @@
         tempDate.setDate(tempDate.getDate() + 1);
       }
       
+      const getBaseName = (name) => {
+        return String(name || "").replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      };
+
       let totalHours = 0;
+      const targetBaseName = getBaseName(employeeName);
       (allSignOffs || []).forEach(s => {
-        if (String(s.name).trim().toLowerCase() === String(employeeName).trim().toLowerCase() && 
+        if (getBaseName(s.name) === targetBaseName && 
             dateStrings.includes(s.dateStr)) {
           totalHours += calculateHoursWorked(s.arrivalTime, s.time);
         }
