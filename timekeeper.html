@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=36">
+  <link rel="stylesheet" href="css/style.css?v=37">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=6">
@@ -737,7 +737,6 @@
                     <span style="font-size: 1.15rem; margin-right: 4px; line-height: 1;">📊</span> Hours
                   </button>
                 </div>
-                ${isToday && viewMode === 'time' ? '<div class="in-out-pin-row"><span class="in-pin-label">IN</span><span class="out-pin-label">OUT</span></div>' : ''}
               </div>
             </div>
             <div class="mb-5">
@@ -746,7 +745,11 @@
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
-
+                ${isToday && viewMode === 'time' ? `
+                <div class="in-out-pin-row">
+                  <span class="in-pin-label">IN</span>
+                  <span class="out-pin-label">OUT</span>
+                </div>` : ''}
                 ${isToday && viewMode === 'break' ? `
                 <div class="break-lunch-controls">
                   <button class="btn-break ${blState[`${day.docs.lsc}|LSC Doc`]?.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'break')">
@@ -912,7 +915,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=36', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=37', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

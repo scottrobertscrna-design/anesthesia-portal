@@ -566,17 +566,18 @@ input[type="date"],
   margin-left: auto;
 }
 
-/* IN/OUT labels below the toggle buttons — browser: IN under 'm' in Time, OUT far right */
+/* IN/OUT labels in the LSC Doc row — browser: IN under 'm' in Time, OUT far right */
 .in-out-pin-row {
   display: flex;
-  width: 100%;
+  width: 240px;
   justify-content: space-between;
-  margin-top: 4px;
+  align-items: center;
+  margin-left: auto;
   padding-left: 44px;   /* pushes IN under the 'm' in Time */
 }
 
 .in-pin-label {
-  font-size: 0.75rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -584,7 +585,7 @@ input[type="date"],
 }
 
 .out-pin-label {
-  font-size: 0.75rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
