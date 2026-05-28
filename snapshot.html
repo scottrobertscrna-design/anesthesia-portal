@@ -192,7 +192,13 @@
 
             <!-- Google Sheet Review Link -->
             <a id="tc-sheet-link" href="#" target="_blank" class="button is-link is-light is-fullwidth py-4 mb-0" style="font-weight:700; border-radius:10px; height: auto; display: none; align-items: center; justify-content: center; gap: 8px;">
-              🟢 Review Timesheet in Google Sheets
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle;">
+                <path fill="#107C41" d="M16.2 2H7.8C6.8 2 6 2.8 6 3.8v16.4C6 21.2 6.8 22 7.8 22h8.4c1 0 1.8-.8 1.8-1.8V3.8c0-1-.8-1.8-1.8-1.8z"/>
+                <path fill="#FFF" opacity=".15" d="M14.5 2l3.5 3.5v-3.5z"/>
+                <path fill="#FFF" d="M8.5 7h7c.3 0 .5.2.5.5v9c0 .3-.2.5-.5.5h-7a.5.5 0 0 1-.5-.5v-9c0-.3.2-.5.5-.5z"/>
+                <path fill="#107C41" d="M9 8h2.5v2H9zm3.5 0H15v2h-2.5zm-3.5 3h2.5v2H9zm3.5 0H15v2h-2.5zm-3.5 3h2.5v2H9zm3.5 0H15v2h-2.5z"/>
+              </svg>
+              <span>Review Timesheet in Google Sheets</span>
             </a>
 
             <!-- Email Timecard -->
@@ -839,25 +845,6 @@
         document.getElementById("tc-link-section").style.display = "none";
         document.getElementById("tc-main-section").style.display = "block";
         
-        const otPicker = document.getElementById("tc-overtime-date-picker");
-        if (!otPicker.value) {
-          const d = new Date();
-          const day = d.getDay();
-          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-          const mon = new Date(d.setDate(diff));
-          otPicker.value = mon.toISOString().split('T')[0];
-        }
-        
-        const prnStart = document.getElementById("tc-prn-start-date");
-        const prnEnd = document.getElementById("tc-prn-end-date");
-        if (!prnStart.value || !prnEnd.value) {
-          const today = new Date();
-          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 24);
-          const currentMonth = new Date(today.getFullYear(), today.getMonth(), 24);
-          prnStart.value = lastMonth.toISOString().split('T')[0];
-          prnEnd.value = currentMonth.toISOString().split('T')[0];
-        }
-        
         const sheetLink = document.getElementById("tc-sheet-link");
         if (sheetLink && res.sheetId) {
           sheetLink.href = `https://docs.google.com/spreadsheets/d/${res.sheetId}/edit#gid=1008779951`;
@@ -908,6 +895,39 @@
       }
     }
 
+    function getNextMonday(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split("/");
+      if (parts.length < 2) return null;
+      const month = parseInt(parts[0], 10) - 1;
+      const day = parseInt(parts[1], 10);
+      const year = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
+      const d = new Date(year, month, day);
+      if (isNaN(d.getTime())) return null;
+      const dayOfWeek = d.getDay();
+      const diff = (8 - dayOfWeek) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+
+    function getNextPullRange(rangeStr) {
+      if (!rangeStr) return null;
+      const parts = rangeStr.split("-");
+      if (parts.length < 2) return null;
+      const endPart = parts[1].trim();
+      const endSubparts = endPart.split("/");
+      if (endSubparts.length < 2) return null;
+      const month = parseInt(endSubparts[0], 10) - 1;
+      const day = parseInt(endSubparts[1], 10);
+      const year = endSubparts[2] ? parseInt(endSubparts[2], 10) : new Date().getFullYear();
+      const lastEnd = new Date(year, month, day);
+      if (isNaN(lastEnd.getTime())) return null;
+      const nextStart = new Date(lastEnd);
+      nextStart.setDate(nextStart.getDate() + 1);
+      const nextEnd = new Date();
+      return { start: nextStart, end: nextEnd };
+    }
+
     async function refreshClockStatus(sheetId) {
       const statusText = document.getElementById("tc-clock-status-text");
       const punchText = document.getElementById("tc-last-punch-text");
@@ -935,6 +955,44 @@
         }
         
         punchText.innerText = res.lastPunch ? `Last punch: ${res.lastPunch}` : "Last punch: None";
+        
+        // 1. Fill Overtime picker based on lastFillDate from spreadsheet
+        const otPicker = document.getElementById("tc-overtime-date-picker");
+        if (res.lastFillDate) {
+          const nextMon = getNextMonday(res.lastFillDate);
+          if (nextMon) {
+            otPicker.value = nextMon.toISOString().split('T')[0];
+          }
+        } else if (!otPicker.value) {
+          // Default to current week's Monday
+          const d = new Date();
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          const mon = new Date(d.setDate(diff));
+          otPicker.value = mon.toISOString().split('T')[0];
+        }
+
+        // 2. Fill PRN pull dates based on lastPullRange from spreadsheet
+        const prnStart = document.getElementById("tc-prn-start-date");
+        const prnEnd = document.getElementById("tc-prn-end-date");
+        let pullDatesSet = false;
+        if (res.lastPullRange) {
+          const nextPull = getNextPullRange(res.lastPullRange);
+          if (nextPull) {
+            prnStart.value = nextPull.start.toISOString().split('T')[0];
+            prnEnd.value = nextPull.end.toISOString().split('T')[0];
+            pullDatesSet = true;
+          }
+        }
+        if (!pullDatesSet && (!prnStart.value || !prnEnd.value)) {
+          // Default: 24th of last month to 24th of this month
+          const today = new Date();
+          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 24);
+          const currentMonth = new Date(today.getFullYear(), today.getMonth(), 24);
+          prnStart.value = lastMonth.toISOString().split('T')[0];
+          prnEnd.value = currentMonth.toISOString().split('T')[0];
+        }
+
       } catch (err) {
         statusText.innerText = "ERROR LOADING STATUS";
         statusText.style.color = "var(--accent-rose)";
@@ -1031,27 +1089,15 @@
       }
     }
 
-    function toggleCustomRangeView() {
-      const toggle = document.getElementById("tc-custom-range-toggle");
-      const inputs = document.getElementById("tc-custom-range-inputs");
-      inputs.style.display = toggle.checked ? "inline-flex" : "none";
-    }
-
     async function submitUpdatePrnCall() {
       const sheetId = localStorage.getItem("tc_sheet_id");
-      const toggle = document.getElementById("tc-custom-range-toggle");
       const btn = document.getElementById("tc-prn-btn");
       
-      let customStart = null;
-      let customEnd = null;
-      
-      if (toggle.checked) {
-        customStart = document.getElementById("tc-prn-start-date").value;
-        customEnd = document.getElementById("tc-prn-end-date").value;
-        if (!customStart || !customEnd) {
-          alert("Please select start and end dates.");
-          return;
-        }
+      const customStart = document.getElementById("tc-prn-start-date").value;
+      const customEnd = document.getElementById("tc-prn-end-date").value;
+      if (!customStart || !customEnd) {
+        alert("Please select start and end dates.");
+        return;
       }
       
       btn.classList.add("is-loading");
@@ -1059,6 +1105,7 @@
         const resultRange = await callApi("timecardUpdatePrnCall", { sheetId, customStart, customEnd });
         btn.classList.remove("is-loading");
         showToast(`Timesheet synced: ${resultRange}`, "success");
+        refreshClockStatus(sheetId);
       } catch (err) {
         btn.classList.remove("is-loading");
         alert("Sync Shifts failed: " + err.message);
