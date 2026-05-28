@@ -171,18 +171,12 @@
             
             <!-- Update PRN/Call -->
             <div class="box p-3 mb-0" style="background: var(--card-bg); border: 1px solid var(--border-color); width: 100%; border-radius: 10px; box-shadow: none;">
-              <div class="is-flex is-justify-content-between is-align-items-center mb-2">
-                <label class="label is-size-7 mb-0" style="font-weight: 600;">Pull Backup/PRN from CRNA Schedule</label>
-                <span class="tag is-size-7" style="background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.65rem; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px;">Default: 24th to 24th</span>
-              </div>
-              <div class="is-flex" style="gap:8px; align-items: center; flex-wrap: wrap;">
-                <label class="checkbox is-size-7 mr-2" style="white-space:nowrap; display: inline-flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" id="tc-custom-range-toggle" onchange="toggleCustomRangeView()"> Custom Dates
-                </label>
-                <div id="tc-custom-range-inputs" style="display:none; gap:4px; align-items:center;">
-                  <input class="input is-small" type="date" id="tc-prn-start-date" style="max-width:110px;">
-                  <span class="is-size-7">-</span>
-                  <input class="input is-small" type="date" id="tc-prn-end-date" style="max-width:110px;">
+              <label class="label is-size-7 mb-2" style="font-weight: 600;">Pull Backup/PRN from CRNA Schedule</label>
+              <div class="is-flex" style="gap:8px; align-items: center; flex-wrap: wrap; width: 100%;">
+                <div class="is-flex" style="gap:4px; align-items:center;">
+                  <input class="input is-small" type="date" id="tc-prn-start-date" style="max-width:120px; border-radius: 6px;">
+                  <span class="is-size-7" style="color: var(--text-muted);">to</span>
+                  <input class="input is-small" type="date" id="tc-prn-end-date" style="max-width:120px; border-radius: 6px;">
                 </div>
                 <button class="button is-small is-link mb-0" id="tc-prn-btn" onclick="submitUpdatePrnCall()" style="font-weight:700; flex-grow:1; border-radius: 6px;">
                   📥 Pull!
@@ -897,17 +891,57 @@
 
     function getNextMonday(dateStr) {
       if (!dateStr) return null;
-      const parts = dateStr.split("/");
+      let parseStr = dateStr;
+      let startStr = dateStr;
+      if (dateStr.includes("-")) {
+        const rParts = dateStr.split("-");
+        startStr = rParts[0].trim();
+        parseStr = rParts[1].trim();
+      }
+      
+      const startParts = startStr.split("/");
+      if (startParts.length < 2) return null;
+      const startMonth = parseInt(startParts[0], 10) - 1;
+      const startDay = parseInt(startParts[1], 10);
+      const startYear = startParts[2] ? parseInt(startParts[2], 10) : new Date().getFullYear();
+      const startMonday = new Date(startYear, startMonth, startDay);
+      if (isNaN(startMonday.getTime())) return null;
+
+      const parts = parseStr.split("/");
       if (parts.length < 2) return null;
       const month = parseInt(parts[0], 10) - 1;
       const day = parseInt(parts[1], 10);
       const year = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
-      const d = new Date(year, month, day);
-      if (isNaN(d.getTime())) return null;
-      const dayOfWeek = d.getDay();
-      const diff = (8 - dayOfWeek) % 7 || 7;
-      d.setDate(d.getDate() + diff);
-      return d;
+      const lastEnd = new Date(year, month, day);
+      if (isNaN(lastEnd.getTime())) return null;
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      lastEnd.setHours(0,0,0,0);
+
+      // Find the Monday of the week containing lastEnd
+      const lastEndDay = lastEnd.getDay();
+      const lastEndMonday = new Date(lastEnd);
+      const diffToMonday = lastEndDay === 0 ? -6 : 1 - lastEndDay;
+      lastEndMonday.setDate(lastEnd.getDate() + diffToMonday);
+
+      // Find the Monday of the week containing today
+      const todayDay = today.getDay();
+      const todayMonday = new Date(today);
+      const diffTodayMonday = todayDay === 0 ? -6 : 1 - todayDay;
+      todayMonday.setDate(today.getDate() + diffTodayMonday);
+
+      if (lastEndMonday.getTime() < todayMonday.getTime()) {
+        // Last run ended in a previous week. Move to the next Monday after the end date.
+        const dayOfWeek = lastEnd.getDay();
+        const diff = (8 - dayOfWeek) % 7 || 7;
+        const nextMon = new Date(lastEnd);
+        nextMon.setDate(nextMon.getDate() + diff);
+        return nextMon;
+      } else {
+        // We are in the same week. Keep the same starting Monday.
+        return startMonday;
+      }
     }
 
     function getNextPullRange(rangeStr) {
