@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v60';
+const CACHE_NAME = 'lawrence-anaesthesia-v61';
 
 const APP_SHELL = [
   './portal.html',
@@ -71,8 +71,13 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Always go network-first for the GAS API
-  if (url.hostname === 'script.google.com') {
+  // Bypass service worker for non-GET requests (e.g., POST API calls)
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // Always go network-first for the GAS API or Cloudflare API relay
+  if (url.hostname === 'script.google.com' || url.hostname === 'anesthesia-api-relay.scott-roberts-crna.workers.dev') {
     event.respondWith(networkFirst(request));
     return;
   }

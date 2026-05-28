@@ -32,7 +32,7 @@
   <div class="container mt-4">
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v60)</span>
+        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v61)</span>
       </div>
     </div>
 
@@ -1009,7 +1009,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=60', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=61', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1023,6 +1023,10 @@
   </script>
 
   <script>
+    // ─── Schedule Email Viewer ─────────────────────────────────────────────────
+    let scheduleDataCache = {};
+    let activeModalDate = null;
+
     function updateScheduleButtonState(dateStr) {
       if (typeof cachedData !== 'undefined' && cachedData) {
         const cachedDay = cachedData.find(d => d.dateStr === dateStr);
