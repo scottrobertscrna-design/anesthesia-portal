@@ -1003,7 +1003,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=57', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=58', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1159,23 +1159,43 @@
       const meta = document.getElementById('schedule-modal-meta');
       meta.textContent = data.emailDate ? `Uploaded on: ${data.emailDate}` : 'Schedule loaded';
 
-      const dataUri = `data:${data.mimeType};base64,${data.base64}`;
+      const dataUri = data.base64 ? `data:${data.mimeType};base64,${data.base64}` : '';
       const mime = (data.mimeType || '').toLowerCase();
 
       if (mime === 'application/pdf') {
-        body.innerHTML = `
-          <div style="width:100%; text-align:center;">
-            <embed src="${dataUri}" type="application/pdf"
-              style="width:100%; min-height:72vh; border-radius:10px; border:1px solid rgba(255,255,255,0.08);"
-              onerror="this.style.display='none'; document.getElementById('pdf-fallback-tk').style.display='block';"/>
-            <div id="pdf-fallback-tk" style="display:none; padding:20px;">
-              <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:12px;">Your browser can't display the PDF inline. Open or download it below:</p>
-              <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
-                style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:10px 22px; border-radius:10px; font-weight:700; font-size:0.9rem;">
-                ⬇️ Download / Open PDF
-              </a>
-            </div>
-          </div>`;
+        if (data.fileId) {
+          body.innerHTML = `
+            <div style="width:100%; text-align:center;">
+              <iframe src="https://drive.google.com/file/d/${data.fileId}/preview"
+                style="width:100%; min-height:72vh; border-radius:10px; border:none;"
+                allow="autoplay"></iframe>
+              <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+                ${dataUri ? `
+                <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
+                  style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
+                  ⬇️ Download PDF
+                </a>` : ''}
+                <a href="https://drive.google.com/file/d/${data.fileId}/view?usp=drivesdk" target="_blank"
+                  style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
+                  🔗 Open in Drive
+                </a>
+              </div>
+            </div>`;
+        } else {
+          body.innerHTML = `
+            <div style="width:100%; text-align:center;">
+              <embed src="${dataUri}" type="application/pdf"
+                style="width:100%; min-height:72vh; border-radius:10px; border:1px solid rgba(255,255,255,0.08);"
+                onerror="this.style.display='none'; document.getElementById('pdf-fallback-tk').style.display='block';"/>
+              <div id="pdf-fallback-tk" style="display:none; padding:20px;">
+                <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:12px;">Your browser can't display the PDF inline. Open or download it below:</p>
+                <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
+                  style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:10px 22px; border-radius:10px; font-weight:700; font-size:0.9rem;">
+                  ⬇️ Download / Open PDF
+                </a>
+              </div>
+            </div>`;
+        }
       } else if (mime.startsWith('image/')) {
         body.innerHTML = `
           <div style="width:100%; text-align:center; cursor:zoom-in;" onclick="toggleImgZoom(this)">
@@ -1187,7 +1207,7 @@
       } else {
         body.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px;">
           <div style="font-size:0.9rem;">Unsupported file type: ${data.mimeType}</div>
-          <a href="${dataUri}" download="${data.fileName || 'schedule'}" style="margin-top:10px; display:inline-block; color:#a5b4fc;">⬇️ Download</a>
+          <a href="${dataUri || 'https://drive.google.com/file/d/' + data.fileId + '/view'}" download="${data.fileName || 'schedule'}" style="margin-top:10px; display:inline-block; color:#a5b4fc;">⬇️ Download</a>
         </div>`;
       }
     }
