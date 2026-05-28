@@ -8,10 +8,10 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=25">
+  <link rel="stylesheet" href="css/style.css?v=26">
   
   <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest_timekeeper.json?v=4">
+  <link rel="manifest" href="manifest_timekeeper.json?v=5">
 
 
 
@@ -705,9 +705,15 @@
             <div class="section-title">
               LSC
               <div class="buttons has-addons mb-0" style="margin-left: auto; display: flex;">
-                <button class="button is-small ${viewMode === 'time' ? 'is-link' : 'is-light'}" onclick="setViewMode('time')" style="font-weight: 700; border-radius: 8px 0 0 8px; height: 28px; padding: 0 10px; margin-bottom: 0;">⏰ Time</button>
-                <button class="button is-small ${viewMode === 'break' ? 'is-link' : 'is-light'}" onclick="setViewMode('break')" style="font-weight: 700; border-radius: 0; height: 28px; padding: 0 10px; margin-bottom: 0;">☕ Break</button>
-                <button class="button is-small ${viewMode === 'hours' ? 'is-link' : 'is-light'}" onclick="setViewMode('hours')" style="font-weight: 700; border-radius: 0 8px 8px 0; height: 28px; padding: 0 10px; margin-bottom: 0;">📊 Hours</button>
+                <button class="button is-small ${viewMode === 'time' ? 'is-link' : 'is-light'}" onclick="setViewMode('time')" style="font-weight: 700; font-size: 0.85rem; border-radius: 8px 0 0 8px; height: 32px; padding: 0 12px; margin-bottom: 0;">
+                  <span style="font-size: 1.15rem; margin-right: 4px; line-height: 1;">⏰</span> Time
+                </button>
+                <button class="button is-small ${viewMode === 'break' ? 'is-link' : 'is-light'}" onclick="setViewMode('break')" style="font-weight: 700; font-size: 0.85rem; border-radius: 0; height: 32px; padding: 0 12px; margin-bottom: 0;">
+                  <span style="font-size: 1.15rem; margin-right: 4px; line-height: 1;">☕</span> Break
+                </button>
+                <button class="button is-small ${viewMode === 'hours' ? 'is-link' : 'is-light'}" onclick="setViewMode('hours')" style="font-weight: 700; font-size: 0.85rem; border-radius: 0 8px 8px 0; height: 32px; padding: 0 12px; margin-bottom: 0;">
+                  <span style="font-size: 1.15rem; margin-right: 4px; line-height: 1;">📊</span> Hours
+                </button>
               </div>
             </div>
             <div class="mb-5">

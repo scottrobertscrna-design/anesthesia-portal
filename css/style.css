@@ -570,9 +570,15 @@ input[type="date"],
 }
 
 .header-labels span {
-  width: 80px;
+  width: 76px;
   text-align: center;
   color: var(--accent-blue);   /* IN — blue */
+}
+
+.header-labels span:first-child {
+  width: 86px;
+  text-align: left;
+  padding-left: 5px;
 }
 
 .header-labels span:last-child {
@@ -662,7 +668,13 @@ input[type="date"],
   }
   
   .header-labels span {
-    width: 68px;
+    width: 60px;
+  }
+
+  .header-labels span:first-child {
+    width: 76px;
+    text-align: left;
+    padding-left: 2px;
   }
 }
 
@@ -731,7 +743,7 @@ input[type="date"],
 
 /* Icon inside break/lunch button */
 .break-lunch-controls button .btn-icon {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
