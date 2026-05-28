@@ -640,9 +640,15 @@
                 <h1 class="title is-2 mb-0" style="line-height: 1.1;">${day.viewTitle}</h1>
                 <div class="date-header" style="margin-top: 4px;">${day.dateStr}</div>
               </div>
-              <button class="button is-small" onclick="openScheduleModal('${day.dateStr}')" title="View or upload schedule for ${day.dateStr}" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0;">
+              ${day.hasSchedule ? `
+              <button class="button is-small schedule-btn" id="sched-btn-${dateId}" onclick="openScheduleModal('${day.dateStr}')" title="View schedule for ${day.dateStr}" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0;">
                 📄 Schedule
               </button>
+              ` : `
+              <button class="button is-small schedule-btn" id="sched-btn-${dateId}" onclick="openScheduleModal('${day.dateStr}')" title="Upload schedule for ${day.dateStr}" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px dashed rgba(255,255,255,0.2); font-weight: 600; margin-bottom: 0; transition: all 0.2s;" onmouseover="this.style.background='rgba(16,185,129,0.15)'; this.style.borderColor='#10b981'; this.style.color='#10b981';" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='#94a3b8';">
+                📤 Upload
+              </button>
+              `}
             </div>
 
             <div class="section-title">LMH Coverage</div>
@@ -1389,7 +1395,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=59', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=60', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1407,6 +1413,23 @@
     // ─── Schedule Email Viewer ─────────────────────────────────────────────────
     let scheduleDataCache = {};
     let activeModalDate = null;
+
+    function updateScheduleButtonState(dateStr) {
+      if (typeof cachedData !== 'undefined' && cachedData) {
+        const cachedDay = cachedData.find(d => d.dateStr === dateStr);
+        if (cachedDay) cachedDay.hasSchedule = true;
+      }
+      const dateId = dateStr.replace(/[^a-zA-Z0-9]/g, '');
+      const btn = document.getElementById(`sched-btn-${dateId}`);
+      if (btn) {
+        btn.className = 'button is-small schedule-btn';
+        btn.innerHTML = '📄 Schedule';
+        btn.title = `View schedule for ${dateStr}`;
+        btn.style.cssText = "height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0;";
+        btn.onmouseover = null;
+        btn.onmouseout = null;
+      }
+    }
 
     async function openScheduleModal(dateStr) {
       let targetDate = dateStr;
@@ -1526,6 +1549,7 @@
           
           if (res && res.success) {
             showToast('Schedule uploaded and emailed successfully!', 'success');
+            updateScheduleButtonState(activeModalDate);
             await openScheduleModal(activeModalDate);
           } else {
             showToast('Upload failed: ' + (res.error || 'Unknown error'));
@@ -1630,6 +1654,7 @@
         const data = await callApi('getScheduleForDate', { dateStr: activeModalDate });
         if (data && data.found) {
           scheduleDataCache[activeModalDate] = data;
+          updateScheduleButtonState(activeModalDate);
           renderScheduleContent(data);
           showToast('Schedule updated!', 'success');
         } else {
