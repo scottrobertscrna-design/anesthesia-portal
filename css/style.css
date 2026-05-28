@@ -250,6 +250,7 @@ h1, h2, h3, .title, .subtitle {
   flex-shrink: 0;
   justify-content: flex-end;
   min-width: 80px;
+  position: relative;
 }
 
 .entry-page .controls-wrapper {
@@ -557,32 +558,37 @@ input[type="date"],
   display: inline-block;
 }
 
-/* Header Labels (IN / OUT) — IN=blue, OUT=green, all caps */
-.header-labels {
+/* Toggle column — wraps button group + IN/OUT label row as a vertical stack */
+.view-toggle-col {
   display: flex;
-  font-size: 1.05rem;
-  width: 170px;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+/* IN/OUT labels below the toggle buttons — browser: IN under 'm' in Time, OUT far right */
+.in-out-pin-row {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-left: 44px;   /* pushes IN under the 'm' in Time */
+}
+
+.in-pin-label {
+  font-size: 0.75rem;
   font-weight: 700;
-  gap: 8px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--accent-blue);
 }
 
-.header-labels span {
-  color: var(--accent-blue);   /* IN — blue */
-}
-
-.header-labels span:first-child {
-  width: 90px;
-  text-align: right;
-  padding-right: 12px;
-}
-
-.header-labels span:last-child {
-  width: 72px;
-  text-align: center;
-  color: var(--accent-emerald); /* OUT — green */
+.out-pin-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-emerald);
 }
 
 .italic-grey {
@@ -660,29 +666,13 @@ input[type="date"],
     display: none;
   }
 
-  .header-labels {
-    width: 140px;
-    font-size: 0.9rem;
-    gap: 4px;
-    color: var(--accent-blue);
-  }
-  
-  .header-labels span {
-    /* override base styles */
-  }
 
-  .header-labels span:first-child {
-    width: 74px;
-    text-align: right;
-    padding-right: 10px;
-  }
-
-  .header-labels span:last-child {
-    width: 62px;
-    text-align: right;
-    padding-right: 15px;
+  /* Mobile: shift IN right to sit under 'B' in Break (second button) */
+  .in-out-pin-row {
+    padding-left: 111px;
   }
 }
+
 
 /* Landscape Mobile Customizations — restore font size and prefix when wide */
 @media screen and (max-width: 950px) and (orientation: landscape) {
