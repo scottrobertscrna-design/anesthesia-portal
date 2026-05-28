@@ -1382,7 +1382,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=55', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=56', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1425,13 +1425,7 @@
           scheduleDataCache = data;
           renderScheduleContent(data);
         } else {
-          body.innerHTML = `
-            <div style="text-align:center; color:#ef4444; padding:30px;">
-              <div style="font-size:2.5rem; margin-bottom:12px;">📭</div>
-              <div style="font-size:1rem; font-weight:700; color:#fca5a5;">No schedule found</div>
-              <div style="font-size:0.82rem; color:#94a3b8; margin-top:8px;">No PDF or image attachment was found in the Lawrence Anesthesia email group in the last 7 days.</div>
-              <button onclick="resyncScheduleEmail()" style="margin-top:16px; background:linear-gradient(135deg,#667eea,#764ba2); border:none; border-radius:8px; color:#fff; font-size:0.85rem; font-weight:700; padding:8px 18px; cursor:pointer;">🔄 Try Re-sync</button>
-            </div>`;
+          renderSyncFailure(body, data);
           meta.textContent = 'No attachment found.';
         }
       } catch (err) {
@@ -1441,6 +1435,25 @@
         </div>`;
         meta.textContent = 'Error fetching file.';
       }
+    }
+
+    function renderSyncFailure(container, data) {
+      container.innerHTML = `
+        <div style="text-align:center; color:#ef4444; padding:10px;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">📭</div>
+          <div style="font-size:1.05rem; font-weight:700; color:#fca5a5;">No schedule found</div>
+          <div style="font-size:0.82rem; color:#94a3b8; margin:8px auto 16px auto; max-width:320px; line-height:1.4;">
+            No PDF or image attachment was found in the Lawrence Anesthesia email group in the last 7 days.
+          </div>
+          <button onclick="resyncScheduleEmail()" style="background:linear-gradient(135deg,#667eea,#764ba2); border:none; border-radius:8px; color:#fff; font-size:0.85rem; font-weight:700; padding:8px 18px; cursor:pointer; margin-bottom:16px;">
+            🔄 Try Re-sync
+          </button>
+          
+          <details style="margin-top: 10px; text-align: left; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.72rem; max-height: 160px; overflow-y: auto;">
+            <summary style="cursor: pointer; color: #a5b4fc; font-weight: 700; outline: none; margin-bottom: 6px; user-select:none;">🛠️ View Sync Debug Log</summary>
+            <pre style="white-space: pre-wrap; margin: 0; color: #cbd5e1; background: transparent; border: none; padding: 0; font-family: inherit;">${data && data.log ? data.log : 'No debug log available. Click Re-sync to generate.'}</pre>
+          </details>
+        </div>`;
     }
 
     function renderScheduleContent(data) {
@@ -1509,14 +1522,16 @@
         </div>`;
       meta.textContent = 'Re-syncing...';
       try {
-        await callApi('syncScheduleEmail', {});
+        const syncRes = await callApi('syncScheduleEmail', {});
         const data = await callApi('getScheduleFile', {});
         if (data && data.found) {
           scheduleDataCache = data;
           renderScheduleContent(data);
           showToast('Schedule updated!', 'success');
         } else {
-          body.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px;"><div style="font-size:2rem;">📭</div><div style="margin-top:8px;">Still no schedule found in the last 3 days.</div></div>`;
+          const displayData = data || {};
+          if (syncRes && syncRes.log) displayData.log = syncRes.log;
+          renderSyncFailure(body, displayData);
           meta.textContent = 'No attachment found.';
         }
       } catch (err) {
