@@ -48,6 +48,9 @@
       <button class="button is-small is-link" id="btn-open-timecard" onclick="openTimecard()" title="Open Personal Timecard" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
         🕰️ My Timecard
       </button>
+      <button class="button is-small" id="btn-view-schedule-snap" onclick="openScheduleModal()" title="View today's emailed schedule" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35);">
+        📄 Schedule
+      </button>
     </div>
 
     <!-- Main Content Area -->
@@ -1365,7 +1368,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=28', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=51', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1378,5 +1381,175 @@
       });
     }
   </script>
+
+  <script>
+    // ─── Schedule Email Viewer (Snapshot) ─────────────────────────────────────────────
+    let scheduleDataCache = null;
+
+    async function openScheduleModal() {
+      const modal = document.getElementById('schedule-modal-snap');
+      const body = document.getElementById('schedule-modal-body-snap');
+      const meta = document.getElementById('schedule-modal-meta-snap');
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+
+      if (scheduleDataCache) {
+        renderScheduleContent(scheduleDataCache);
+        return;
+      }
+
+      body.innerHTML = `
+        <div style="text-align:center; color:#94a3b8;">
+          <div style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block;">⏳</div>
+          <div style="margin-top:10px; font-size:0.9rem;">Fetching schedule from email...</div>
+        </div>`;
+      meta.textContent = 'Searching mailbox...';
+
+      try {
+        const data = await callApi('getScheduleFile', {});
+        if (data && data.found) {
+          scheduleDataCache = data;
+          renderScheduleContent(data);
+        } else {
+          body.innerHTML = `
+            <div style="text-align:center; color:#ef4444; padding:30px;">
+              <div style="font-size:2.5rem; margin-bottom:12px;">📭</div>
+              <div style="font-size:1rem; font-weight:700; color:#fca5a5;">No schedule found</div>
+              <div style="font-size:0.82rem; color:#94a3b8; margin-top:8px;">No PDF or image attachment was found in emails to snoozle@googlegroups.com in the last 3 days.</div>
+              <button onclick="resyncScheduleEmail()" style="margin-top:16px; background:linear-gradient(135deg,#667eea,#764ba2); border:none; border-radius:8px; color:#fff; font-size:0.85rem; font-weight:700; padding:8px 18px; cursor:pointer;">🔄 Try Re-sync</button>
+            </div>`;
+          meta.textContent = 'No attachment found.';
+        }
+      } catch (err) {
+        body.innerHTML = `<div style="text-align:center; color:#ef4444; padding:30px;">
+          <div style="font-size:1rem; font-weight:700;">Error loading schedule</div>
+          <div style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">${err.message}</div>
+        </div>`;
+        meta.textContent = 'Error fetching file.';
+      }
+    }
+
+    function renderScheduleContent(data) {
+      const body = document.getElementById('schedule-modal-body-snap');
+      const meta = document.getElementById('schedule-modal-meta-snap');
+      meta.textContent = data.emailDate ? `From email on: ${data.emailDate}` : 'Schedule loaded';
+
+      const dataUri = `data:${data.mimeType};base64,${data.base64}`;
+      const mime = (data.mimeType || '').toLowerCase();
+
+      if (mime === 'application/pdf') {
+        body.innerHTML = `
+          <div style="width:100%; text-align:center;">
+            <embed src="${dataUri}" type="application/pdf"
+              style="width:100%; min-height:72vh; border-radius:10px; border:1px solid rgba(255,255,255,0.08);"
+              onerror="this.style.display='none'; document.getElementById('pdf-fallback-snap').style.display='block';"/>
+            <div id="pdf-fallback-snap" style="display:none; padding:20px;">
+              <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:12px;">Your browser can't display the PDF inline. Open or download it below:</p>
+              <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
+                style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:10px 22px; border-radius:10px; font-weight:700; font-size:0.9rem;">
+                ⬇️ Download / Open PDF
+              </a>
+            </div>
+          </div>`;
+      } else if (mime.startsWith('image/')) {
+        body.innerHTML = `
+          <div style="width:100%; text-align:center; cursor:zoom-in;" onclick="toggleImgZoomSnap(this)">
+            <img src="${dataUri}" alt="Daily Schedule"
+              style="max-width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.08); transition:transform 0.25s ease;"
+              title="Click to zoom" />
+            <div style="font-size:0.72rem; color:#64748b; margin-top:8px;">Tap image to zoom in/out</div>
+          </div>`;
+      } else {
+        body.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px;">
+          <div style="font-size:0.9rem;">Unsupported file type: ${data.mimeType}</div>
+          <a href="${dataUri}" download="${data.fileName || 'schedule'}" style="margin-top:10px; display:inline-block; color:#a5b4fc;">⬇️ Download</a>
+        </div>`;
+      }
+    }
+
+    function toggleImgZoomSnap(wrapper) {
+      const img = wrapper.querySelector('img');
+      if (!img) return;
+      const isZoomed = img.style.transform && img.style.transform !== 'none';
+      img.style.transform = isZoomed ? 'none' : 'scale(1.85)';
+      img.style.transformOrigin = 'top center';
+      wrapper.style.cursor = isZoomed ? 'zoom-in' : 'zoom-out';
+      wrapper.style.overflow = isZoomed ? 'visible' : 'hidden';
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('schedule-modal-snap').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    async function resyncScheduleEmail() {
+      const body = document.getElementById('schedule-modal-body-snap');
+      const meta = document.getElementById('schedule-modal-meta-snap');
+      const btn = document.getElementById('btn-schedule-resync-snap');
+      scheduleDataCache = null;
+      if (btn) btn.disabled = true;
+      body.innerHTML = `
+        <div style="text-align:center; color:#94a3b8;">
+          <div style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block;">⏳</div>
+          <div style="margin-top:10px; font-size:0.9rem;">Scanning mailbox for latest schedule...</div>
+        </div>`;
+      meta.textContent = 'Re-syncing...';
+      try {
+        await callApi('syncScheduleEmail', {});
+        const data = await callApi('getScheduleFile', {});
+        if (data && data.found) {
+          scheduleDataCache = data;
+          renderScheduleContent(data);
+          showToast('Schedule updated!', 'success');
+        } else {
+          body.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px;"><div style="font-size:2rem;">📭</div><div style="margin-top:8px;">Still no schedule found in the last 3 days.</div></div>`;
+          meta.textContent = 'No attachment found.';
+        }
+      } catch (err) {
+        meta.textContent = 'Sync failed.';
+        showToast('Re-sync failed: ' + err.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    document.getElementById('schedule-modal-snap').addEventListener('click', function(e) {
+      if (e.target === this) closeScheduleModal();
+    });
+  </script>
 </body>
+
+<!-- ============================================================
+     SCHEDULE EMAIL VIEWER MODAL (Snapshot)
+     ============================================================ -->
+<div id="schedule-modal-snap" style="display:none; position:fixed; inset:0; z-index:9000; background:rgba(10,10,20,0.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); overflow-y:auto;">
+  <div style="min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:20px 12px;">
+    <div style="background:#1e1e2e; border:1px solid rgba(255,255,255,0.1); border-radius:18px; width:100%; max-width:820px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden;">
+
+      <!-- Modal Header -->
+      <div style="padding:18px 22px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <div style="font-weight:800; font-size:1.1rem; color:#e2e8f0; letter-spacing:-0.02em;">📄 Email Schedule</div>
+          <div id="schedule-modal-meta-snap" style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">Searching for latest attachment...</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="btn-schedule-resync-snap" onclick="resyncScheduleEmail()" title="Re-scan inbox for latest attachment" style="background:rgba(102,126,234,0.18); border:1px solid rgba(102,126,234,0.35); border-radius:8px; color:#a5b4fc; font-size:0.8rem; font-weight:700; padding:6px 12px; cursor:pointer; transition:all 0.2s;">
+            🔄 Re-sync
+          </button>
+          <button onclick="closeScheduleModal()" style="background:rgba(255,255,255,0.08); border:none; border-radius:8px; color:#94a3b8; font-size:1.3rem; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" title="Close">&times;</button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div id="schedule-modal-body-snap" style="padding:20px; min-height:280px; display:flex; align-items:center; justify-content:center;">
+        <div style="text-align:center; color:#64748b;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">📂</div>
+          <div style="font-size:0.9rem;">No schedule loaded yet.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </html>
