@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=25">
+  <link rel="stylesheet" href="css/style.css?v=26">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -442,6 +442,36 @@
       return `${String(h).padStart(2, '0')}:${m}`;
     }
 
+    function canTransfer(name) {
+      const n = String(name || "").toLowerCase();
+      return !n.includes("travis") && !n.includes("nancy");
+    }
+
+    async function toggleEmployeeLocation(btn, name, dateStr, currentRole) {
+      let target = 'CLEAR';
+      if (btn.textContent.includes('→ LSC')) {
+        target = 'LSC';
+      } else if (btn.textContent.includes('→ LMH')) {
+        target = 'CRNA';
+      }
+      
+      btn.classList.add('is-loading');
+      try {
+        const res = await callApi("transferEmployee", { name, dateStr, target });
+        if (res && res.success) {
+          showToast(`Transferred ${name} successfully!`, "success");
+          const picker = document.getElementById('entry-date-picker');
+          await fetchFreshData(picker ? picker.value : '');
+        } else {
+          showToast("Error: " + (res.error || "Failed to transfer employee."));
+          btn.classList.remove('is-loading');
+        }
+      } catch (err) {
+        showToast("Transfer failed: " + err.message);
+        btn.classList.remove('is-loading');
+      }
+    }
+
     async function toggleArrival(checkbox, name, role, dateStr, targetId) {
       const row = document.getElementById(targetId);
       const content = row.querySelector('.entry-content');
@@ -663,23 +693,39 @@
                   return true;
                 });
                 return filteredLsc.length ? filteredLsc.map((name, i) => {
-                  const off = getSignOff(name, 'LSC');
-                  const bl = blState[`${name}|LSC`] || { break: false, lunch: false };
+                  const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
+                  const off = getSignOff(name, activeRole);
+                  const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
                   const isHome = !!(off && off.time);
                   return `
-                  <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="LSC" data-date="${day.dateStr}" data-today="${isToday}">
+                  <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                     <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                       <span class="num-badge">CRNA</span>
                       <span class="has-text-weight-bold">${name}</span>
+                      ${isToday && !isHome && canTransfer(name) ? `
+                        ${day.coverageOverrides && day.coverageOverrides[name] ? `
+                          <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-toggle-btn" 
+                                  style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: #f43f5e;"
+                                  onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'LSC')">
+                            ↩️ LMH
+                          </button>
+                        ` : `
+                          <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-toggle-btn" 
+                                  style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(50, 115, 220, 0.15); border: 1px solid rgba(50, 115, 220, 0.3); color: var(--arrival-color);"
+                                  onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'LSC')">
+                            🏥 → LMH
+                          </button>
+                        `}
+                      ` : ''}
                       ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                       ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                     </div>
                     ${isToday && !isHome ? `
                     <div class="break-lunch-controls">
-                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'break')">
+                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${activeRole}', '${day.dateStr}', 'break')">
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                       </button>
-                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'lunch')">
+                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${activeRole}', '${day.dateStr}', 'lunch')">
                         <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
                     </div>` : ''}
@@ -706,23 +752,39 @@
                 });
                 return filteredNumbered;
               })().map((e, i) => {
-                const off = getSignOff(e.name, e.num);
-                const bl = blState[`${e.name}|${e.num}`] || { break: false, lunch: false };
+                const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
+                const off = getSignOff(e.name, activeRole);
+                const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
                 const isHome = !!(off && off.time);
                 return `
-                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}" data-today="${isToday}">
+                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">${e.num}</span>
                     <span class="has-text-weight-bold">${e.name}</span>
+                    ${isToday && !isHome && canTransfer(e.name) ? `
+                      ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
+                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-toggle-btn" 
+                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: #f43f5e;"
+                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', '${activeRole}')">
+                          ↩️ LSC
+                        </button>
+                      ` : `
+                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-toggle-btn" 
+                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(50, 115, 220, 0.15); border: 1px solid rgba(50, 115, 220, 0.3); color: var(--arrival-color);"
+                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', '${activeRole}')">
+                          🏥 → LSC
+                        </button>
+                      `}
+                    ` : ''}
                     ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
                   ${isToday && !isHome ? `
                   <div class="break-lunch-controls">
-                    <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'break')">
+                    <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'break')">
                       <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                     </button>
-                    <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
+                    <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'lunch')">
                       <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                     </button>
                   </div>` : ''}
@@ -1303,7 +1365,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=26', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
