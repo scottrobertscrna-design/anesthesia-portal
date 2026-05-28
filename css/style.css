@@ -570,18 +570,18 @@ input[type="date"],
 }
 
 .header-labels span {
-  width: 76px;
-  text-align: center;
   color: var(--accent-blue);   /* IN — blue */
 }
 
 .header-labels span:first-child {
-  width: 86px;
-  text-align: left;
-  padding-left: 5px;
+  width: 80px;
+  text-align: center;
 }
 
 .header-labels span:last-child {
+  width: 82px;
+  text-align: left;
+  padding-left: 27px;
   color: var(--accent-emerald); /* OUT — green */
 }
 
@@ -668,13 +668,18 @@ input[type="date"],
   }
   
   .header-labels span {
-    width: 60px;
+    /* override base styles */
   }
 
   .header-labels span:first-child {
-    width: 76px;
+    width: 68px;
+    text-align: center;
+  }
+
+  .header-labels span:last-child {
+    width: 68px;
     text-align: left;
-    padding-left: 2px;
+    padding-left: 22px;
   }
 }
 
