@@ -889,6 +889,22 @@
       }
     }
 
+    function getMostRecentFridayBefore(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      let diff;
+      if (day === 6) { // Saturday
+        diff = -1;
+      } else if (day === 0) { // Sunday
+        diff = -2;
+      } else { // Monday to Friday
+        diff = -(day + 2);
+      }
+      d.setDate(d.getDate() + diff);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
     function getNextMonday(dateStr) {
       if (!dateStr) return null;
       let parseStr = dateStr;
@@ -916,8 +932,7 @@
       if (isNaN(lastEnd.getTime())) return null;
 
       const today = new Date();
-      today.setHours(0,0,0,0);
-      lastEnd.setHours(0,0,0,0);
+      const mostRecentFriday = getMostRecentFridayBefore(today);
 
       // Find the Monday of the week containing lastEnd
       const lastEndDay = lastEnd.getDay();
@@ -937,7 +952,13 @@
         const diff = (8 - dayOfWeek) % 7 || 7;
         const nextMon = new Date(lastEnd);
         nextMon.setDate(nextMon.getDate() + diff);
-        return nextMon;
+        
+        // ONLY return nextMon if it's less than or equal to the most recent Friday!
+        if (nextMon.getTime() <= mostRecentFriday.getTime()) {
+          return nextMon;
+        } else {
+          return startMonday;
+        }
       } else {
         // We are in the same week. Keep the same starting Monday.
         return startMonday;
@@ -962,16 +983,67 @@
       return { start: nextStart, end: nextEnd };
     }
 
+    function updateFillButtonLabel() {
+      const otPicker = document.getElementById("tc-overtime-date-picker");
+      const otBtn = document.getElementById("tc-overtime-btn");
+      if (!otPicker.value || otBtn.classList.contains("is-loading")) return;
+      
+      const parts = otPicker.value.split("-");
+      if (parts.length < 3) return;
+      const startMonth = parseInt(parts[1], 10);
+      const startDay = parseInt(parts[2], 10);
+      
+      const end = getMostRecentFridayBefore(new Date());
+      const endMonth = end.getMonth() + 1;
+      const endDay = end.getDate();
+      
+      otBtn.innerText = `⚡ Fill (${startMonth}/${startDay} to ${endMonth}/${endDay})`;
+    }
+
+    function updatePullButtonLabel() {
+      const prnStart = document.getElementById("tc-prn-start-date");
+      const prnEnd = document.getElementById("tc-prn-end-date");
+      const prnBtn = document.getElementById("tc-prn-btn");
+      
+      if (!prnStart.value || !prnEnd.value || prnBtn.classList.contains("is-loading")) return;
+      
+      const startParts = prnStart.value.split("-");
+      const endParts = prnEnd.value.split("-");
+      if (startParts.length < 3 || endParts.length < 3) return;
+      
+      const startMonth = parseInt(startParts[1], 10);
+      const startDay = parseInt(startParts[2], 10);
+      const endMonth = parseInt(endParts[1], 10);
+      const endDay = parseInt(endParts[2], 10);
+      
+      prnBtn.innerText = `📥 Pull (${startMonth}/${startDay} to ${endMonth}/${endDay})`;
+    }
+
     async function refreshClockStatus(sheetId) {
       const statusText = document.getElementById("tc-clock-status-text");
       const punchText = document.getElementById("tc-last-punch-text");
       const clockInBtn = document.getElementById("tc-clock-in-btn");
       const clockOutBtn = document.getElementById("tc-clock-out-btn");
       
+      const otBtn = document.getElementById("tc-overtime-btn");
+      const prnBtn = document.getElementById("tc-prn-btn");
+      const otPicker = document.getElementById("tc-overtime-date-picker");
+      const prnStart = document.getElementById("tc-prn-start-date");
+      const prnEnd = document.getElementById("tc-prn-end-date");
+      
       statusText.innerText = "REFRESHING...";
       statusText.style.color = "var(--text-muted)";
       clockInBtn.disabled = true;
       clockOutBtn.disabled = true;
+      
+      // Disable buttons and pickers, set loading text
+      otBtn.disabled = true;
+      otBtn.innerText = "⏳ Loading last run...";
+      prnBtn.disabled = true;
+      prnBtn.innerText = "⏳ Loading last run...";
+      otPicker.disabled = true;
+      prnStart.disabled = true;
+      prnEnd.disabled = true;
       
       try {
         const res = await callApi("timecardGetClockStatus", { sheetId });
@@ -991,7 +1063,6 @@
         punchText.innerText = res.lastPunch ? `Last punch: ${res.lastPunch}` : "Last punch: None";
         
         // 1. Fill Overtime picker based on lastFillDate from spreadsheet
-        const otPicker = document.getElementById("tc-overtime-date-picker");
         if (res.lastFillDate) {
           const nextMon = getNextMonday(res.lastFillDate);
           if (nextMon) {
@@ -1007,8 +1078,6 @@
         }
 
         // 2. Fill PRN pull dates based on lastPullRange from spreadsheet
-        const prnStart = document.getElementById("tc-prn-start-date");
-        const prnEnd = document.getElementById("tc-prn-end-date");
         let pullDatesSet = false;
         if (res.lastPullRange) {
           const nextPull = getNextPullRange(res.lastPullRange);
@@ -1057,6 +1126,16 @@
       } finally {
         clockInBtn.disabled = false;
         clockOutBtn.disabled = false;
+        
+        // Re-enable calculation buttons & pickers, update labels
+        otPicker.disabled = false;
+        prnStart.disabled = false;
+        prnEnd.disabled = false;
+        otBtn.disabled = false;
+        prnBtn.disabled = false;
+        
+        updateFillButtonLabel();
+        updatePullButtonLabel();
       }
     }
 
@@ -1192,6 +1271,11 @@
       localStorage.removeItem("tc_sheet_id");
       closeTimecardDashboardModal();
     }
+
+    // Register change listeners to dynamically update button ranges when user changes the pickers
+    document.getElementById("tc-overtime-date-picker").addEventListener("change", updateFillButtonLabel);
+    document.getElementById("tc-prn-start-date").addEventListener("change", updatePullButtonLabel);
+    document.getElementById("tc-prn-end-date").addEventListener("change", updatePullButtonLabel);
   </script>
 
   <!-- PWA Service Worker Registration -->
