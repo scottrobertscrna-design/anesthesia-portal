@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=40">
+  <link rel="stylesheet" href="css/style.css?v=41">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=6">
@@ -948,7 +948,7 @@
                         return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
                       })()}
                     </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}}
+                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>' }
             </div>`;
       }
 
@@ -982,7 +982,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=40', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=41', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

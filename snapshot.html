@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=27">
+  <link rel="stylesheet" href="css/style.css?v=28">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
@@ -1365,7 +1365,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=27', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=28', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
