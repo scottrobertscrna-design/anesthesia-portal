@@ -47,6 +47,15 @@
       </button>
     </div>
 
+    <!-- View Switcher Tabs -->
+    <div class="tabs is-toggle is-toggle-rounded is-centered mb-5" id="view-tabs" style="margin-top: 15px;">
+      <ul style="justify-content: center;">
+        <li id="tab-time" class="is-active"><a onclick="setViewMode('time')" style="font-weight: 700;">⏰ Time View</a></li>
+        <li id="tab-break"><a onclick="setViewMode('break')" style="font-weight: 700;">☕ Break View</a></li>
+        <li id="tab-hours"><a onclick="setViewMode('hours')" style="font-weight: 700;">📊 Weekly Hours</a></li>
+      </ul>
+    </div>
+
     <!-- Main Content Area -->
     <div id="content" class="entry-page">
       <div class="loading-wrap">
@@ -67,10 +76,12 @@
     // background poll does not reset their visual state prematurely.
     const pendingRows = new Set();
 
-    // View mode: 'time' (IN/OUT) or 'break' (☕/🍴)
+    // View mode: 'time' (IN/OUT), 'break' (☕/🍴), or 'hours' (📊)
     let viewMode = 'time';
     // Cache the latest data so we can re-render when toggling views
     let cachedData = null;
+    // Cache for all sign-offs to calculate weekly totals
+    let allSignOffsList = [];
 
     function showToast(message, type = 'danger') {
       let toast = document.getElementById('api-toast');
@@ -101,9 +112,91 @@
       }, 4000);
     }
 
-    function toggleViewMode() {
-      viewMode = (viewMode === 'time') ? 'break' : 'time';
+    function setViewMode(mode) {
+      viewMode = mode;
+      
+      // Update tab active classes
+      document.querySelectorAll('#view-tabs li').forEach(li => li.classList.remove('is-active'));
+      const activeTab = document.getElementById(`tab-${mode}`);
+      if (activeTab) activeTab.classList.add('is-active');
+      
       if (cachedData) render(cachedData);
+    }
+
+    function toggleViewMode() {
+      if (viewMode === 'time') {
+        setViewMode('break');
+      } else if (viewMode === 'break') {
+        setViewMode('hours');
+      } else {
+        setViewMode('time');
+      }
+    }
+
+    function calculateHoursWorked(arrivalStr, departureStr) {
+      if (!arrivalStr || !departureStr) return 0;
+      try {
+        const parseTime = (timeStr) => {
+          const [time, ampm] = timeStr.split(' ');
+          let [h, m] = time.split(':');
+          h = parseInt(h, 10);
+          m = parseInt(m, 10);
+          if (ampm === 'PM' && h !== 12) h += 12;
+          if (ampm === 'AM' && h === 12) h = 0;
+          return h * 60 + m; // minutes from midnight
+        };
+        const arrMin = parseTime(arrivalStr);
+        const depMin = parseTime(departureStr);
+        if (depMin > arrMin) {
+          return (depMin - arrMin) / 60;
+        }
+      } catch (e) {
+        console.error("Error calculating hours:", e);
+      }
+      return 0;
+    }
+
+    function calculateRunningWeeklyHours(employeeName, employeeRole, targetDateStr, allSignOffs) {
+      const picker = document.getElementById('entry-date-picker');
+      const activeDateVal = picker ? picker.value : ''; // "YYYY-MM-DD"
+      const activeYear = activeDateVal ? parseInt(activeDateVal.split('-')[0], 10) : new Date().getFullYear();
+      
+      const cleanDateStr = targetDateStr.replace(/^[A-Za-z]+,\s+/, ''); // "May 28"
+      const dateParts = cleanDateStr.split(' ');
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthIdx = monthNames.indexOf(dateParts[0].substring(0, 3));
+      const dayNum = parseInt(dateParts[1], 10);
+      
+      const targetDateObj = new Date(activeYear, monthIdx, dayNum);
+      
+      const dayOfWeek = targetDateObj.getDay();
+      const distToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(targetDateObj);
+      monday.setDate(targetDateObj.getDate() + distToMonday);
+      
+      const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dateStrings = [];
+      
+      const tempDate = new Date(monday);
+      while (tempDate <= targetDateObj) {
+        const formatted = `${weekdays[tempDate.getDay()]}, ${months[tempDate.getMonth()]} ${tempDate.getDate()}`;
+        dateStrings.push(formatted);
+        tempDate.setDate(tempDate.getDate() + 1);
+      }
+      
+      let totalHours = 0;
+      (allSignOffs || []).forEach(s => {
+        if (String(s.name).trim().toLowerCase() === String(employeeName).trim().toLowerCase() && 
+            dateStrings.includes(s.dateStr)) {
+          totalHours += calculateHoursWorked(s.arrivalTime, s.time);
+        }
+      });
+      
+      return {
+        hours: totalHours.toFixed(1),
+        rangeLabel: `Mon-${weekdays[targetDateObj.getDay()].substring(0, 3)}`
+      };
     }
 
     function updateLocalCacheSignOff(dateStr, name, role, arrivalTime, departureTime) {
@@ -130,6 +223,25 @@
       // Remove if both empty
       if (!signOff.arrivalTime && !signOff.time) {
         day.signOffs = day.signOffs.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role)));
+      }
+
+      // Also update allSignOffsList
+      let globalSignOff = allSignOffsList.find(s => String(s.name) === String(name) && String(s.role) === String(role) && String(s.dateStr) === String(dateStr));
+      if (!globalSignOff) {
+        globalSignOff = {
+          dateStr: dateStr,
+          name: name,
+          role: role,
+          arrivalTime: "",
+          time: ""
+        };
+        allSignOffsList.push(globalSignOff);
+      }
+      if (arrivalTime !== undefined) globalSignOff.arrivalTime = arrivalTime;
+      if (departureTime !== undefined) globalSignOff.time = departureTime;
+      
+      if (!globalSignOff.arrivalTime && !globalSignOff.time) {
+        allSignOffsList = allSignOffsList.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role) && String(s.dateStr) === String(dateStr)));
       }
     }
 
@@ -186,6 +298,8 @@
         const activeDate = picker ? picker.value : '';
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
         
+        allSignOffsList = update.signOffs || [];
+        
         // Update cachedData in memory
         if (cachedData) {
           cachedData.forEach(day => {
@@ -232,6 +346,21 @@
 
         // Clear existing display spans across the whole row
         entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
+
+        // If in hours view mode, we ONLY want to sync the running hours badge and nothing else!
+        if (viewMode === 'hours') {
+          const hoursDisplay = entryRow.querySelector('.hours-display-wrapper');
+          if (hoursDisplay) {
+            const res = calculateRunningWeeklyHours(name, role, dateStr, allSignOffsList);
+            hoursDisplay.innerHTML = `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+          }
+          if (data && data.time) {
+            content.classList.add('strikethrough');
+          } else {
+            content.classList.remove('strikethrough');
+          }
+          return;
+        }
 
         if (data) {
           // Sync Arrival (Entry Mode Only)
@@ -315,6 +444,13 @@
             if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
           }
         }
+
+        // Sync running weekly hours badge if in hours view
+        const hoursDisplay = entryRow.querySelector('.hours-display-wrapper');
+        if (hoursDisplay) {
+          const res = calculateRunningWeeklyHours(name, role, dateStr, allSignOffsList);
+          hoursDisplay.innerHTML = `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+        }
       });
     }
 
@@ -324,8 +460,15 @@
           <button class="button is-loading is-white is-large"></button>
         </div>`;
       try {
-        const data = await callApi("getDailySnapshotData", { customDateStr: customDate });
+        const picker = document.getElementById('entry-date-picker');
+        const activeDate = customDate || (picker ? picker.value : '');
+        const data = await callApi("getDailySnapshotData", { customDateStr: activeDate });
         cachedData = data;
+        
+        // Fetch all sign-offs to calculate weekly totals
+        const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
+        allSignOffsList = update.signOffs || [];
+        
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         render(data);
@@ -348,6 +491,11 @@
       try {
         const data = await callApi("getDailySnapshotData", { customDateStr: dateVal, forceRefresh: true });
         cachedData = data;
+        
+        // Fetch all sign-offs to calculate weekly totals
+        const update = await callApi("getSnapshotPollUpdate", { dateStr: dateVal });
+        allSignOffsList = update.signOffs || [];
+        
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         render(data);
@@ -644,6 +792,13 @@
                         <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
                     </div>` : ''}
+                  ${viewMode === 'hours' ? `
+                    <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
+                      ${(() => {
+                        const res = calculateRunningWeeklyHours(name, 'LSC', day.dateStr, allSignOffsList);
+                        return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+                      })()}
+                    </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
             </div>
 
@@ -701,6 +856,13 @@
                       <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'lunch')">
                         <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                       </button>
+                    </div>` : ''}
+                  ${viewMode === 'hours' ? `
+                    <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
+                      ${(() => {
+                        const res = calculateRunningWeeklyHours(e.name, e.num, day.dateStr, allSignOffsList);
+                        return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+                      })()}
                     </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
             </div>`;
