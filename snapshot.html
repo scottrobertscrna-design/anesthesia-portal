@@ -1018,6 +1018,27 @@
             pullDatesSet = true;
           }
         }
+        
+        // Fallback: If no pull range is set but a last fill range is available, default to that range
+        if (!pullDatesSet && res.lastFillDate && res.lastFillDate.includes("-")) {
+          const fillParts = res.lastFillDate.split("-");
+          if (fillParts.length === 2) {
+            const startParts = fillParts[0].trim().split("/");
+            const endParts = fillParts[1].trim().split("/");
+            if (startParts.length >= 2 && endParts.length >= 2) {
+              const startYear = startParts[2] ? parseInt(startParts[2], 10) : new Date().getFullYear();
+              const endYear = endParts[2] ? parseInt(endParts[2], 10) : new Date().getFullYear();
+              const startDate = new Date(startYear, parseInt(startParts[0], 10) - 1, parseInt(startParts[1], 10));
+              const endDate = new Date(endYear, parseInt(endParts[0], 10) - 1, parseInt(endParts[1], 10));
+              if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                prnStart.value = startDate.toISOString().split('T')[0];
+                prnEnd.value = endDate.toISOString().split('T')[0];
+                pullDatesSet = true;
+              }
+            }
+          }
+        }
+
         if (!pullDatesSet && (!prnStart.value || !prnEnd.value)) {
           // Default: 24th of last month to 24th of this month
           const today = new Date();
