@@ -424,9 +424,7 @@
         const bl = dayState[blKey] || { break: false, lunch: false, ob: false };
         const blControls = entryRow.querySelector('.break-lunch-controls');
         if (viewMode === 'break' || role === 'MD Call') {
-          if (data && data.time) {
-            if (blControls) blControls.remove();
-          } else if (blControls) {
+          if (blControls) {
             const btnBreak = blControls.querySelector('.btn-break');
             const btnLunch = blControls.querySelector('.btn-lunch');
             if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
@@ -778,7 +776,7 @@
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
                     </div>` : ''}
-                  ${isToday && viewMode === 'break' && !isHome ? `
+                  ${isToday && viewMode === 'break' ? `
                     <div class="break-lunch-controls">
                       <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'break')">
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
@@ -843,7 +841,7 @@
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                       </label>
                     </div>` : ''}
-                  ${isToday && viewMode === 'break' && !isHome ? `
+                  ${isToday && viewMode === 'break' ? `
                     <div class="break-lunch-controls">
                       <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'break')">
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
@@ -893,7 +891,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=30', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

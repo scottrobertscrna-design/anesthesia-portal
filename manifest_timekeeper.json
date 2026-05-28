@@ -6,7 +6,7 @@
   "start_url": "./timekeeper.html",
   "scope": "./timekeeper.html",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#3273dc",
   "background_color": "#0f172a",
   "icons": [
