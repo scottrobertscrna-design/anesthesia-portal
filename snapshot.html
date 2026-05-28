@@ -133,20 +133,24 @@
               </button>
             </div>
             
-            <div class="is-flex is-justify-content-center" style="gap: 15px; margin-top: 15px; flex-wrap: wrap;">
-              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
-                <input type="checkbox" id="tc-prn-checkbox"> Mark as PRN
+            <div class="is-flex is-justify-content-center mb-3" style="gap: 20px; margin-top: 15px;">
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                <input type="checkbox" id="tc-prn-checkbox" style="transform: scale(1.15);"> Mark as PRN
               </label>
-              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
-                <input type="checkbox" id="tc-callback-checkbox"> Callback Override
-              </label>
-              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 4px;">
-                <input type="checkbox" id="tc-backtime-checkbox" onchange="toggleBacktimeView()"> Back-time Punch
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                <input type="checkbox" id="tc-callback-checkbox" style="transform: scale(1.15);"> Callback Override
               </label>
             </div>
-            <div id="tc-backtime-container" style="display: none; margin-top: 12px; justify-content: center; align-items: center; gap: 8px;">
-              <label class="label is-size-7 mb-0 has-text-grey-light">Punch Date & Time:</label>
-              <input class="input is-small" type="datetime-local" id="tc-custom-time-input" style="max-width: 220px; border-radius: 6px;">
+
+            <!-- Back-time Selection Box (Always Visible) -->
+            <div class="box p-3 mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: none; text-align: left; max-width: 320px; margin: 15px auto 0 auto;">
+              <div class="is-flex is-justify-content-between is-align-items-center mb-2">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Punch Time Override</span>
+                <label class="checkbox is-size-7 mb-0" style="color: var(--accent-light); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" id="tc-backtime-checkbox" onchange="toggleBacktimeView()"> Use Custom Time
+                </label>
+              </div>
+              <input class="input is-small" type="datetime-local" id="tc-custom-time-input" disabled style="border-radius: 6px; background: rgba(0, 0, 0, 0.25); color: var(--text-muted); border-color: rgba(255,255,255,0.1);">
             </div>
             
             <!-- Google Sheet Review Link -->
@@ -861,6 +865,13 @@
           sheetLink.href = `https://docs.google.com/spreadsheets/d/${res.sheetId}/edit`;
         }
         
+        const customTimeInput = document.getElementById("tc-custom-time-input");
+        if (customTimeInput) {
+          const now = new Date();
+          const offset = now.getTimezoneOffset() * 60000;
+          customTimeInput.value = (new Date(now - offset)).toISOString().slice(0, 16);
+        }
+        
         refreshClockStatus(res.sheetId);
       } else {
         document.getElementById("tc-link-section").style.display = "block";
@@ -939,14 +950,26 @@
 
     function toggleBacktimeView() {
       const isChecked = document.getElementById("tc-backtime-checkbox").checked;
-      const container = document.getElementById("tc-backtime-container");
       const input = document.getElementById("tc-custom-time-input");
-      container.style.display = isChecked ? "flex" : "none";
-      if (isChecked && !input.value) {
+      
+      if (isChecked) {
+        input.removeAttribute("disabled");
+        input.style.background = "rgba(255, 255, 255, 0.05)";
+        input.style.color = "var(--text-main)";
+        input.style.borderColor = "var(--accent-light)";
+        
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-        input.value = localISOTime;
+        input.value = (new Date(now - offset)).toISOString().slice(0, 16);
+      } else {
+        input.setAttribute("disabled", "true");
+        input.style.background = "rgba(0, 0, 0, 0.25)";
+        input.style.color = "var(--text-muted)";
+        input.style.borderColor = "rgba(255, 255, 255, 0.1)";
+        
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        input.value = (new Date(now - offset)).toISOString().slice(0, 16);
       }
     }
 
