@@ -47,14 +47,6 @@
       </button>
     </div>
 
-    <!-- View Switcher Tabs -->
-    <div class="tabs is-toggle is-toggle-rounded is-centered mb-5" id="view-tabs" style="margin-top: 15px;">
-      <ul style="justify-content: center;">
-        <li id="tab-time" class="is-active"><a onclick="setViewMode('time')" style="font-weight: 700;">⏰ Time View</a></li>
-        <li id="tab-break"><a onclick="setViewMode('break')" style="font-weight: 700;">☕ Break View</a></li>
-        <li id="tab-hours"><a onclick="setViewMode('hours')" style="font-weight: 700;">📊 Weekly Hours</a></li>
-      </ul>
-    </div>
 
     <!-- Main Content Area -->
     <div id="content" class="entry-page">
@@ -712,13 +704,11 @@
         html += `
             <div class="section-title">
               LSC
-              ${(isToday && isEntry && viewMode === 'time') ? '<div class="header-labels"><span>IN</span><span>OUT</span></div>' : ''}
-              ${(isToday && isEntry && viewMode === 'break') ? `
-                <div class="toggle-wrapper break-mode" style="margin-left: auto;">
-                  <button class="view-toggle-btn break-active" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
-                    ☕ Break View ⇄
-                  </button>
-                </div>` : ''}
+              <div class="buttons has-addons mb-0" style="margin-left: auto; display: flex;">
+                <button class="button is-small ${viewMode === 'time' ? 'is-link' : 'is-light'}" onclick="setViewMode('time')" style="font-weight: 700; border-radius: 8px 0 0 8px; height: 28px; padding: 0 10px; margin-bottom: 0;">⏰ Time</button>
+                <button class="button is-small ${viewMode === 'break' ? 'is-link' : 'is-light'}" onclick="setViewMode('break')" style="font-weight: 700; border-radius: 0; height: 28px; padding: 0 10px; margin-bottom: 0;">☕ Break</button>
+                <button class="button is-small ${viewMode === 'hours' ? 'is-link' : 'is-light'}" onclick="setViewMode('hours')" style="font-weight: 700; border-radius: 0 8px 8px 0; height: 28px; padding: 0 10px; margin-bottom: 0;">📊 Hours</button>
+              </div>
             </div>
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}">
@@ -727,10 +717,9 @@
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
                 ${isToday && viewMode === 'time' ? `
-                <div class="toggle-wrapper time-mode">
-                  <button class="view-toggle-btn time-active" onclick="toggleViewMode()" title="Toggle between Time and Break/Lunch view">
-                    ⏰ Time View ⇄
-                  </button>
+                <div class="header-labels">
+                  <span>IN</span>
+                  <span>OUT</span>
                 </div>` : ''}
                 ${isToday && viewMode === 'break' ? `
                 <div class="break-lunch-controls">
