@@ -8,7 +8,7 @@
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="css/style.css?v=39">
+  <link rel="stylesheet" href="css/style.css?v=40">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=6">
@@ -803,7 +803,7 @@
                 return `
                 <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="num-badge">CRNA</span>
+                    <span class="num-badge">${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
                     <span class="has-text-weight-bold">${name}</span>
                     ${isToday && !isHome && canTransfer(name) ? `
                       ${day.coverageOverrides && day.coverageOverrides[name] ? `
@@ -982,7 +982,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=39', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=40', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
