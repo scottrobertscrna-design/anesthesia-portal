@@ -321,12 +321,13 @@
           content.classList.remove('strikethrough');
         }
 
-        // Hide break/lunch buttons entirely if they are signed off (home)
+        // Hide break/lunch buttons entirely if they are signed off (home) or not today
         const blControls = entryRow.querySelector('.break-lunch-controls');
-        if (data && data.time) {
+        const isToday = entryRow.dataset.today === 'true';
+        if (!isToday || (data && data.time)) {
           if (blControls) blControls.remove();
         } else {
-          // If not home, ensure break/lunch buttons exist and have correct active states
+          // If not home and is today, ensure break/lunch buttons exist and have correct active states
           if (blControls) {
             const btnBreak = blControls.querySelector('.btn-break');
             const btnLunch = blControls.querySelector('.btn-lunch');
@@ -587,16 +588,17 @@
 
             <div class="section-title">LMH Coverage</div>
             <div class="mb-5">
-              <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}">
+              <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}" data-today="${isToday}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">MD CALL</span>
                   <span class="has-text-weight-bold">${day.docs.ac}</span>
                 </div>
+                ${isToday ? `
                 <div class="break-lunch-controls">
                   <button class="btn-ob ${blState[`${day.docs.ac}|MD Call`]?.ob ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
                     <span class="btn-icon">👶</span> <span class="btn-text">OB</span>
                   </button>
-                </div>
+                </div>` : ''}
               </div>
               ${!isWeekend ? `
               <div class="entry" id="row-${dateId}-pc">
@@ -617,17 +619,19 @@
         html += `
             <div class="section-title">
               LSC
+              ${isToday ? `
               <div class="break-lunch-header-labels-text">
                 <span>Break</span>
                 <span>Lunch</span>
-              </div>
+              </div>` : ''}
             </div>
             <div class="mb-5">
-              <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}">
+              <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}" data-today="${isToday}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
                   <span class="has-text-weight-bold">${day.docs.lsc}</span>
                 </div>
+                ${isToday ? `
                 <div class="break-lunch-controls">
                   <button class="btn-break ${blState[`${day.docs.lsc}|LSC Doc`]?.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'break')">
                     <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
@@ -635,7 +639,7 @@
                   <button class="btn-lunch ${blState[`${day.docs.lsc}|LSC Doc`]?.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'lunch')">
                     <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                   </button>
-                </div>
+                </div>` : ''}
               </div>
               ${(() => {
                 // Client-side Nancy rule: only show her in LSC if she appears as "Nancy (1500)".
@@ -651,14 +655,14 @@
                   const bl = blState[`${name}|LSC`] || { break: false, lunch: false };
                   const isHome = !!(off && off.time);
                   return `
-                  <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="LSC" data-date="${day.dateStr}">
+                  <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="LSC" data-date="${day.dateStr}" data-today="${isToday}">
                     <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                       <span class="num-badge">CRNA</span>
                       <span class="has-text-weight-bold">${name}</span>
                       ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                       ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                     </div>
-                    ${!isHome ? `
+                    ${isToday && !isHome ? `
                     <div class="break-lunch-controls">
                       <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', 'LSC', '${day.dateStr}', 'break')">
                         <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
@@ -694,14 +698,14 @@
                 const bl = blState[`${e.name}|${e.num}`] || { break: false, lunch: false };
                 const isHome = !!(off && off.time);
                 return `
-                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}">
+                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${e.num}" data-date="${day.dateStr}" data-today="${isToday}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">${e.num}</span>
                     <span class="has-text-weight-bold">${e.name}</span>
                     ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
-                  ${!isHome ? `
+                  ${isToday && !isHome ? `
                   <div class="break-lunch-controls">
                     <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${e.num}', '${day.dateStr}', 'break')">
                       <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
