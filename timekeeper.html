@@ -190,21 +190,21 @@
         if (cachedData) {
           cachedData.forEach(day => {
             day.signOffs = update.signOffs.filter(s => s.dateStr === day.dateStr);
-            if (day.isEditable) {
-              day.breakLunchStates = update.breakLunchStates;
+            if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
+              day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
             }
           });
         }
         
-        syncCheckboxes(update.signOffs, update.breakLunchStates);
+        syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
       } catch (err) {
         console.error("Polling error:", err);
       }
     }
 
-    function syncCheckboxes(liveSignOffs, breakLunchStates) {
+    function syncCheckboxes(liveSignOffs, breakLunchStatesByDate) {
       const signedOffKeys = new Map(liveSignOffs.map(s => [`${s.name}|${s.role}|${s.dateStr}`, s]));
-      const blState = breakLunchStates || {};
+      const blStatesByDate = breakLunchStatesByDate || {};
       const isEntry = (currentPage === "entry");
 
       document.querySelectorAll('.entry').forEach(entryRow => {
@@ -298,8 +298,9 @@
         }
 
         // Sync break/lunch/ob buttons
+        const dayState = blStatesByDate[dateStr] || {};
         const blKey = `${name}|${role}`;
-        const bl = blState[blKey] || { break: false, lunch: false, ob: false };
+        const bl = dayState[blKey] || { break: false, lunch: false, ob: false };
         const blControls = entryRow.querySelector('.break-lunch-controls');
         if (viewMode === 'break' || role === 'MD Call') {
           if (data && data.time) {

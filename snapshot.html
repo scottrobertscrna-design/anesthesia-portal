@@ -264,15 +264,15 @@
         const picker = document.getElementById('entry-date-picker');
         const activeDate = picker ? picker.value : '';
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
-        syncCheckboxes(update.signOffs, update.breakLunchStates);
+        syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
       } catch (err) {
         console.error("Polling error:", err);
       }
     }
 
-    function syncCheckboxes(liveSignOffs, breakLunchStates) {
+    function syncCheckboxes(liveSignOffs, breakLunchStatesByDate) {
       const signedOffKeys = new Map(liveSignOffs.map(s => [`${s.name}|${s.role}|${s.dateStr}`, s]));
-      const blState = breakLunchStates || {};
+      const blStatesByDate = breakLunchStatesByDate || {};
 
       document.querySelectorAll('.entry').forEach(entryRow => {
         const content = entryRow.querySelector('.entry-content');
@@ -288,6 +288,8 @@
 
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
+        
+        const blState = blStatesByDate[dateStr] || {};
         const blKey = `${name}|${role}`;
         const bl = blState[blKey] || { break: false, lunch: false, ob: false };
 
