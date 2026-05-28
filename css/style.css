@@ -979,5 +979,17 @@ input[type="date"],
 /* PRN check label positioning */
 #timecard-dashboard-modal .checkbox {
   user-select: none;
+  transition: color 0.15s ease;
+}
+
+#timecard-dashboard-modal .checkbox:has(input:checked) {
+  color: var(--text-main) !important;
+  font-weight: 700 !important;
+}
+
+@media (prefers-color-scheme: light) {
+  #timecard-dashboard-modal .checkbox:has(input:checked) {
+    color: #000000 !important;
+  }
 }
 

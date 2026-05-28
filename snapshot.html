@@ -133,17 +133,8 @@
               </button>
             </div>
             
-            <div class="is-flex is-justify-content-center mb-3" style="gap: 20px; margin-top: 15px;">
-              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-                <input type="checkbox" id="tc-prn-checkbox" style="transform: scale(1.15);"> Mark as PRN
-              </label>
-              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-                <input type="checkbox" id="tc-callback-checkbox" style="transform: scale(1.15);"> Callback Override
-              </label>
-            </div>
-
             <!-- Back-time Selection Box (Always Visible) -->
-            <div class="box p-3 mb-0" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: none; text-align: left; max-width: 320px; margin: 15px auto 0 auto;">
+            <div class="box p-3 mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: none; text-align: left; max-width: 320px; margin: 15px auto 0 auto;">
               <div class="is-flex is-justify-content-between is-align-items-center mb-2">
                 <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Punch Time Override</span>
                 <label class="checkbox is-size-7 mb-0" style="color: var(--accent-light); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
@@ -151,6 +142,15 @@
                 </label>
               </div>
               <input class="input is-small" type="datetime-local" id="tc-custom-time-input" disabled style="border-radius: 6px; background: rgba(0, 0, 0, 0.25); color: var(--text-muted); border-color: rgba(255,255,255,0.1);">
+            </div>
+
+            <div class="is-flex is-justify-content-center mb-0" style="gap: 20px; margin-top: 15px;">
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                <input type="checkbox" id="tc-prn-checkbox" style="transform: scale(1.15);"> Mark as PRN
+              </label>
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                <input type="checkbox" id="tc-callback-checkbox" style="transform: scale(1.15);"> Callback Override
+              </label>
             </div>
           </div>
 
