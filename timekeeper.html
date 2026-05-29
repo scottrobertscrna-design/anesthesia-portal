@@ -35,7 +35,7 @@
   <div class="container mt-4">
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v64)</span>
+        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v65)</span>
       </div>
     </div>
 
@@ -74,6 +74,7 @@
     let viewMode = 'time';
     // Cache the latest data so we can re-render when toggling views
     let cachedData = null;
+    let cachedDaysList = [];
     // Cache for all sign-offs to calculate weekly totals
     let allSignOffsList = [];
     // Transfer edit mode: when false, transfer buttons are hidden
@@ -129,7 +130,7 @@
       const activeTab = document.getElementById(`tab-${mode}`);
       if (activeTab) activeTab.classList.add('is-active');
       
-      if (cachedData) render(cachedData);
+      if (cachedDaysList && cachedDaysList.length > 0) render(cachedDaysList);
     }
 
     function toggleViewMode() {
@@ -489,26 +490,84 @@
       });
     }
 
-    async function fetchFreshData(customDate) {
-      document.getElementById('content').innerHTML = `
-        <div class="loading-wrap">
-          <button class="button is-loading is-white is-large"></button>
-        </div>`;
+    function renderSkeletonLayout(dates) {
+      let html = '<div class="columns is-multiline">';
+      dates.forEach((d, idx) => {
+        html += `
+          <div class="column is-6-desktop is-12-tablet" id="day-card-${idx}">
+            <div class="skeleton-card">
+              <div class="skeleton-shimmer skeleton-title"></div>
+              <div class="skeleton-shimmer skeleton-subtitle"></div>
+              <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 6px 0 12px 0;"></div>
+              <div class="skeleton-row">
+                <div class="skeleton-shimmer skeleton-badge"></div>
+                <div class="skeleton-shimmer skeleton-name"></div>
+              </div>
+              <div class="skeleton-row">
+                <div class="skeleton-shimmer skeleton-badge"></div>
+                <div class="skeleton-shimmer skeleton-name"></div>
+              </div>
+              <div class="skeleton-row" style="border: none;">
+                <div class="skeleton-shimmer skeleton-badge"></div>
+                <div class="skeleton-shimmer skeleton-name"></div>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += '</div>';
+      document.getElementById('content').innerHTML = html;
+    }
+
+    async function fetchFreshData(customDate, forceRefresh = false) {
       try {
         const picker = document.getElementById('entry-date-picker');
         const activeDate = customDate || (picker ? picker.value : '');
-        const data = await callApi("getDailySnapshotData", { customDateStr: activeDate });
-        cachedData = data;
         
-        // Fetch all sign-offs to calculate weekly totals
-        const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
-        allSignOffsList = update.signOffs || [];
+        const dates = await callApi("getPortalActiveDates", { customDateStr: activeDate });
+        renderSkeletonLayout(dates);
+        
+        cachedDaysList = new Array(dates.length).fill(null);
+        
+        const updatePromise = callApi("getSnapshotPollUpdate", { dateStr: activeDate })
+          .then(update => { allSignOffsList = update.signOffs || []; });
+        
+        const fetchPromises = dates.map(async (d, idx) => {
+          try {
+            const dayData = await callApi("getDailySnapshotDataForDate", {
+              isoDateStr: d.isoDateStr,
+              viewTitle: d.viewTitle,
+              viewType: d.viewType,
+              isEditable: d.isEditable,
+              forceRefresh: forceRefresh
+            });
+            
+            cachedDaysList[idx] = dayData;
+            await updatePromise;
+            
+            const cardEl = document.getElementById(`day-card-${idx}`);
+            if (cardEl) {
+              cardEl.innerHTML = renderDay(dayData);
+            }
+          } catch (dayErr) {
+            console.error(`Failed to load date ${d.dateStr}:`, dayErr);
+            const cardEl = document.getElementById(`day-card-${idx}`);
+            if (cardEl) {
+              cardEl.innerHTML = `
+                <div class="notification is-danger" style="margin-bottom: 0;">
+                  <strong>Failed to load ${d.viewTitle}</strong>
+                  <div style="font-size: 0.8rem; margin-top: 5px;">${dayErr.message}</div>
+                </div>`;
+            }
+          }
+        });
         
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        render(data);
+        
+        await Promise.all(fetchPromises);
+        cachedData = cachedDaysList.filter(d => d !== null);
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="notification is-danger">Error loading data: ${err.message}</div>`;
+        document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
       }
     }
 
@@ -519,24 +578,11 @@
       const btn = document.getElementById('btn-force-refresh');
       if (btn) btn.classList.add('is-loading');
       
-      document.getElementById('content').innerHTML = `
-        <div class="loading-wrap">
-          <button class="button is-loading is-white is-large"></button>
-        </div>`;
       try {
-        const data = await callApi("getDailySnapshotData", { customDateStr: dateVal, forceRefresh: true });
-        cachedData = data;
-        
-        // Fetch all sign-offs to calculate weekly totals
-        const update = await callApi("getSnapshotPollUpdate", { dateStr: dateVal });
-        allSignOffsList = update.signOffs || [];
-        
-        const now = new Date();
-        document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        render(data);
+        await fetchFreshData(dateVal, true);
         showToast("Schedule refreshed from Sheet!", "success");
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="notification is-danger">Error refreshing data: ${err.message}</div>`;
+        showToast("Error refreshing data: " + err.message);
       } finally {
         if (btn) btn.classList.remove('is-loading');
       }
@@ -710,12 +756,16 @@
     }
 
     function render(data) {
-      let html = '<div class="columns is-multiline">';
-      data.forEach(day => {
-        html += `<div class="column is-6-desktop is-12-tablet">${renderDay(day)}</div>`;
-      });
-      html += '</div>';
-      document.getElementById('content').innerHTML = html;
+      if (Array.isArray(data)) {
+        data.forEach((day, idx) => {
+          if (day) {
+            const cardEl = document.getElementById(`day-card-${idx}`);
+            if (cardEl) {
+              cardEl.innerHTML = renderDay(day);
+            }
+          }
+        });
+      }
     }
 
     function renderDay(day) {
@@ -1012,7 +1062,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=64', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=65', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1031,8 +1081,8 @@
     let activeModalDate = null;
 
     function updateScheduleButtonState(dateStr) {
-      if (typeof cachedData !== 'undefined' && cachedData) {
-        const cachedDay = cachedData.find(d => d.dateStr === dateStr);
+      if (typeof cachedDaysList !== 'undefined' && cachedDaysList) {
+        const cachedDay = cachedDaysList.find(d => d && d.dateStr === dateStr);
         if (cachedDay) cachedDay.hasSchedule = true;
       }
       const dateId = dateStr.replace(/[^a-zA-Z0-9]/g, '');
@@ -1050,8 +1100,9 @@
     async function openScheduleModal(dateStr) {
       let targetDate = dateStr;
       if (!targetDate) {
-        if (typeof cachedData !== 'undefined' && cachedData && cachedData[0]) {
-          targetDate = cachedData[0].dateStr;
+        const firstValidDay = cachedDaysList.find(d => d);
+        if (typeof cachedDaysList !== 'undefined' && firstValidDay) {
+          targetDate = firstValidDay.dateStr;
         } else {
           const d = new Date();
           const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

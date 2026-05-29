@@ -1007,3 +1007,66 @@ input[type="date"],
   }
 }
 
+/* Glassmorphic Skeleton Loading Styles */
+.skeleton-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 25px;
+  box-shadow: var(--shadow-card);
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer {
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer-run 1.5s infinite linear;
+}
+
+@keyframes skeleton-shimmer-run {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-title {
+  width: 55%;
+  height: 32px;
+  margin-bottom: 4px;
+}
+
+.skeleton-subtitle {
+  width: 35%;
+  height: 16px;
+  margin-bottom: 12px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.skeleton-badge {
+  width: 60px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.skeleton-name {
+  width: 140px;
+  height: 20px;
+}
+
