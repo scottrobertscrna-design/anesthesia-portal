@@ -215,29 +215,32 @@
     }
 
     function updateLocalCacheSignOff(dateStr, name, role, arrivalTime, departureTime) {
-      if (!cachedData) return;
-      const day = cachedData.find(d => d.dateStr === dateStr);
-      if (!day) return;
-      if (!day.signOffs) day.signOffs = [];
-      
-      let signOff = day.signOffs.find(s => String(s.name) === String(name) && String(s.role) === String(role));
-      if (!signOff) {
-        signOff = {
-          dateStr: dateStr,
-          name: name,
-          role: role,
-          arrivalTime: "",
-          time: ""
-        };
-        day.signOffs.push(signOff);
-      }
-      
-      if (arrivalTime !== undefined) signOff.arrivalTime = arrivalTime;
-      if (departureTime !== undefined) signOff.time = departureTime;
-      
-      // Remove if both empty
-      if (!signOff.arrivalTime && !signOff.time) {
-        day.signOffs = day.signOffs.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role)));
+      if (cachedDaysList) {
+        const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
+        if (day) {
+          if (!day.signOffs) day.signOffs = [];
+          
+          let signOff = day.signOffs.find(s => String(s.name) === String(name) && String(s.role) === String(role));
+          if (!signOff) {
+            signOff = {
+              dateStr: dateStr,
+              name: name,
+              role: role,
+              arrivalTime: "",
+              time: ""
+            };
+            day.signOffs.push(signOff);
+          }
+          
+          if (arrivalTime !== undefined) signOff.arrivalTime = arrivalTime;
+          if (departureTime !== undefined) signOff.time = departureTime;
+          
+          // Remove if both empty
+          if (!signOff.arrivalTime && !signOff.time) {
+            day.signOffs = day.signOffs.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role)));
+          }
+        }
+        cachedData = cachedDaysList.filter(d => d !== null);
       }
 
       // Also update allSignOffsList
@@ -269,8 +272,8 @@
         if (res && res.success) {
           btn.classList.toggle('active', isChecked);
           showToast("Status updated successfully!", "success");
-          if (cachedData) {
-            const day = cachedData.find(d => d.dateStr === dateStr);
+          if (cachedDaysList) {
+            const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
             if (day) {
               if (!day.breakLunchStates) day.breakLunchStates = {};
               const blKey = `${name}|${role}`;
@@ -279,6 +282,7 @@
               }
               day.breakLunchStates[blKey][type] = isChecked;
             }
+            cachedData = cachedDaysList.filter(d => d !== null);
           }
         } else {
           showToast("Error: " + (res.error || "failed to update status."));
@@ -315,14 +319,17 @@
         
         allSignOffsList = update.signOffs || [];
         
-        // Update cachedData in memory
-        if (cachedData) {
-          cachedData.forEach(day => {
-            day.signOffs = update.signOffs.filter(s => s.dateStr === day.dateStr);
-            if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
-              day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
+        // Update cachedDaysList in memory
+        if (cachedDaysList) {
+          cachedDaysList.forEach(day => {
+            if (day) {
+              day.signOffs = (update.signOffs || []).filter(s => s.dateStr === day.dateStr);
+              if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
+                day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
+              }
             }
           });
+          cachedData = cachedDaysList.filter(d => d !== null);
         }
         
         syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
