@@ -13,6 +13,9 @@
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_snapshot.json?v=4">
 
+  <!-- PDF.js dependency -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
 
 
 
@@ -1395,7 +1398,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=61', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=62', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -1520,16 +1523,33 @@
     async function handleScheduleUpload(input) {
       if (!input.files || input.files.length === 0) return;
       const file = input.files[0];
-      const reader = new FileReader();
       
+      // Guard rail: Verify file is PDF
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        alert("Upload restricted to PDF files only.");
+        input.value = '';
+        return;
+      }
+      
+      // Guard rail: User confirmation before uploading
+      const confirmUpload = confirm(`Are you sure you want to upload "${file.name}" as the schedule for ${activeModalDate}?`);
+      if (!confirmUpload) {
+        input.value = '';
+        return;
+      }
+      
+      // Check if user wants to email it
+      const sendEmail = confirm(`Would you like to email this schedule to the group (snoozle@googlegroups.com) as well?\n\nClick OK to email and upload, or Cancel to upload to Drive only.`);
+      
+      const reader = new FileReader();
       const body = document.getElementById('schedule-modal-body');
       const meta = document.getElementById('schedule-modal-meta');
       
       body.innerHTML = `
         <div style="text-align:center; color:#94a3b8; padding:30px;">
           <div style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block;">⏳</div>
-          <div style="margin-top:12px; font-size:0.9rem; font-weight:700;">Uploading & Emailing...</div>
-          <div style="margin-top:6px; font-size:0.8rem; color:#64748b;">This will save to Drive and email the Lawrence Anesthesia group.</div>
+          <div style="margin-top:12px; font-size:0.9rem; font-weight:700;">${sendEmail ? 'Uploading & Emailing...' : 'Uploading...'}</div>
+          <div style="margin-top:6px; font-size:0.8rem; color:#64748b;">${sendEmail ? 'This will overwrite any existing schedule for this date and email the group.' : 'This will overwrite any existing schedule for this date (email skipped).'}</div>
         </div>`;
       meta.textContent = 'Processing file...';
 
@@ -1537,18 +1557,19 @@
         const dataUri = e.target.result;
         const commaIdx = dataUri.indexOf(',');
         const base64Data = dataUri.substring(commaIdx + 1);
-        const contentType = file.type;
+        const contentType = file.type || "application/pdf";
         
         try {
           const res = await callApi('uploadScheduleFile', {
             dateStr: activeModalDate,
             fileName: file.name,
             base64Data: base64Data,
-            contentType: contentType
+            contentType: contentType,
+            sendEmail: sendEmail
           });
           
           if (res && res.success) {
-            showToast('Schedule uploaded and emailed successfully!', 'success');
+            showToast(res.emailSent ? 'Schedule uploaded and emailed successfully!' : 'Schedule uploaded successfully (email skipped)!', 'success');
             updateScheduleButtonState(activeModalDate);
             await openScheduleModal(activeModalDate);
           } else {
@@ -1565,7 +1586,18 @@
       input.value = '';
     }
 
-    function renderScheduleContent(data) {
+    // Helper to decode Base64 to a binary Uint8Array in-browser
+    function base64ToUint8Array(base64) {
+      const raw = window.atob(base64);
+      const rawLength = raw.length;
+      const array = new Uint8Array(new ArrayBuffer(rawLength));
+      for (let i = 0; i < rawLength; i++) {
+        array[i] = raw.charCodeAt(i);
+      }
+      return array;
+    }
+
+    async function renderScheduleContent(data) {
       const body = document.getElementById('schedule-modal-body');
       const meta = document.getElementById('schedule-modal-meta');
       meta.textContent = data.emailDate ? `Uploaded on: ${data.emailDate}` : 'Schedule loaded';
@@ -1574,36 +1606,99 @@
       const mime = (data.mimeType || '').toLowerCase();
 
       if (mime === 'application/pdf') {
-        if (data.fileId) {
+        body.innerHTML = `
+          <div id="pdf-viewer-container" style="width:100%; display:flex; flex-direction:column; gap:16px; align-items:center;">
+            <div id="pdf-rendering-progress" style="text-align:center; color:#94a3b8; padding:20px;">
+              <div style="font-size:1.5rem; animation:spin 1s linear infinite; display:inline-block; margin-bottom:10px;">⏳</div>
+              <div style="font-size:0.9rem;">Rendering PDF pages...</div>
+            </div>
+          </div>`;
+        
+        const container = document.getElementById('pdf-viewer-container');
+        
+        try {
+          // Initialize PDF.js worker
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+          
+          // Load document binary
+          const pdfData = base64ToUint8Array(data.base64);
+          const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+          const pdf = await loadingTask.promise;
+          
+          const progressEl = document.getElementById('pdf-rendering-progress');
+          if (progressEl) progressEl.remove();
+          
+          const containerWidth = body.clientWidth || 800;
+          
+          // Render pages sequentially
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.0 });
+            
+            // Adjust to container boundary with padding
+            const displayWidth = Math.min(viewport.width, containerWidth - 30);
+            const ratio = displayWidth / viewport.width;
+            
+            // Render at high-DPI scale (1.5x display density) for handwritten legibility
+            const dpr = window.devicePixelRatio || 1;
+            const renderScale = ratio * dpr * 1.5;
+            const renderViewport = page.getViewport({ scale: renderScale });
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-page-canvas';
+            canvas.style.width = `${displayWidth}px`;
+            canvas.style.height = `${displayWidth * (viewport.height / viewport.width)}px`;
+            canvas.style.boxShadow = '0 10px 25px rgba(0,0,0,0.4)';
+            canvas.style.borderRadius = '8px';
+            canvas.style.backgroundColor = '#ffffff';
+            canvas.style.display = 'block';
+            
+            canvas.width = renderViewport.width;
+            canvas.height = renderViewport.height;
+            
+            container.appendChild(canvas);
+            
+            const context = canvas.getContext('2d');
+            const renderContext = {
+              canvasContext: context,
+              viewport: renderViewport
+            };
+            
+            await page.render(renderContext).promise;
+          }
+          
+          // Append download, raw link, and upload revision options
+          const actionContainer = document.createElement('div');
+          actionContainer.style.cssText = "margin-top:20px; display:flex; gap:12px; justify-content:center; align-items:center; width:100%; flex-wrap:wrap;";
+          actionContainer.innerHTML = `
+            <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
+              style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block; cursor:pointer;">
+              ⬇️ Download PDF
+            </a>
+            ${data.fileId ? `
+            <a href="https://drive.google.com/file/d/${data.fileId}/view?usp=drivesdk" target="_blank"
+              style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block; cursor:pointer;">
+              🔗 Open in Drive
+            </a>` : ''}
+            <button onclick="triggerFileUpload()"
+              style="background:linear-gradient(135deg,#10b981,#059669); border:none; color:#fff; padding:9px 19px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block; cursor:pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+              📤 Upload Revision
+            </button>
+          `;
+          container.appendChild(actionContainer);
+          
+        } catch (error) {
+          console.error("PDF.js loading error: ", error);
           body.innerHTML = `
-            <div style="width:100%; text-align:center;">
-              <iframe src="https://drive.google.com/file/d/${data.fileId}/preview"
-                style="width:100%; min-height:72vh; border-radius:10px; border:none;"
-                allow="autoplay"></iframe>
-              <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
-                ${dataUri ? `
-                <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
-                  style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
-                  ⬇️ Download PDF
+            <div style="text-align:center; color:#ef4444; padding:30px; width:100%;">
+              <div style="font-size:1.15rem; font-weight:700;">Failed to render schedule PDF</div>
+              <div style="font-size:0.82rem; color:#94a3b8; margin-top:8px;">${error.message}</div>
+              <div style="margin-top:20px;">
+                ${data.fileId ? `
+                <a href="https://drive.google.com/file/d/${data.fileId}/view" target="_blank" 
+                   style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
+                  Open directly in Google Drive
                 </a>` : ''}
-                <a href="https://drive.google.com/file/d/${data.fileId}/view?usp=drivesdk" target="_blank"
-                  style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
-                  🔗 Open in Drive
-                </a>
-              </div>
-            </div>`;
-        } else {
-          body.innerHTML = `
-            <div style="width:100%; text-align:center;">
-              <embed src="${dataUri}" type="application/pdf"
-                style="width:100%; min-height:72vh; border-radius:10px; border:1px solid rgba(255,255,255,0.08);"
-                onerror="this.style.display='none'; document.getElementById('pdf-fallback-tk').style.display='block';"/>
-              <div id="pdf-fallback-tk" style="display:none; padding:20px;">
-                <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:12px;">Your browser can't display the PDF inline. Open or download it below:</p>
-                <a href="${dataUri}" download="${data.fileName || 'schedule.pdf'}" target="_blank"
-                  style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:10px 22px; border-radius:10px; font-weight:700; font-size:0.9rem;">
-                  ⬇️ Download / Open PDF
-                </a>
               </div>
             </div>`;
         }
@@ -1676,7 +1771,7 @@
     });
   </script>
 
-<input type="file" id="schedule-file-uploader" style="display:none;" accept="application/pdf,image/*" onchange="handleScheduleUpload(this)">
+<input type="file" id="schedule-file-uploader" style="display:none;" accept="application/pdf" onchange="handleScheduleUpload(this)">
 
 <!-- ============================================================
      SCHEDULE EMAIL VIEWER MODAL
