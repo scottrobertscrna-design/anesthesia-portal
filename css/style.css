@@ -672,6 +672,20 @@ input[type="date"],
   .in-out-pin-row {
     padding-left: 111px;
   }
+
+  /* Prevent LSC header controls from wrapping or crowding on mobile */
+  .transfer-label-text {
+    display: none !important;
+  }
+
+  .view-toggle-col .buttons {
+    flex-wrap: nowrap !important;
+  }
+
+  .view-toggle-col .button {
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+  }
 }
 
 

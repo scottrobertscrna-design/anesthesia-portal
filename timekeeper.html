@@ -35,7 +35,7 @@
   <div class="container mt-4">
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v63)</span>
+        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v64)</span>
       </div>
     </div>
 
@@ -785,7 +785,7 @@
               LSC
               <label class="switch-container transfer-mode-toggle" title="Show/hide transfer controls" style="margin-left: 10px; gap: 6px;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px;">
-                  ↔️ Transfer
+                  ↔️<span class="transfer-label-text"> Transfer</span>
                 </span>
                 <input type="checkbox" class="switch-input transfer-mode-checkbox" ${transferEditMode ? 'checked' : ''} onchange="setTransferEditMode(this.checked)">
                 <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1012,7 +1012,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=63', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=64', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
