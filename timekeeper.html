@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Daily Sign-offs (Timekeeper)</title>
+  <title>LAPA MD Portal</title>
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
@@ -22,7 +22,7 @@
   <!-- iOS PWA meta tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Anaesthesia">
+  <meta name="apple-mobile-web-app-title" content="LAPA MD">
   <meta name="theme-color" content="#3273dc">
 
   <!-- Icons -->
@@ -1012,7 +1012,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=62', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=63', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

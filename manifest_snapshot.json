@@ -1,6 +1,6 @@
 {
-  "name": "Daily Snapshot",
-  "short_name": "Snapshot",
+  "name": "LAPA CRNA Portal",
+  "short_name": "LAPA CRNA",
   "description": "CRNA Daily Snapshot for Lawrence Anaesthesia",
   "id": "snapshot",
   "start_url": "./snapshot.html",

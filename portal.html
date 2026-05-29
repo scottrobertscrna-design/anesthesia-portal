@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Provider Portal</title>
+  <title>LAPA Portal</title>
   
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
@@ -12,14 +12,14 @@
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_portal.json?v=5">
-
-
-
-
-  <!-- iOS PWA meta tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Anaesthesia">
+ 
+ 
+ 
+ 
+   <!-- iOS PWA meta tags -->
+   <meta name="apple-mobile-web-app-capable" content="yes">
+   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+   <meta name="apple-mobile-web-app-title" content="LAPA Portal">
   <meta name="theme-color" content="#3273dc">
 
   <!-- Icons -->
@@ -237,7 +237,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=62', { scope: './portal.html' })
+          navigator.serviceWorker.register('./sw.js?v=63', { scope: './portal.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

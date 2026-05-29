@@ -1,6 +1,6 @@
 {
-  "name": "Timekeeper Entry",
-  "short_name": "Timekeeper",
+  "name": "LAPA MD Portal",
+  "short_name": "LAPA MD",
   "description": "CRNA Sign-in/out Entry for Lawrence Anaesthesia",
   "id": "timekeeper",
   "start_url": "./timekeeper.html",

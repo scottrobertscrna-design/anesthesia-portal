@@ -610,6 +610,13 @@ input[type="date"],
 
   .entry {
     padding: 12px 0;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .entry-content {
+    flex: 1 1 100%;
+    margin-bottom: 6px;
   }
 
   .entry-content > .has-text-weight-bold {
@@ -624,8 +631,10 @@ input[type="date"],
   }
 
   .entry-page .controls-wrapper {
-    min-width: 110px;
-    gap: 3px;
+    margin-left: auto;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 12px;
   }
 
   /* Compact switches on mobile — controls shrink, names stay the same */
@@ -652,16 +661,7 @@ input[type="date"],
     font-size: 1.2rem;
   }
 
-  .entry-page .entry-content > .has-text-weight-bold {
-    font-size: 0.85rem;
-  }
 
-  .entry-page .num-badge {
-    min-width: 50px;
-    margin-right: 6px;
-    padding: 3px 6px;
-    font-size: 0.7rem;
-  }
 
   .time-prefix {
     display: none;
