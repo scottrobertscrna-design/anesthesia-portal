@@ -237,7 +237,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=65', { scope: './portal.html' })
+          navigator.serviceWorker.register('./sw.js?v=66', { scope: './portal.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

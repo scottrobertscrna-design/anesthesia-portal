@@ -35,7 +35,7 @@
   <div class="container mt-4">
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v65)</span>
+        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v66)</span>
       </div>
     </div>
 
@@ -53,9 +53,45 @@
 
     <!-- Main Content Area -->
     <div id="content" class="entry-page">
-      <div class="loading-wrap">
-        <button class="button is-loading is-white is-large"></button>
-        <p>Analyzing schedules and mapping physicians...</p>
+      <div class="columns is-multiline">
+        <div class="column is-6-desktop is-12-tablet">
+          <div class="skeleton-card">
+            <div class="skeleton-shimmer skeleton-title"></div>
+            <div class="skeleton-shimmer skeleton-subtitle"></div>
+            <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 6px 0 12px 0;"></div>
+            <div class="skeleton-row">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+            <div class="skeleton-row" style="border: none;">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-6-desktop is-12-tablet">
+          <div class="skeleton-card">
+            <div class="skeleton-shimmer skeleton-title"></div>
+            <div class="skeleton-shimmer skeleton-subtitle"></div>
+            <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 6px 0 12px 0;"></div>
+            <div class="skeleton-row">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+            <div class="skeleton-row" style="border: none;">
+              <div class="skeleton-shimmer skeleton-badge"></div>
+              <div class="skeleton-shimmer skeleton-name"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1069,7 +1105,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=65', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=66', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
