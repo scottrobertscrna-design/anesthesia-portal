@@ -1105,7 +1105,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=66', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=67', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
