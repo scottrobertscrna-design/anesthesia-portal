@@ -1452,7 +1452,7 @@
         </div>`;
       meta.textContent = 'Re-syncing...';
       try {
-        const syncRes = await callApi('syncScheduleEmail', {});
+        const syncRes = await callApi('syncScheduleEmail', { forceRefresh: true });
         const data = await callApi('getScheduleForDate', { dateStr: activeModalDate });
         if (data && data.found) {
           scheduleDataCache[activeModalDate] = data;
