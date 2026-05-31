@@ -989,7 +989,6 @@
             </div>`;
       }
 
-      html += `<div style="font-size:0.65rem; color:var(--text-muted); opacity:0.4; margin-top:10px; text-align:center;">${day.debugLookup || ''}</div>`;
       html += `</div>`;
       return html;
     }
@@ -1739,7 +1738,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=67', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=71', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
