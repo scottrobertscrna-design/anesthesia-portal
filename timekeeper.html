@@ -1002,35 +1002,46 @@
 
             <div class="section-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
               <span>CRNA Coverage</span>
-              ${(!isWeekend && day.standbyTracker && day.standbyTracker.length > 0) ? `
-              <button class="button is-small is-light" onclick="openStandbyTrackerModal('${dateId}')" style="height: 24px; border-radius: 6px; font-size: 0.72rem; padding: 0 8px; font-weight: 700; background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--accent-indigo); margin: 0; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(129, 140, 248, 0.15)'; this.style.borderColor='var(--accent-indigo)';" onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255,255,255,0.12)';">
-                🛡️ Standby Tracker
-              </button>
-              ` : ''}
+              ${(() => {
+                const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
+                const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
+                if (isNextWorkday && hasTracker) {
+                  return `
+                  <button class="button is-small is-light" onclick="openStandbyTrackerModal('${dateId}')" style="height: 28px; border-radius: 8px; font-size: 0.82rem; padding: 0 10px; font-weight: 700; background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--accent-indigo); margin: 0; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(129, 140, 248, 0.15)'; this.style.borderColor='var(--accent-indigo)';" onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255,255,255,0.12)';">
+                    🛡️ Standby Tracker
+                  </button>
+                  `;
+                }
+                return '';
+              })()}
             </div>
             ${(() => {
-              if (isWeekend || !day.standbyTracker || day.standbyTracker.length === 0) return '';
+              const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
+              const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
+              if (!isNextWorkday || !hasTracker) return '';
+
               const candidates = getStandbyCandidates(day);
               const top3 = candidates.slice(0, 3);
               if (top3.length === 0) return '';
               return `
-              <div class="standby-candidates-inline" style="margin-bottom: 12px; padding: 8px 10px; background: rgba(99, 102, 241, 0.05); border: 1px dashed rgba(99, 102, 241, 0.25); border-radius: 8px;">
-                <div style="font-size: 0.7rem; color: var(--accent-indigo); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">
+              <div class="standby-candidates-inline" style="margin-bottom: 15px; background: rgba(99, 102, 241, 0.04); border: 1px dashed rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px;">
+                <div style="font-size: 0.8rem; color: var(--accent-indigo); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
                   🛡️ Suggested Standby:
                 </div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
                   ${top3.map((cand, idx) => {
-                    let badgeColor = '#818cf8';
-                    let bgCol = 'rgba(99, 102, 241, 0.15)';
-                    if (idx === 0) { badgeColor = '#34d399'; bgCol = 'rgba(52, 211, 153, 0.15)'; }
-                    else if (idx === 1) { badgeColor = '#60a5fa'; bgCol = 'rgba(96, 165, 250, 0.15)'; }
+                    let badgeColor = 'var(--accent-indigo)';
+                    if (idx === 0) badgeColor = 'var(--accent-emerald)';
+                    else if (idx === 1) badgeColor = 'var(--accent-blue)';
                     return `
-                    <div style="font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 6px; color: var(--text-main);">
-                      <span style="color: ${badgeColor}; font-weight: 800;">#${idx+1}</span>
-                      <span>${cand.name}</span>
-                      <span style="font-size: 0.65rem; background: ${bgCol}; color: ${badgeColor}; padding: 1px 4px; border-radius: 4px; font-weight: 700; margin-left: 2px;">
-                        ${cand.role} (${cand.count})
-                      </span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: ${idx < top3.length - 1 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none'};">
+                      <div style="display: flex; align-items: center;">
+                        <span class="num-badge" style="background-color: ${badgeColor}; margin-right: 15px; box-shadow: none;">#${idx+1}</span>
+                        <span class="has-text-weight-bold" style="font-size: 1.05rem; font-weight: 600;">${cand.name}</span>
+                      </div>
+                      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif;">
+                        ${cand.role} (${cand.count} days)
+                      </div>
                     </div>
                     `;
                   }).join('')}
@@ -1328,7 +1339,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=72', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=73', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
