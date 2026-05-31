@@ -940,93 +940,95 @@
             ${(() => {
               const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
               const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-              if (!isNextWorkday || !hasTracker) return '';
+              const showStandbyFeature = isNextWorkday && hasTracker;
 
-              const candidates = getStandbyCandidates(day);
-              const top3 = candidates.slice(0, 3);
-              if (top3.length === 0) return '';
-              return `
-              <div class="standby-candidates-inline" style="margin-bottom: 15px; background: rgba(99, 102, 241, 0.04); border: 1px dashed rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px;">
-                <div style="font-size: 0.8rem; color: var(--accent-indigo); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-                  🛡️ Suggested Standby:
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                  ${top3.map((cand, idx) => {
-                    let badgeColor = 'var(--accent-indigo)';
-                    if (idx === 0) badgeColor = 'var(--accent-emerald)';
-                    else if (idx === 1) badgeColor = 'var(--accent-blue)';
+              // Filter out MD Locum rows where the cell value is a non-assignment word
+              const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
+              const filteredNumbered = day.numbered.filter(e => {
+                if (e.num === 'MD Locum') {
+                  return !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim());
+                }
+                return true;
+              });
+
+              const assignmentsHtml = filteredNumbered.length === 0 
+                ? '<p class="italic-grey py-2">No numbered shifts assigned</p>' 
+                : filteredNumbered.map((e, i) => {
+                    const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
+                    const off = getSignOff(e.name, activeRole);
+                    const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
+                    const isHome = !!(off && off.time);
                     return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: ${idx < top3.length - 1 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none'};">
-                      <div style="display: flex; align-items: center;">
-                        <span class="num-badge" style="background-color: ${badgeColor}; margin-right: 15px; box-shadow: none;">#${idx+1}</span>
-                        <span class="has-text-weight-bold" style="font-size: 1.05rem; font-weight: 600;">${cand.name}</span>
+                    <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
+                      <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                        <span class="num-badge">${e.num}</span>
+                        <span class="has-text-weight-bold">${e.name}</span>
+                        ${!isHome && canTransfer(e.name) ? `
+                          ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
+                            <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
+                                    style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
+                                    onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'CLEAR')">
+                              ↔️ LSC
+                            </button>
+                          ` : `
+                            <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
+                                    style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
+                                    onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'LSC')">
+                              ↔️ LSC
+                            </button>
+                          `}
+                        ` : ''}
+                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                        ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       </div>
-                      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif;">
-                        ${cand.role} (${cand.count} days)
-                      </div>
-                    </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-              `;
-            })()}
-            <div>
-              ${(() => {
-            // Filter out MD Locum rows where the cell value is a non-assignment word
-            // (e.g. "Holiday", "Vacation") — the backend doesn't catch these.
-            const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
-            const filteredNumbered = day.numbered.filter(e => {
-              if (e.num === 'MD Locum') {
-                return !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim());
-              }
-              return true;
-            });
-            return filteredNumbered;
-          })().map((e, i) => {
-            const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
-            const off = getSignOff(e.name, activeRole);
-            const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
-            const isHome = !!(off && off.time);
-            return `
-                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
-                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="num-badge">${e.num}</span>
-                    <span class="has-text-weight-bold">${e.name}</span>
-                    ${!isHome && canTransfer(e.name) ? `
-                      ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
-                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
-                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
-                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'CLEAR')">
-                          ↔️ LSC
+                      ${isToday && !isHome ? `
+                      <div class="break-lunch-controls">
+                        <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'break')">
+                          <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
                         </button>
-                      ` : `
-                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
-                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
-                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'LSC')">
-                          ↔️ LSC
+                        <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'lunch')">
+                          <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                         </button>
-                      `}
-                    ` : ''}
-                    ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                  </div>
-                  ${isToday && !isHome ? `
-                  <div class="break-lunch-controls">
-                    <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'break')">
-                      <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
-                    </button>
-                    <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'lunch')">
-                      <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
-                    </button>
-                  </div>` : ''}
-                 </div>`}).join('')}
-              ${(() => {
-            const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
-            const filteredNumbered = day.numbered.filter(e => e.num !== 'MD Locum' || !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim()));
-            return filteredNumbered.length === 0 ? '<p class="italic-grey py-2">No numbered shifts assigned</p>' : '';
-          })()}
+                      </div>` : ''}
+                    </div>`;
+                  }).join('');
 
+              if (showStandbyFeature) {
+                const candidates = getStandbyCandidates(day);
+                const top3 = candidates.slice(0, 3);
+                const standbyHtml = top3.length === 0
+                  ? '<p class="italic-grey py-2" style="padding-left: 10px;">No candidates</p>'
+                  : top3.map((cand, idx) => {
+                      let badgeColor = 'var(--accent-indigo)';
+                      if (idx === 0) badgeColor = 'var(--accent-emerald)';
+                      else if (idx === 1) badgeColor = 'var(--accent-blue)';
+                      return `
+                      <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
+                          <span class="num-badge" style="background-color: ${badgeColor}; box-shadow: none; margin-right: 15px;">#${idx+1}</span>
+                          <span class="has-text-weight-bold" style="font-size: 1.05rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${cand.name}">${cand.name}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif; flex-shrink: 0; margin-left: 8px; padding-right: 10px;">
+                          ${cand.role} (${cand.count})
+                        </div>
+                      </div>
+                      `;
+                    }).join('');
+
+                return `
+                <div class="columns is-mobile" style="margin: 0; width: 100%;">
+                  <div class="column is-6" style="padding: 0 15px 0 0; border-right: 1px solid rgba(255,255,255,0.06);">
+                    ${assignmentsHtml}
+                  </div>
+                  <div class="column is-6" style="padding: 0 0 0 15px;">
+                    ${standbyHtml}
+                  </div>
+                </div>
+                `;
+              } else {
+                return `<div>${assignmentsHtml}</div>`;
+              }
+            })()}
             </div>`;
       }
 
@@ -1779,7 +1781,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=73', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=74', { scope: './snapshot.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

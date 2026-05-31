@@ -1018,113 +1018,123 @@
             ${(() => {
               const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
               const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-              if (!isNextWorkday || !hasTracker) return '';
+              const showStandbyFeature = isNextWorkday && hasTracker;
 
-              const candidates = getStandbyCandidates(day);
-              const top3 = candidates.slice(0, 3);
-              if (top3.length === 0) return '';
-              return `
-              <div class="standby-candidates-inline" style="margin-bottom: 15px; background: rgba(99, 102, 241, 0.04); border: 1px dashed rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px;">
-                <div style="font-size: 0.8rem; color: var(--accent-indigo); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-                  🛡️ Suggested Standby:
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                  ${top3.map((cand, idx) => {
-                    let badgeColor = 'var(--accent-indigo)';
-                    if (idx === 0) badgeColor = 'var(--accent-emerald)';
-                    else if (idx === 1) badgeColor = 'var(--accent-blue)';
+              const assignmentsHtml = day.numbered.length 
+                ? day.numbered.map((e, i) => {
+                    const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
+                    const off = getSignOff(e.name, activeRole);
+                    const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
+                    const isHome = !!(off && off.time);
                     return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: ${idx < top3.length - 1 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none'};">
-                      <div style="display: flex; align-items: center;">
-                        <span class="num-badge" style="background-color: ${badgeColor}; margin-right: 15px; box-shadow: none;">#${idx+1}</span>
-                        <span class="has-text-weight-bold" style="font-size: 1.05rem; font-weight: 600;">${cand.name}</span>
+                    <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}">
+                      <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                        <span class="num-badge">${e.num}</span>
+                        <span class="has-text-weight-bold">${e.name}</span>
+                        ${!isHome && canTransfer(e.name) ? `
+                          ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
+                            <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
+                                    style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
+                                    onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'CLEAR')">
+                              ↔️ LSC
+                            </button>
+                          ` : `
+                            <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
+                                    style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
+                                    onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'LSC')">
+                              ↔️ LSC
+                            </button>
+                          `}
+                        ` : ''}
+                        ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                        ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       </div>
-                      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif;">
-                        ${cand.role} (${cand.count} days)
-                      </div>
-                    </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-              `;
-            })()}
-            <div>
-              ${day.numbered.length ? day.numbered.map((e, i) => {
-                const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
-                const off = getSignOff(e.name, activeRole);
-                const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
-                const isHome = !!(off && off.time);
-                return `
-                <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}">
-                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="num-badge">${e.num}</span>
-                    <span class="has-text-weight-bold">${e.name}</span>
-                    ${!isHome && canTransfer(e.name) ? `
-                      ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
-                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
-                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
-                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'CLEAR')">
-                          ↔️ LSC
-                        </button>
-                      ` : `
-                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
-                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
-                                onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'LSC')">
-                          ↔️ LSC
-                        </button>
-                      `}
-                    ` : ''}
-                    ${(!isToday && isEntry && off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                    ${(!isToday && off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                  </div>
-                  ${isToday && viewMode === 'time' ? `
-                    <div class="controls-wrapper">
-                      ${isEntry ? `
-                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                        <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
-                          <div class="time-trigger-btn">🏥</div>
-                          <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
-                        </div>
-                        <label class="switch-container arrival-switch">
-                          <input type="checkbox" class="switch-input arrival-checkbox" 
+                      ${isToday && viewMode === 'time' ? `
+                        <div class="controls-wrapper">
+                          ${isEntry ? `
+                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                            <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                              <div class="time-trigger-btn">🏥</div>
+                              <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                            </div>
+                            <label class="switch-container arrival-switch">
+                              <input type="checkbox" class="switch-input arrival-checkbox" 
+                                  data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
+                                  ${off && off.arrivalTime ? 'checked' : ''} 
+                                  onchange="toggleArrival(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
+                              <span class="switch-track"><span class="switch-thumb"></span></span>
+                            </label>
+                          ` : ''}
+                          ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                          <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                              <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                              <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                          </div>
+                          <label class="switch-container">
+                            <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
                               data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                              ${off && off.arrivalTime ? 'checked' : ''} 
-                              onchange="toggleArrival(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
-                          <span class="switch-track"><span class="switch-thumb"></span></span>
-                        </label>
-                      ` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                      <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
-                          <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
-                          <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                              ${off && off.time ? 'checked' : ''} 
+                              onchange="toggleDeparture(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
+                            <span class="switch-track"><span class="switch-thumb"></span></span>
+                          </label>
+                        </div>` : ''}
+                      ${isToday && viewMode === 'break' ? `
+                        <div class="break-lunch-controls">
+                          <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'break')">
+                            <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
+                          </button>
+                          <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'lunch')">
+                            <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
+                          </button>
+                        </div>` : ''}
+                      ${viewMode === 'hours' ? `
+                        <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
+                          ${(() => {
+                          const res = calculateRunningWeeklyHours(e.name, activeRole, day.dateStr, allSignOffsList);
+                          return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+                        })()}
+                        </div>` : ''}
+                    </div>`;
+                  }).join('')
+                : '<p class="italic-grey py-2">No numbered shifts assigned</p>';
+
+              if (showStandbyFeature) {
+                const candidates = getStandbyCandidates(day);
+                const top3 = candidates.slice(0, 3);
+                const standbyHtml = top3.length === 0
+                  ? '<p class="italic-grey py-2" style="padding-left: 10px;">No candidates</p>'
+                  : top3.map((cand, idx) => {
+                      let badgeColor = 'var(--accent-indigo)';
+                      if (idx === 0) badgeColor = 'var(--accent-emerald)';
+                      else if (idx === 1) badgeColor = 'var(--accent-blue)';
+                      return `
+                      <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
+                          <span class="num-badge" style="background-color: ${badgeColor}; box-shadow: none; margin-right: 15px;">#${idx+1}</span>
+                          <span class="has-text-weight-bold" style="font-size: 1.05rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${cand.name}">${cand.name}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif; flex-shrink: 0; margin-left: 8px; padding-right: 10px;">
+                          ${cand.role} (${cand.count})
+                        </div>
                       </div>
-                      <label class="switch-container">
-                        <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
-                          data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                          ${off && off.time ? 'checked' : ''} 
-                          onchange="toggleDeparture(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
-                        <span class="switch-track"><span class="switch-thumb"></span></span>
-                      </label>
-                    </div>` : ''}
-                  ${isToday && viewMode === 'break' ? `
-                    <div class="break-lunch-controls">
-                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'break')">
-                        <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
-                      </button>
-                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'lunch')">
-                        <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
-                      </button>
-                    </div>` : ''}
-                  ${viewMode === 'hours' ? `
-                    <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
-                      ${(() => {
-                      const res = calculateRunningWeeklyHours(e.name, activeRole, day.dateStr, allSignOffsList);
-                      return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
-                    })()}
-                    </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
-            </div>`;
+                      `;
+                    }).join('');
+
+                return `
+                <div class="columns is-mobile" style="margin: 0; width: 100%;">
+                  <div class="column is-6" style="padding: 0 15px 0 0; border-right: 1px solid rgba(255,255,255,0.06);">
+                    ${assignmentsHtml}
+                  </div>
+                  <div class="column is-6" style="padding: 0 0 0 15px;">
+                    ${standbyHtml}
+                  </div>
+                </div>
+                `;
+              } else {
+                return `<div>${assignmentsHtml}</div>`;
+              }
+            })()}
+            `;
       }
 
       html += `</div>`;
@@ -1339,7 +1349,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=73', { scope: './timekeeper.html' })
+          navigator.serviceWorker.register('./sw.js?v=74', { scope: './timekeeper.html' })
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
