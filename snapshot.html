@@ -1004,9 +1004,10 @@
                         return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
                       });
                       const baseCandName = cand.name.split('(')[0].trim();
-                      const badgeBg = alreadyAssigned ? accentColor : 'rgba(255,255,255,0.10)';
-                      const badgeColor = alreadyAssigned ? '#fff' : 'rgba(255,255,255,0.35)';
-                      const badgeShadow = alreadyAssigned ? ('0 0 8px ' + accentColor.replace(')', ', 0.5)').replace('var(', 'var(')) : 'none';
+                      const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
+                      const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
+                      const badgeBorder = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.35)';
+                      const badgeShadow = alreadyAssigned ? ('0 0 10px ' + accentColor) : 'none';
                       return `
                       <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between; padding-right: 8px;">
                         <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
@@ -1014,16 +1015,16 @@
                             id="sb-badge-${dateId}-${idx}"
                             onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}')"
                             title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
-                            style="flex-shrink:0; min-width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:pointer; transition:all 0.22s;
+                            style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:pointer; transition:all 0.22s;
                               background:${badgeBg};
                               color:${badgeColor};
-                              border: 1.5px solid ${alreadyAssigned ? accentColor : 'rgba(255,255,255,0.18)'};
+                              border: 1.5px solid ${badgeBorder};
                               box-shadow:${badgeShadow};
                               margin-right:10px;"
                             data-assigned="${alreadyAssigned ? '1' : '0'}"
                             data-accent="${accentColor}"
-                            onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(255,255,255,0.2)';this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.5)'}"
-                            onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(255,255,255,0.10)';this.style.color='rgba(255,255,255,0.35)';this.style.borderColor='rgba(255,255,255,0.18)'}">
+                            onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(200,200,220,0.35)';this.style.color='#fff';this.style.borderColor='rgba(220,220,240,0.6)'}"
+                            onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(180,180,200,0.18)';this.style.color='rgba(200,200,215,0.75)';this.style.borderColor='rgba(180,180,200,0.35)'}">
                             #${idx+1}
                           </span>
                           <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
@@ -1651,14 +1652,14 @@
         });
       }
 
-      // Sort: Lowest Count Cohort first, then LSC first, then lowest shift number first
-      // (prefer top-half-of-day staff — less disruptive to early departures)
+      // Sort: Lowest Count Cohort first, then LSC first, then highest shift number descending
+      // (highest shift# = later in day = granting standby is less disruptive to early departures)
       candidates.sort((a, b) => {
         if (a.count !== b.count) return a.count - b.count;
         if (a.isLsc && b.isLsc) return a.name.localeCompare(b.name);
         if (a.isLsc) return -1;
         if (b.isLsc) return 1;
-        return a.shiftNum - b.shiftNum;  // lowest shift# first (top half of day)
+        return b.shiftNum - a.shiftNum;  // highest shift# first (top half of roster)
       });
 
       return candidates;
