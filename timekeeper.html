@@ -1096,31 +1096,43 @@
                   return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
                 })();
 
+                const badgeColors = ['var(--accent-emerald)', 'var(--accent-blue)', 'var(--accent-indigo)'];
+
                 const standbyHtml = top3.length === 0
                   ? '<p class="italic-grey py-2" style="padding-left: 10px;">No candidates</p>'
                   : top3.map((cand, idx) => {
-                      let badgeColor = 'var(--accent-indigo)';
-                      if (idx === 0) badgeColor = 'var(--accent-emerald)';
-                      else if (idx === 1) badgeColor = 'var(--accent-blue)';
+                      const accentColor = badgeColors[idx] || 'var(--accent-indigo)';
                       const trackerEntry = (day.standbyTracker || []).find(e => e.name.toLowerCase().split('(')[0].trim() === cand.name.toLowerCase().split('(')[0].trim());
-                      const alreadyAssigned = trackerEntry && dayMD && trackerEntry.dates && trackerEntry.dates.some(d => { const dp = d.split('/'); return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD; });
+                      const alreadyAssigned = trackerEntry && dayMD && trackerEntry.dates && trackerEntry.dates.some(d => {
+                        const dp = d.split('/');
+                        return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
+                      });
                       const baseCandName = cand.name.split('(')[0].trim();
+                      const badgeBg = alreadyAssigned ? accentColor : 'rgba(255,255,255,0.10)';
+                      const badgeColor = alreadyAssigned ? '#fff' : 'rgba(255,255,255,0.35)';
                       return `
                       <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between; padding-right: 8px;">
                         <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
-                          <span class="num-badge" style="background-color: ${badgeColor}; box-shadow: none; margin-right: 10px; flex-shrink: 0;">#${idx+1}</span>
-                          <span class="has-text-weight-bold" style="font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${cand.name}">${baseCandName}</span>
+                          <span
+                            id="sb-badge-${dateId}-${idx}"
+                            onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}')"
+                            title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
+                            style="flex-shrink:0; min-width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:pointer; transition:all 0.22s;
+                              background:${badgeBg};
+                              color:${badgeColor};
+                              border: 1.5px solid ${alreadyAssigned ? accentColor : 'rgba(255,255,255,0.18)'};
+                              margin-right:10px;"
+                            data-assigned="${alreadyAssigned ? '1' : '0'}"
+                            data-accent="${accentColor}"
+                            onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(255,255,255,0.2)';this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.5)'}"
+                            onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(255,255,255,0.10)';this.style.color='rgba(255,255,255,0.35)';this.style.borderColor='rgba(255,255,255,0.18)'}">
+                            #${idx+1}
+                          </span>
+                          <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
                         </div>
-                        <button
-                          id="sb-btn-${dateId}-${idx}"
-                          onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'})"
-                          style="flex-shrink:0; margin-left:6px; padding: 3px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid; transition: all 0.2s;
-                            background-color: ${alreadyAssigned ? 'rgba(129,140,248,0.18)' : 'rgba(255,255,255,0.05)'};
-                            border-color: ${alreadyAssigned ? 'var(--accent-indigo)' : 'rgba(255,255,255,0.15)'};
-                            color: ${alreadyAssigned ? 'var(--accent-indigo)' : 'var(--text-muted)'};"
-                          data-assigned="${alreadyAssigned ? '1' : '0'}">
-                          🛡️ ${alreadyAssigned ? 'Assigned' : 'Assign'}
-                        </button>
+                        <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; font-family:'Outfit',sans-serif; flex-shrink:0; margin-left:8px; padding-right:4px;">
+                          ${cand.role}&nbsp;(${cand.count})
+                        </div>
                       </div>
                       `;
                     }).join('');
@@ -1204,13 +1216,14 @@
         });
       }
 
-      // Sort: Lowest Count Cohort first, then LSC first, then highest shift number descending
+      // Sort: Lowest Count Cohort first, then LSC first, then lowest shift number first
+      // (prefer top-half-of-day staff — less disruptive to early departures)
       candidates.sort((a, b) => {
         if (a.count !== b.count) return a.count - b.count;
         if (a.isLsc && b.isLsc) return a.name.localeCompare(b.name);
         if (a.isLsc) return -1;
         if (b.isLsc) return 1;
-        return b.shiftNum - a.shiftNum;
+        return a.shiftNum - b.shiftNum;  // lowest shift# first (top half of day)
       });
 
       return candidates;
@@ -1332,11 +1345,12 @@
       document.body.style.overflow = '';
     }
 
-    async function toggleStandbyCandidate(btn, name, isoDateStr, currentAssigned) {
+    async function toggleStandbyCandidate(badge, name, isoDateStr, currentAssigned, accentColor) {
       const isChecked = !currentAssigned;
-      btn.disabled = true;
-      btn.style.opacity = '0.6';
-      btn.textContent = '⏳';
+      badge.style.pointerEvents = 'none';
+      badge.style.opacity = '0.5';
+      const prev = badge.textContent;
+      badge.textContent = '⏳';
 
       try {
         const result = await callApi('toggleStandbyAssignment', {
@@ -1352,12 +1366,9 @@
         }
       } catch (err) {
         console.error('toggleStandbyCandidate error:', err);
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.textContent = '🛡️ ' + (currentAssigned ? 'Assigned' : 'Assign');
-        btn.style.backgroundColor = currentAssigned ? 'rgba(129,140,248,0.18)' : 'rgba(255,255,255,0.05)';
-        btn.style.borderColor = currentAssigned ? 'var(--accent-indigo)' : 'rgba(255,255,255,0.15)';
-        btn.style.color = currentAssigned ? 'var(--accent-indigo)' : 'var(--text-muted)';
+        badge.textContent = prev;
+        badge.style.opacity = '1';
+        badge.style.pointerEvents = '';
       }
     }
 
