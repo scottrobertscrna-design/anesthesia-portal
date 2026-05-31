@@ -5,11 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LAPA MD Portal</title>
-  
+
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="css/style.css?v=41">
-  
+
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_timekeeper.json?v=6">
 
@@ -35,17 +35,23 @@
   <div class="container mt-4">
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display" style="opacity: 0.65; margin-left: 5px;">(v66)</span>
+        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
+          style="opacity: 0.65; margin-left: 5px;">(v66)</span>
       </div>
     </div>
 
     <!-- Date selector for entry page -->
-    <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center" style="display: flex; gap: 10px;">
-      <label class="label mb-0" for="entry-date-picker" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Select Date:</label>
+    <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center"
+      style="display: flex; gap: 10px;">
+      <label class="label mb-0" for="entry-date-picker"
+        style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Select Date:</label>
       <div class="control">
-        <input class="input is-small" type="date" id="entry-date-picker" style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
+        <input class="input is-small" type="date" id="entry-date-picker"
+          style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
       </div>
-      <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()" title="Force refresh schedule from Google Sheets" style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
+      <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()"
+        title="Force refresh schedule from Google Sheets"
+        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
         🔄 Refresh
       </button>
     </div>
@@ -160,12 +166,12 @@
 
     function setViewMode(mode) {
       viewMode = mode;
-      
+
       // Update tab active classes
       document.querySelectorAll('#view-tabs li').forEach(li => li.classList.remove('is-active'));
       const activeTab = document.getElementById(`tab-${mode}`);
       if (activeTab) activeTab.classList.add('is-active');
-      
+
       if (cachedDaysList && cachedDaysList.length > 0) render(cachedDaysList);
     }
 
@@ -206,31 +212,31 @@
       const picker = document.getElementById('entry-date-picker');
       const activeDateVal = picker ? picker.value : ''; // "YYYY-MM-DD"
       const activeYear = activeDateVal ? parseInt(activeDateVal.split('-')[0], 10) : new Date().getFullYear();
-      
+
       const cleanDateStr = targetDateStr.replace(/^[A-Za-z]+,\s+/, ''); // "May 28"
       const dateParts = cleanDateStr.split(' ');
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const monthIdx = monthNames.indexOf(dateParts[0].substring(0, 3));
       const dayNum = parseInt(dateParts[1], 10);
-      
+
       const targetDateObj = new Date(activeYear, monthIdx, dayNum);
-      
+
       const dayOfWeek = targetDateObj.getDay();
       const distToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
       const monday = new Date(targetDateObj);
       monday.setDate(targetDateObj.getDate() + distToMonday);
-      
+
       const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const dateStrings = [];
-      
+
       const tempDate = new Date(monday);
       while (tempDate <= targetDateObj) {
         const formatted = `${weekdays[tempDate.getDay()]}, ${months[tempDate.getMonth()]} ${tempDate.getDate()}`;
         dateStrings.push(formatted);
         tempDate.setDate(tempDate.getDate() + 1);
       }
-      
+
       const getBaseName = (name) => {
         return String(name || "").replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
       };
@@ -238,12 +244,12 @@
       let totalHours = 0;
       const targetBaseName = getBaseName(employeeName);
       (allSignOffs || []).forEach(s => {
-        if (getBaseName(s.name) === targetBaseName && 
-            dateStrings.includes(s.dateStr)) {
+        if (getBaseName(s.name) === targetBaseName &&
+          dateStrings.includes(s.dateStr)) {
           totalHours += calculateHoursWorked(s.arrivalTime, s.time);
         }
       });
-      
+
       return {
         hours: totalHours.toFixed(1),
         rangeLabel: `Mon-${weekdays[targetDateObj.getDay()].substring(0, 3)}`
@@ -255,7 +261,7 @@
         const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
         if (day) {
           if (!day.signOffs) day.signOffs = [];
-          
+
           let signOff = day.signOffs.find(s => String(s.name) === String(name) && String(s.role) === String(role));
           if (!signOff) {
             signOff = {
@@ -267,10 +273,10 @@
             };
             day.signOffs.push(signOff);
           }
-          
+
           if (arrivalTime !== undefined) signOff.arrivalTime = arrivalTime;
           if (departureTime !== undefined) signOff.time = departureTime;
-          
+
           // Remove if both empty
           if (!signOff.arrivalTime && !signOff.time) {
             day.signOffs = day.signOffs.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role)));
@@ -293,7 +299,7 @@
       }
       if (arrivalTime !== undefined) globalSignOff.arrivalTime = arrivalTime;
       if (departureTime !== undefined) globalSignOff.time = departureTime;
-      
+
       if (!globalSignOff.arrivalTime && !globalSignOff.time) {
         allSignOffsList = allSignOffsList.filter(s => !(String(s.name) === String(name) && String(s.role) === String(role) && String(s.dateStr) === String(dateStr)));
       }
@@ -336,7 +342,7 @@
       const mm = String(todayLocal.getMonth() + 1).padStart(2, '0');
       const dd = String(todayLocal.getDate()).padStart(2, '0');
       picker.value = `${yyyy}-${mm}-${dd}`;
-      
+
       picker.onchange = () => {
         fetchFreshData(picker.value);
       };
@@ -352,9 +358,9 @@
         const picker = document.getElementById('entry-date-picker');
         const activeDate = picker ? picker.value : '';
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
-        
+
         allSignOffsList = update.signOffs || [];
-        
+
         // Update cachedDaysList in memory
         if (cachedDaysList) {
           cachedDaysList.forEach(day => {
@@ -367,7 +373,7 @@
           });
           cachedData = cachedDaysList.filter(d => d !== null);
         }
-        
+
         syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
       } catch (err) {
         console.error("Polling error:", err);
@@ -388,7 +394,7 @@
 
         const arrivalCb = entryRow.querySelector('.arrival-checkbox');
         const departureCb = entryRow.querySelector('.departure-checkbox') || entryRow.querySelector('.gone-home-checkbox');
-        
+
         // In break view mode, time controls may not exist — use row data-* attributes instead
         const name = departureCb ? departureCb.dataset.name : entryRow.dataset.name;
         const role = departureCb ? departureCb.dataset.role : entryRow.dataset.role;
@@ -431,7 +437,7 @@
             const btnLunch = blControls.querySelector('.btn-lunch');
             if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
             if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
-            
+
             const btnOb = blControls.querySelector('.btn-ob');
             if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
           }
@@ -460,7 +466,7 @@
             span.className = 'arrival-time-display';
             span.innerHTML = '<span class="time-prefix">IN @ </span>';
             span.appendChild(document.createTextNode(data.arrivalTime));
-            
+
             const arrivalSwitch = entryRow.querySelector('.arrival-switch');
             if (arrivalSwitch) {
               arrivalSwitch.before(span);
@@ -481,7 +487,7 @@
             span.className = 'departure-time-display';
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
-            
+
             const departureSwitch = departureCb ? departureCb.closest('.switch-container') : null;
             if (departureSwitch) {
               departureSwitch.before(span);
@@ -497,13 +503,13 @@
           if (arrivalCb) arrivalCb.checked = false;
           if (departureCb) departureCb.checked = false;
           content.classList.remove('strikethrough');
-          if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = isEntry ? 'flex' : 'none'; 
-          if (departureTimeWrapper) { 
-            departureTimeWrapper.style.display = 'flex'; 
-            if (departureTimeInput) { 
-              departureTimeInput.value = ''; 
-              updateTimeDisplay(departureTimeInput); 
-            } 
+          if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = isEntry ? 'flex' : 'none';
+          if (departureTimeWrapper) {
+            departureTimeWrapper.style.display = 'flex';
+            if (departureTimeInput) {
+              departureTimeInput.value = '';
+              updateTimeDisplay(departureTimeInput);
+            }
           }
         }
 
@@ -518,7 +524,7 @@
             const btnLunch = blControls.querySelector('.btn-lunch');
             if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
             if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
-            
+
             const btnOb = blControls.querySelector('.btn-ob');
             if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
           }
@@ -565,15 +571,15 @@
       try {
         const picker = document.getElementById('entry-date-picker');
         const activeDate = customDate || (picker ? picker.value : '');
-        
+
         const dates = await callApi("getPortalActiveDates", { customDateStr: activeDate });
         renderSkeletonLayout(dates);
-        
+
         cachedDaysList = new Array(dates.length).fill(null);
-        
+
         const updatePromise = callApi("getSnapshotPollUpdate", { dateStr: activeDate })
           .then(update => { allSignOffsList = update.signOffs || []; });
-        
+
         const fetchPromises = dates.map(async (d, idx) => {
           try {
             const dayData = await callApi("getDailySnapshotDataForDate", {
@@ -583,10 +589,10 @@
               isEditable: d.isEditable,
               forceRefresh: forceRefresh
             });
-            
+
             cachedDaysList[idx] = dayData;
             await updatePromise;
-            
+
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = renderDay(dayData);
@@ -603,10 +609,10 @@
             }
           }
         });
-        
+
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        
+
         await Promise.all(fetchPromises);
         cachedData = cachedDaysList.filter(d => d !== null);
       } catch (err) {
@@ -617,10 +623,10 @@
     async function forceRefreshSchedule() {
       const picker = document.getElementById('entry-date-picker');
       const dateVal = picker ? picker.value : '';
-      
+
       const btn = document.getElementById('btn-force-refresh');
       if (btn) btn.classList.add('is-loading');
-      
+
       try {
         await fetchFreshData(dateVal, true);
         showToast("Schedule refreshed from Sheet!", "success");
@@ -684,7 +690,7 @@
           span.className = 'arrival-time-display';
           span.innerHTML = '<span class="time-prefix">IN @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
-          
+
           const arrivalSwitch = row.querySelector('.arrival-switch');
           if (arrivalSwitch) {
             arrivalSwitch.before(span);
@@ -727,7 +733,7 @@
           span.className = 'departure-time-display';
           span.innerHTML = '<span class="time-prefix">OUT @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
-          
+
           const departureSwitch = checkbox.closest('.switch-container');
           if (departureSwitch) {
             departureSwitch.before(span);
@@ -741,7 +747,7 @@
             if (arrivalCb && !arrivalCb.checked) {
               arrivalCb.checked = true;
               if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
-              
+
               const existingArrivalDisplay = row.querySelector('.arrival-time-display');
               if (existingArrivalDisplay) existingArrivalDisplay.remove();
 
@@ -749,7 +755,7 @@
               aSpan.className = 'arrival-time-display';
               aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
               aSpan.appendChild(document.createTextNode(res.arrivalTime));
-              
+
               const arrivalSwitch = row.querySelector('.arrival-switch');
               if (arrivalSwitch) {
                 arrivalSwitch.before(aSpan);
@@ -919,11 +925,11 @@
                 </div>` : ''}
               </div>
               ${day.lsc.length ? day.lsc.map((name, i) => {
-                const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
-                const off = getSignOff(name, activeRole);
-                const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
-                const isHome = !!(off && off.time);
-                return `
+          const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
+          const off = getSignOff(name, activeRole);
+          const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
+          const isHome = !!(off && off.time);
+          return `
                 <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="num-badge">${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
@@ -987,9 +993,9 @@
                   ${viewMode === 'hours' ? `
                     <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
                       ${(() => {
-                        const res = calculateRunningWeeklyHours(name, activeRole, day.dateStr, allSignOffsList);
-                        return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
-                      })()}
+                const res = calculateRunningWeeklyHours(name, activeRole, day.dateStr, allSignOffsList);
+                return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+              })()}
                     </div>` : ''}
                 </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
             </div>
@@ -1072,11 +1078,11 @@
                   ${viewMode === 'hours' ? `
                     <div class="hours-display-wrapper" style="margin-left: auto; padding-right: 10px;">
                       ${(() => {
-                        const res = calculateRunningWeeklyHours(e.name, activeRole, day.dateStr, allSignOffsList);
-                        return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
-                      })()}
+                      const res = calculateRunningWeeklyHours(e.name, activeRole, day.dateStr, allSignOffsList);
+                      return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
+                    })()}
                     </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>' }
+                </div>`}).join('') : '<p class="italic-grey py-2">No numbered shifts assigned</p>'}
             </div>`;
       }
 
@@ -1088,14 +1094,14 @@
     // --- Standby Eligibility Tracker Logic ---
     function getStandbyCandidates(day) {
       if (!day.standbyTracker || day.standbyTracker.length === 0) return [];
-      
+
       const trackerMap = new Map();
       day.standbyTracker.forEach(emp => {
         trackerMap.set(emp.name.toLowerCase().trim(), emp);
       });
-      
+
       const candidates = [];
-      
+
       // 1. Process LSC staff
       if (Array.isArray(day.lsc)) {
         day.lsc.forEach(fullName => {
@@ -1112,16 +1118,16 @@
           }
         });
       }
-      
+
       // 2. Process numbered shifts
       if (Array.isArray(day.numbered)) {
         day.numbered.forEach(crna => {
           if (crna.num === "MD Locum") return;
-          
+
           const empName = crna.name;
           const shiftNum = parseInt(crna.num, 10);
           if (isNaN(shiftNum)) return;
-          
+
           const trackerEntry = trackerMap.get(empName.toLowerCase().trim());
           if (trackerEntry) {
             candidates.push({
@@ -1134,7 +1140,7 @@
           }
         });
       }
-      
+
       // Sort: Lowest Count Cohort first, then LSC first, then highest shift number descending
       candidates.sort((a, b) => {
         if (a.count !== b.count) return a.count - b.count;
@@ -1143,7 +1149,7 @@
         if (b.isLsc) return 1;
         return b.shiftNum - a.shiftNum;
       });
-      
+
       return candidates;
     }
 
@@ -1156,10 +1162,10 @@
       title.innerHTML = `🛡️ Standby Tracker — ${day.dateStr}`;
 
       const body = document.getElementById("standby-tracker-modal-body");
-      
+
       const candidates = getStandbyCandidates(day);
       const top3 = candidates.slice(0, 3);
-      
+
       let candidatesHtml = '';
       if (top3.length === 0) {
         candidatesHtml = `
@@ -1171,11 +1177,11 @@
         candidatesHtml = `
           <div class="mb-4" style="display: flex; flex-direction: column; gap: 10px;">
             ${top3.map((c, index) => {
-              let badgeColor = 'var(--accent-indigo)';
-              if (index === 0) badgeColor = 'var(--accent-emerald)';
-              else if (index === 1) badgeColor = 'var(--accent-blue)';
-              
-              return `
+          let badgeColor = 'var(--accent-indigo)';
+          if (index === 0) badgeColor = 'var(--accent-emerald)';
+          else if (index === 1) badgeColor = 'var(--accent-blue)';
+
+          return `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; border-left: 4px solid ${badgeColor};">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-weight: 800; color: ${badgeColor}; font-size: 0.95rem;">#${index + 1}</span>
@@ -1191,7 +1197,7 @@
                   </div>
                 </div>
               `;
-            }).join('')}
+        }).join('')}
           </div>
         `;
       }
@@ -1263,7 +1269,7 @@
       document.body.style.overflow = '';
     }
 
-    document.getElementById('standby-tracker-modal').addEventListener('click', function(e) {
+    document.getElementById('standby-tracker-modal').addEventListener('click', function (e) {
       if (e.target === this) closeStandbyTrackerModal();
     });
   </script>
@@ -1341,18 +1347,18 @@
           targetDate = `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
         }
       }
-      
+
       activeModalDate = targetDate;
-      
+
       const modal = document.getElementById('schedule-modal');
       const body = document.getElementById('schedule-modal-body');
       const meta = document.getElementById('schedule-modal-meta');
-      
+
       const titleEl = modal.querySelector('.schedule-modal-title-text');
       if (titleEl) {
         titleEl.textContent = `📄 Schedule: ${targetDate}`;
       }
-      
+
       modal.style.display = 'block';
       document.body.style.overflow = 'hidden';
 
@@ -1418,28 +1424,28 @@
     async function handleScheduleUpload(input) {
       if (!input.files || input.files.length === 0) return;
       const file = input.files[0];
-      
+
       // Guard rail: Verify file is PDF
       if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
         alert("Upload restricted to PDF files only.");
         input.value = '';
         return;
       }
-      
+
       // Guard rail: User confirmation before uploading
       const confirmUpload = confirm(`Are you sure you want to upload "${file.name}" as the schedule for ${activeModalDate}?`);
       if (!confirmUpload) {
         input.value = '';
         return;
       }
-      
+
       // Check if user wants to email it
       const sendEmail = confirm(`Would you like to email this schedule to the group (snoozle@googlegroups.com) as well?\n\nClick OK to email and upload, or Cancel to upload to Drive only.`);
-      
+
       const reader = new FileReader();
       const body = document.getElementById('schedule-modal-body');
       const meta = document.getElementById('schedule-modal-meta');
-      
+
       body.innerHTML = `
         <div style="text-align:center; color:#94a3b8; padding:30px;">
           <div style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block;">⏳</div>
@@ -1448,12 +1454,12 @@
         </div>`;
       meta.textContent = 'Processing file...';
 
-      reader.onload = async function(e) {
+      reader.onload = async function (e) {
         const dataUri = e.target.result;
         const commaIdx = dataUri.indexOf(',');
         const base64Data = dataUri.substring(commaIdx + 1);
         const contentType = file.type || "application/pdf";
-        
+
         try {
           const res = await callApi('uploadScheduleFile', {
             dateStr: activeModalDate,
@@ -1462,7 +1468,7 @@
             contentType: contentType,
             sendEmail: sendEmail
           });
-          
+
           if (res && res.success) {
             showToast(res.emailSent ? 'Schedule uploaded and emailed successfully!' : 'Schedule uploaded successfully (email skipped)!', 'success');
             updateScheduleButtonState(activeModalDate);
@@ -1476,7 +1482,7 @@
           await openScheduleModal(activeModalDate);
         }
       };
-      
+
       reader.readAsDataURL(file);
       input.value = '';
     }
@@ -1508,37 +1514,37 @@
               <div style="font-size:0.9rem;">Rendering PDF pages...</div>
             </div>
           </div>`;
-        
+
         const container = document.getElementById('pdf-viewer-container');
-        
+
         try {
           // Initialize PDF.js worker
           pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-          
+
           // Load document binary
           const pdfData = base64ToUint8Array(data.base64);
           const loadingTask = pdfjsLib.getDocument({ data: pdfData });
           const pdf = await loadingTask.promise;
-          
+
           const progressEl = document.getElementById('pdf-rendering-progress');
           if (progressEl) progressEl.remove();
-          
+
           const containerWidth = body.clientWidth || 800;
-          
+
           // Render pages sequentially
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             const viewport = page.getViewport({ scale: 1.0 });
-            
+
             // Adjust to container boundary with padding
             const displayWidth = Math.min(viewport.width, containerWidth - 30);
             const ratio = displayWidth / viewport.width;
-            
+
             // Render at high-DPI scale (1.5x display density) for handwritten legibility
             const dpr = window.devicePixelRatio || 1;
             const renderScale = ratio * dpr * 1.5;
             const renderViewport = page.getViewport({ scale: renderScale });
-            
+
             const canvas = document.createElement('canvas');
             canvas.className = 'pdf-page-canvas';
             canvas.style.width = `${displayWidth}px`;
@@ -1547,21 +1553,21 @@
             canvas.style.borderRadius = '8px';
             canvas.style.backgroundColor = '#ffffff';
             canvas.style.display = 'block';
-            
+
             canvas.width = renderViewport.width;
             canvas.height = renderViewport.height;
-            
+
             container.appendChild(canvas);
-            
+
             const context = canvas.getContext('2d');
             const renderContext = {
               canvasContext: context,
               viewport: renderViewport
             };
-            
+
             await page.render(renderContext).promise;
           }
-          
+
           // Append download, raw link, and upload revision options
           const actionContainer = document.createElement('div');
           actionContainer.style.cssText = "margin-top:20px; display:flex; gap:12px; justify-content:center; align-items:center; width:100%; flex-wrap:wrap;";
@@ -1581,7 +1587,7 @@
             </button>
           `;
           container.appendChild(actionContainer);
-          
+
         } catch (error) {
           console.error("PDF.js loading error: ", error);
           body.innerHTML = `
@@ -1661,61 +1667,75 @@
       }
     }
 
-    document.getElementById('schedule-modal').addEventListener('click', function(e) {
+    document.getElementById('schedule-modal').addEventListener('click', function (e) {
       if (e.target === this) closeScheduleModal();
     });
   </script>
 
-<input type="file" id="schedule-file-uploader" style="display:none;" accept="application/pdf" onchange="handleScheduleUpload(this)">
+  <input type="file" id="schedule-file-uploader" style="display:none;" accept="application/pdf"
+    onchange="handleScheduleUpload(this)">
 
-<!-- ============================================================
+  <!-- ============================================================
      SCHEDULE EMAIL VIEWER MODAL
      ============================================================ -->
-<div id="schedule-modal" style="display:none; position:fixed; inset:0; z-index:9000; background:rgba(10,10,20,0.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); overflow-y:auto;">
-  <div style="min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:20px 12px;">
-    <div style="background:#1e1e2e; border:1px solid rgba(255,255,255,0.1); border-radius:18px; width:100%; max-width:820px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden;">
+  <div id="schedule-modal"
+    style="display:none; position:fixed; inset:0; z-index:9000; background:rgba(10,10,20,0.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); overflow-y:auto;">
+    <div style="min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:20px 12px;">
+      <div
+        style="background:#1e1e2e; border:1px solid rgba(255,255,255,0.1); border-radius:18px; width:100%; max-width:820px; box-shadow:0 24px 80px rgba(0,0,0,0.7); overflow:hidden;">
 
-      <!-- Modal Header -->
-      <div style="padding:18px 22px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08);">
-        <div>
-          <div class="schedule-modal-title-text" style="font-weight:800; font-size:1.1rem; color:#e2e8f0; letter-spacing:-0.02em;">📄 Email Schedule</div>
-          <div id="schedule-modal-meta" style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">Searching for latest attachment...</div>
+        <!-- Modal Header -->
+        <div
+          style="padding:18px 22px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <div>
+            <div class="schedule-modal-title-text"
+              style="font-weight:800; font-size:1.1rem; color:#e2e8f0; letter-spacing:-0.02em;">📄 Email Schedule</div>
+            <div id="schedule-modal-meta" style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">Searching for latest
+              attachment...</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="btn-schedule-resync" onclick="resyncScheduleEmail()" title="Re-scan inbox for latest attachment"
+              style="background:rgba(102,126,234,0.18); border:1px solid rgba(102,126,234,0.35); border-radius:8px; color:#a5b4fc; font-size:0.8rem; font-weight:700; padding:6px 12px; cursor:pointer; transition:all 0.2s;">
+              🔄 Re-sync
+            </button>
+            <button onclick="closeScheduleModal()"
+              style="background:rgba(255,255,255,0.08); border:none; border-radius:8px; color:#94a3b8; font-size:1.3rem; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+              title="Close">&times;</button>
+          </div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="btn-schedule-resync" onclick="resyncScheduleEmail()" title="Re-scan inbox for latest attachment" style="background:rgba(102,126,234,0.18); border:1px solid rgba(102,126,234,0.35); border-radius:8px; color:#a5b4fc; font-size:0.8rem; font-weight:700; padding:6px 12px; cursor:pointer; transition:all 0.2s;">
-            🔄 Re-sync
-          </button>
-          <button onclick="closeScheduleModal()" style="background:rgba(255,255,255,0.08); border:none; border-radius:8px; color:#94a3b8; font-size:1.3rem; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" title="Close">&times;</button>
+
+        <!-- Modal Body -->
+        <div id="schedule-modal-body"
+          style="padding:20px; min-height:280px; display:flex; align-items:center; justify-content:center;">
+          <div style="text-align:center; color:#64748b;">
+            <div style="font-size:2.5rem; margin-bottom:12px;">📂</div>
+            <div style="font-size:0.9rem;">No schedule loaded yet.</div>
+          </div>
         </div>
+
       </div>
-
-      <!-- Modal Body -->
-      <div id="schedule-modal-body" style="padding:20px; min-height:280px; display:flex; align-items:center; justify-content:center;">
-        <div style="text-align:center; color:#64748b;">
-          <div style="font-size:2.5rem; margin-bottom:12px;">📂</div>
-          <div style="font-size:0.9rem;">No schedule loaded yet.</div>
-        </div>
-      </div>
-
     </div>
   </div>
-</div>
 
-<!-- ============================================================
+  <!-- ============================================================
      STANDBY TRACKER MODAL
      ============================================================ -->
-<div id="standby-tracker-modal" class="modal">
-  <div class="modal-background" onclick="closeStandbyTrackerModal()"></div>
-  <div class="modal-card" style="max-width: 600px; width: 95%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
-    <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
-      <p class="modal-card-title has-text-weight-bold" style="font-size: 1.25rem; color: var(--text-main) !important;">🛡️ Standby Tracker</p>
-      <button class="delete" aria-label="close" onclick="closeStandbyTrackerModal()"></button>
-    </header>
-    <section class="modal-card-body" id="standby-tracker-modal-body" style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; color: var(--text-main);">
-      <!-- Content will be rendered dynamically here -->
-    </section>
+  <div id="standby-tracker-modal" class="modal">
+    <div class="modal-background" onclick="closeStandbyTrackerModal()"></div>
+    <div class="modal-card"
+      style="max-width: 600px; width: 95%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+        <p class="modal-card-title has-text-weight-bold"
+          style="font-size: 1.25rem; color: var(--text-main) !important;">🛡️ Standby Tracker</p>
+        <button class="delete" aria-label="close" onclick="closeStandbyTrackerModal()"></button>
+      </header>
+      <section class="modal-card-body" id="standby-tracker-modal-body"
+        style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; color: var(--text-main);">
+        <!-- Content will be rendered dynamically here -->
+      </section>
+    </div>
   </div>
-</div>
 
 </body>
+
 </html>

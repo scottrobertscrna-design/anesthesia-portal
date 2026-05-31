@@ -5,21 +5,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LAPA Portal</title>
-  
+
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="css/style.css?v=14">
-  
+
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest_portal.json?v=5">
- 
- 
- 
- 
-   <!-- iOS PWA meta tags -->
-   <meta name="apple-mobile-web-app-capable" content="yes">
-   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-   <meta name="apple-mobile-web-app-title" content="LAPA Portal">
+
+
+
+
+  <!-- iOS PWA meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LAPA Portal">
   <meta name="theme-color" content="#3273dc">
 
   <!-- Icons -->
@@ -30,11 +30,11 @@
 
 <body>
   <div class="container">
-    
+
     <!-- Login Card -->
     <div id="login-section" class="portal-login-card mx-auto mt-6" style="max-width: 450px;">
       <h1 class="title is-4 has-text-centered mb-5">Locum Provider Portal</h1>
-      
+
       <div class="field mb-4">
         <label class="label">Select Your Name</label>
         <div class="control select is-fullwidth">
@@ -43,14 +43,14 @@
           </select>
         </div>
       </div>
-      
+
       <div class="field mb-5">
         <label class="label" id="pin-label">Enter PIN</label>
         <div class="control">
           <input class="input" type="password" id="pin-input" placeholder="####" pattern="\d*">
         </div>
       </div>
-      
+
       <button class="button is-link is-fullwidth" id="login-btn" onclick="loadPortal()">Access Portal</button>
       <p id="login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
     </div>
@@ -62,12 +62,13 @@
           <h2 class="title is-4 mb-0" id="user-title">MY UPCOMING SHIFTS</h2>
         </div>
         <div class="level-right">
-           <span id="pin-status-tag" class="tag is-success is-light" style="display:none; font-weight: 700;">PIN Registered</span>
+          <span id="pin-status-tag" class="tag is-success is-light" style="display:none; font-weight: 700;">PIN
+            Registered</span>
         </div>
       </div>
-      
+
       <div id="my-schedule"></div>
-      
+
       <div class="mt-6 has-text-centered">
         <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
       </div>
@@ -83,7 +84,7 @@
       try {
         const items = await callApi("getLocumNames");
         const select = document.getElementById('name-select');
-        select.innerHTML = items.map(item => 
+        select.innerHTML = items.map(item =>
           `<option value="${item.name}" data-haspin="${item.hasPin}">${item.name}</option>`
         ).join('');
         updatePinPlaceholder();
@@ -119,11 +120,11 @@
       const btn = document.getElementById('login-btn');
       const err = document.getElementById('login-error');
 
-      if (!pin) { 
-        alert("Please enter your PIN"); 
-        return; 
+      if (!pin) {
+        alert("Please enter your PIN");
+        return;
       }
-      
+
       btn.classList.add('is-loading');
       err.style.display = 'none';
 
@@ -134,23 +135,23 @@
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('portal-content').style.display = 'block';
       document.getElementById('user-title').innerText = `SCHEDULE FOR ${name.toUpperCase()}`;
-      
+
       const schedDiv = document.getElementById('my-schedule');
       const loadingText = isFirstTime ? "Registering your PIN and fetching shifts..." : "Fetching your shifts...";
       schedDiv.innerHTML = `<div class="loading-wrap"><button class="button is-loading is-white is-large"></button><p>${loadingText}</p></div>`;
 
       try {
         const result = await callApi("getLocumSchedule", { name, pin });
-        
+
         if (result.isNewPin) {
           document.getElementById('pin-status-tag').style.display = 'inline-flex';
         }
 
-        if (result.schedule.length === 0) { 
-          schedDiv.innerHTML = '<p class="has-text-centered has-text-grey py-5 italic-grey">No upcoming shifts.</p>'; 
-          return; 
+        if (result.schedule.length === 0) {
+          schedDiv.innerHTML = '<p class="has-text-centered has-text-grey py-5 italic-grey">No upcoming shifts.</p>';
+          return;
         }
-        
+
         // Helper to get Week Number (ISO)
         const getWeek = (sortDate) => {
           const date = new Date(sortDate);
@@ -163,7 +164,7 @@
 
         // Group data by Year + Week
         const groupedByWeek = result.schedule.reduce((acc, curr) => {
-          const weekNum = getWeek(curr.sortDate); 
+          const weekNum = getWeek(curr.sortDate);
           const year = new Date(curr.sortDate).getFullYear();
           const key = `Year ${year} - Week ${weekNum}`;
           if (!acc[key]) acc[key] = [];
@@ -178,9 +179,9 @@
               <div class="week-block" style="padding:0;">
                 <div class="week-title">${weekKey}</div>
                 ${groupedByWeek[weekKey].map(s => {
-                  const isGreenBadge = ['MD CALL', 'PAIN', 'DOC'].includes(s.assignment.toUpperCase().trim());
-                  const badgeStyle = isGreenBadge ? 'background-color: #48c78e;' : '';
-                  return `
+            const isGreenBadge = ['MD CALL', 'PAIN', 'DOC'].includes(s.assignment.toUpperCase().trim());
+            const badgeStyle = isGreenBadge ? 'background-color: #48c78e;' : '';
+            return `
                   <div class="shift-card" style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
                       <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; line-height: 1.2;">${s.dayName}</span>
@@ -192,7 +193,7 @@
                     </div>
                   </div>
                   `;
-                }).join('')}
+          }).join('')}
               </div>
             </div>`;
         }
@@ -201,10 +202,10 @@
       } catch (error) {
         document.getElementById('login-section').style.display = 'block';
         document.getElementById('portal-content').style.display = 'none';
-        
+
         const btn = document.getElementById('login-btn');
         btn.classList.remove('is-loading');
-        
+
         const err = document.getElementById('login-error');
         err.innerText = error.message;
         err.style.display = 'block';
@@ -251,4 +252,5 @@
     }
   </script>
 </body>
+
 </html>
