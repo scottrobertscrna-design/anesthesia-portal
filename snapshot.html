@@ -876,8 +876,13 @@
 
             </div>
 
-            <div class="section-title">
-              CRNA Coverage
+            <div class="section-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
+              <span>CRNA Coverage</span>
+              ${(!isWeekend && day.standbyTracker && day.standbyTracker.length > 0) ? `
+              <button class="button is-small is-light" onclick="openStandbyTrackerModal('${dateId}')" style="height: 24px; border-radius: 6px; font-size: 0.72rem; padding: 0 8px; font-weight: 700; background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--accent-indigo); margin: 0; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(129, 140, 248, 0.15)'; this.style.borderColor='var(--accent-indigo)';" onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255,255,255,0.12)';">
+                🛡️ Standby Tracker
+              </button>
+              ` : ''}
             </div>
             <div>
               ${(() => {
@@ -1478,6 +1483,188 @@
     document.getElementById("tc-overtime-date-picker").addEventListener("change", updateFillButtonLabel);
     document.getElementById("tc-prn-start-date").addEventListener("change", updatePullButtonLabel);
     document.getElementById("tc-prn-end-date").addEventListener("change", updatePullButtonLabel);
+
+    // --- Standby Eligibility Tracker Logic ---
+    function getStandbyCandidates(day) {
+      if (!day.standbyTracker || day.standbyTracker.length === 0) return [];
+      
+      const trackerMap = new Map();
+      day.standbyTracker.forEach(emp => {
+        trackerMap.set(emp.name.toLowerCase().trim(), emp);
+      });
+      
+      const candidates = [];
+      
+      // 1. Process LSC staff
+      if (Array.isArray(day.lsc)) {
+        day.lsc.forEach(fullName => {
+          const baseName = fullName.split('(')[0].trim();
+          const trackerEntry = trackerMap.get(baseName.toLowerCase());
+          if (trackerEntry) {
+            candidates.push({
+              name: fullName,
+              role: "LSC",
+              shiftNum: -1,
+              count: trackerEntry.count,
+              isLsc: true
+            });
+          }
+        });
+      }
+      
+      // 2. Process numbered shifts
+      if (Array.isArray(day.numbered)) {
+        day.numbered.forEach(crna => {
+          if (crna.num === "MD Locum") return;
+          
+          const empName = crna.name;
+          const shiftNum = parseInt(crna.num, 10);
+          if (isNaN(shiftNum)) return;
+          
+          const trackerEntry = trackerMap.get(empName.toLowerCase().trim());
+          if (trackerEntry) {
+            candidates.push({
+              name: empName,
+              role: crna.num,
+              shiftNum: shiftNum,
+              count: trackerEntry.count,
+              isLsc: false
+            });
+          }
+        });
+      }
+      
+      // Sort: Lowest Count Cohort first, then LSC first, then highest shift number descending
+      candidates.sort((a, b) => {
+        if (a.count !== b.count) return a.count - b.count;
+        if (a.isLsc && b.isLsc) return a.name.localeCompare(b.name);
+        if (a.isLsc) return -1;
+        if (b.isLsc) return 1;
+        return b.shiftNum - a.shiftNum;
+      });
+      
+      return candidates;
+    }
+
+    function openStandbyTrackerModal(dateId) {
+      const day = cachedDaysList.find(d => d && d.dateStr.replace(/[^a-zA-Z0-9]/g, '') === dateId);
+      if (!day) return;
+
+      const modal = document.getElementById("standby-tracker-modal");
+      const title = modal.querySelector(".modal-card-title");
+      title.innerHTML = `🛡️ Standby Tracker — ${day.dateStr}`;
+
+      const body = document.getElementById("standby-tracker-modal-body");
+      
+      const candidates = getStandbyCandidates(day);
+      const top3 = candidates.slice(0, 3);
+      
+      let candidatesHtml = '';
+      if (top3.length === 0) {
+        candidatesHtml = `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 15px; text-align: center; color: var(--text-muted);">
+            No eligible standby candidates found for this date.
+          </div>
+        `;
+      } else {
+        candidatesHtml = `
+          <div class="mb-4" style="display: flex; flex-direction: column; gap: 10px;">
+            ${top3.map((c, index) => {
+              let badgeColor = 'var(--accent-indigo)';
+              if (index === 0) badgeColor = 'var(--accent-emerald)';
+              else if (index === 1) badgeColor = 'var(--accent-blue)';
+              
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; border-left: 4px solid ${badgeColor};">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 800; color: ${badgeColor}; font-size: 0.95rem;">#${index + 1}</span>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${c.name}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted);">Shift: ${c.role}</div>
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <span class="tag is-dark" style="font-weight: 700; border-radius: 6px; font-size: 0.8rem; background-color: rgba(255,255,255,0.08); color: var(--text-main);">
+                      Count: ${c.count}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      const standings = (day.standbyTracker || []).slice();
+      standings.sort((a, b) => {
+        if (a.count !== b.count) return a.count - b.count;
+        return a.name.localeCompare(b.name);
+      });
+
+      let standingsHtml = '';
+      if (standings.length === 0) {
+        standingsHtml = `
+          <tr>
+            <td colspan="3" class="has-text-centered py-4" style="color: var(--text-muted);">No standings data available.</td>
+          </tr>
+        `;
+      } else {
+        standingsHtml = standings.map((s, idx) => {
+          const isTop3 = top3.some(c => c.name.toLowerCase().split('(')[0].trim() === s.name.toLowerCase().trim());
+          const rowStyle = isTop3 ? 'background: rgba(129, 140, 248, 0.08); font-weight: 600;' : '';
+          return `
+            <tr style="${rowStyle}">
+              <td style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px; font-weight: 600;">
+                ${s.name} ${isTop3 ? '<span style="color: var(--accent-indigo); margin-left: 5px;">★</span>' : ''}
+              </td>
+              <td class="has-text-centered" style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px; font-weight: 700;">
+                ${s.count}
+              </td>
+              <td style="border-color: var(--border-color); color: var(--text-muted); font-size: 0.78rem; padding: 8px 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.dates || ''}">
+                ${s.dates || 'None'}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      body.innerHTML = `
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 10px;">
+          Suggested Candidates (Lowest Count, Highest Shift / LSC)
+        </div>
+        ${candidatesHtml}
+        
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-top: 25px; margin-bottom: 10px;">
+          Full Standings (All Tracked)
+        </div>
+        <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.15);">
+          <table class="table is-fullwidth is-striped" style="background: transparent; margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 700; padding: 8px 12px; text-transform: uppercase; background: rgba(0,0,0,0.15);">CRNA</th>
+                <th class="has-text-centered" style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 700; padding: 8px 12px; text-transform: uppercase; background: rgba(0,0,0,0.15);">Standbys</th>
+                <th style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 700; padding: 8px 12px; text-transform: uppercase; background: rgba(0,0,0,0.15);">Dates</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standingsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      modal.classList.add("is-active");
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeStandbyTrackerModal() {
+      document.getElementById("standby-tracker-modal").classList.remove("is-active");
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('standby-tracker-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeStandbyTrackerModal();
+    });
   </script>
 
   <!-- PWA Service Worker Registration -->
@@ -1917,6 +2104,22 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     STANDBY TRACKER MODAL
+     ============================================================ -->
+<div id="standby-tracker-modal" class="modal">
+  <div class="modal-background" onclick="closeStandbyTrackerModal()"></div>
+  <div class="modal-card" style="max-width: 600px; width: 95%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+    <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+      <p class="modal-card-title has-text-weight-bold" style="font-size: 1.25rem; color: var(--text-main) !important;">🛡️ Standby Tracker</p>
+      <button class="delete" aria-label="close" onclick="closeStandbyTrackerModal()"></button>
+    </header>
+    <section class="modal-card-body" id="standby-tracker-modal-body" style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; color: var(--text-main);">
+      <!-- Content will be rendered dynamically here -->
+    </section>
   </div>
 </div>
 
