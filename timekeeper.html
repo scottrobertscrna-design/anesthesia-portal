@@ -1129,18 +1129,37 @@
       return html;
     }
 
+    function parseDateParts(dateStr) {
+      if (!dateStr) return null;
+      const str = String(dateStr).trim();
+      if (str.includes('-')) {
+        const parts = str.split('-');
+        if (parts.length < 3) return null;
+        return {
+          month: parseInt(parts[1], 10),
+          day: parseInt(parts[2], 10)
+        };
+      }
+      const parts = str.split('/');
+      if (parts.length < 2) return null;
+      return {
+        month: parseInt(parts[0], 10),
+        day: parseInt(parts[1], 10)
+      };
+    }
+
+    function datesMatch(d1, d2) {
+      const p1 = parseDateParts(d1);
+      const p2 = parseDateParts(d2);
+      if (!p1 || !p2) return false;
+      return p1.month === p2.month && p1.day === p2.day;
+    }
+
     function renderStandbyListForDay(day) {
       const candidates = getStandbyCandidates(day);
       const top3 = candidates.slice(0, 3);
       const isoStr = day.isoDateStr || '';
       const dateId = day.dateStr.replace(/[^a-zA-Z0-9]/g, '');
-
-      // Compute m/d string for this day to detect already-assigned
-      const dayMD = (() => {
-        if (!isoStr) return '';
-        const p = isoStr.split('-');
-        return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
-      })();
 
       const badgeColors = ['var(--accent-emerald)', 'var(--accent-blue)', 'var(--accent-indigo)'];
 
@@ -1151,10 +1170,7 @@
       return top3.map((cand, idx) => {
         const accentColor = badgeColors[idx] || 'var(--accent-indigo)';
         const trackerEntry = (day.standbyTracker || []).find(e => e.name.toLowerCase().split('(')[0].trim() === cand.name.toLowerCase().split('(')[0].trim());
-        const alreadyAssigned = trackerEntry && dayMD && trackerEntry.dates && trackerEntry.dates.some(d => {
-          const dp = d.split('/');
-          return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
-        });
+        const alreadyAssigned = !!(trackerEntry && trackerEntry.dates && trackerEntry.dates.split(',').some(d => datesMatch(d.trim(), isoStr)));
         const baseCandName = cand.name.split('(')[0].trim();
         const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
         const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
@@ -1439,11 +1455,6 @@
       const day = cachedDaysList[dayIdx];
 
       const dateId = day.dateStr.replace(/[^a-zA-Z0-9]/g, '');
-      const dayMD = (() => {
-        if (!isoDateStr) return '';
-        const p = isoDateStr.split('-');
-        return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
-      })();
 
       // Mark as pending save
       const saveKey = `${name}|${isoDateStr}`;
@@ -1466,12 +1477,17 @@
       let datesArray = (employeeEntry.dates || '').split(',').map(d => d.trim()).filter(Boolean);
       const isAssignedNow = isChecked;
       if (isAssignedNow) {
-        if (!datesArray.includes(dayMD)) {
-          datesArray.push(dayMD);
+        const exists = datesArray.some(d => datesMatch(d, isoDateStr));
+        if (!exists) {
+          const year = isoDateStr.split('-')[0];
+          const parts = isoDateStr.split('-');
+          const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+          const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+          datesArray.push(`${m}/${d}/${year}`);
           employeeEntry.count = (employeeEntry.count || 0) + 1;
         }
       } else {
-        const idx = datesArray.indexOf(dayMD);
+        const idx = datesArray.findIndex(d => datesMatch(d, isoDateStr));
         if (idx !== -1) {
           datesArray.splice(idx, 1);
           employeeEntry.count = Math.max(0, (employeeEntry.count || 0) - 1);
