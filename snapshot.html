@@ -1092,7 +1092,7 @@
           <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
             <span
               id="sb-badge-${dateId}-${idx}"
-              onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}')"
+              onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}', '${cand.role}')"
               title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
               style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:${isSaving ? 'default' : 'pointer'}; transition:all 0.22s;
                 background:${badgeBg};
@@ -1888,7 +1888,7 @@
       document.body.style.overflow = '';
     }
 
-    async function toggleStandbyCandidate(badge, name, isoDateStr, currentAssigned, accentColor) {
+    async function toggleStandbyCandidate(badge, name, isoDateStr, currentAssigned, accentColor, role) {
       const isChecked = !currentAssigned;
 
       // Find the day in cachedDaysList
@@ -1902,8 +1902,10 @@
       const saveKey = `${name}|${isoDateStr}`;
       pendingStandbySaves.add(saveKey);
 
-      // 1. Create a deep copy of standbyTracker for rollback
+      // 1. Create a deep copy of standbyTracker and sign-offs for rollback
       const standbyTrackerBackup = JSON.parse(JSON.stringify(day.standbyTracker || []));
+      const signOffsBackup = JSON.parse(JSON.stringify(day.signOffs || []));
+      const allSignOffsBackup = JSON.parse(JSON.stringify(allSignOffsList || []));
 
       // 2. Perform Optimistic Update in cache
       if (!day.standbyTracker) day.standbyTracker = [];
@@ -1928,17 +1930,43 @@
           datesArray.push(`${m}/${d}/${year}`);
           employeeEntry.count = (employeeEntry.count || 0) + 1;
         }
+
+        // Add to day.signOffs and allSignOffsList optimistically
+        const cleanName = name.toLowerCase().trim();
+        const alreadySignedOff = (day.signOffs || []).some(s => s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role);
+        if (!alreadySignedOff) {
+          if (!day.signOffs) day.signOffs = [];
+          const newSignOff = {
+            dateStr: day.dateStr,
+            name: name,
+            role: role,
+            arrivalTime: "7:00 AM",
+            time: "7:00 AM"
+          };
+          day.signOffs.push(newSignOff);
+          allSignOffsList.push(newSignOff);
+        }
       } else {
         const idx = datesArray.findIndex(d => datesMatch(d, isoDateStr));
         if (idx !== -1) {
           datesArray.splice(idx, 1);
           employeeEntry.count = Math.max(0, (employeeEntry.count || 0) - 1);
         }
+
+        // Remove from day.signOffs and allSignOffsList
+        const cleanName = name.toLowerCase().trim();
+        if (day.signOffs) {
+          day.signOffs = day.signOffs.filter(s => !(s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role));
+        }
+        allSignOffsList = allSignOffsList.filter(s => !(s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role && s.dateStr === day.dateStr));
       }
       employeeEntry.dates = datesArray;
 
-      // 3. Instantly Update the UI
+      // 3. Instantly Update the UI (Standby UI and staffing checkboxes)
       updateStandbyUI(dayIdx);
+      if (typeof syncCheckboxes === 'function') {
+        syncCheckboxes(allSignOffsList);
+      }
 
       // 4. Send backend API call in background
       try {
@@ -1957,9 +1985,14 @@
 
         // Rollback state in memory and UI
         day.standbyTracker = standbyTrackerBackup;
+        day.signOffs = signOffsBackup;
+        allSignOffsList = allSignOffsBackup;
       } finally {
         pendingStandbySaves.delete(saveKey);
         updateStandbyUI(dayIdx);
+        if (typeof syncCheckboxes === 'function') {
+          syncCheckboxes(allSignOffsList);
+        }
       }
     }
 
