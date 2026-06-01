@@ -1196,13 +1196,13 @@
         }));
       };
 
-      // Determine max shift number to define bottom half boundary (rounded up for odd numbers)
+      // Determine max shift number to define bottom half boundary (only for regular shifts < 100)
       let maxShiftNum = 0;
       if (Array.isArray(day.numbered)) {
         day.numbered.forEach(crna => {
           if (crna.num === "MD Locum") return;
           const shiftNum = parseInt(crna.num, 10);
-          if (!isNaN(shiftNum) && shiftNum > maxShiftNum) {
+          if (!isNaN(shiftNum) && shiftNum > maxShiftNum && shiftNum < 100) {
             maxShiftNum = shiftNum;
           }
         });
@@ -1236,8 +1236,8 @@
           const shiftNum = parseInt(crna.num, 10);
           if (isNaN(shiftNum)) return;
 
-          // Skip bottom half shifts (e.g. shifts 1-4 when max is 8)
-          if (shiftNum <= boundary) return;
+          // Skip bottom half shifts (only for regular shifts < 100)
+          if (shiftNum < 100 && shiftNum <= boundary) return;
 
           const cleanEmpName = empName.split('(')[0].trim().toLowerCase();
           const trackerEntry = trackerMap.get(cleanEmpName);
