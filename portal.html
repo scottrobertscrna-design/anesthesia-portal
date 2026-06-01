@@ -227,7 +227,7 @@
       });
 
       navigator.serviceWorker.getRegistrations().then(registrations => {
-        const targetScope = new URL('./portal.html', window.location.href).href;
+        const targetScope = new URL('./', window.location.href).href;
         let unregisteredOld = false;
         const promises = registrations.map(reg => {
           if (reg.scope !== targetScope) {
@@ -238,7 +238,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=74', { scope: './portal.html' })
+          navigator.serviceWorker.register('./sw.js?v=86')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

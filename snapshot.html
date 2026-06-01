@@ -1835,8 +1835,35 @@
         });
 
         if (result && result.success !== false) {
-          // Refresh all day data — the badge state will re-render correctly from fresh data
-          await fetchFreshData();
+          // Perform targeted update: reload only this single date's card and modal
+          const dayIdx = cachedDaysList.findIndex(d => d && d.isoDateStr === isoDateStr);
+          if (dayIdx !== -1) {
+            const targetDay = cachedDaysList[dayIdx];
+            const dayData = await callApi("getDailySnapshotDataForDate", {
+              isoDateStr: targetDay.isoDateStr,
+              viewTitle: targetDay.viewTitle,
+              viewType: targetDay.viewType,
+              isEditable: targetDay.isEditable,
+              forceRefresh: true // Bypass backend cache to get latest updates
+            });
+
+            cachedDaysList[dayIdx] = dayData;
+            cachedData = cachedDaysList.filter(d => d !== null);
+
+            const cardEl = document.getElementById(`day-card-${dayIdx}`);
+            if (cardEl) {
+              cardEl.innerHTML = renderDay(dayData);
+            }
+
+            const modal = document.getElementById("standby-tracker-modal");
+            if (modal && modal.classList.contains("is-active")) {
+              const dateId = targetDay.dateStr.replace(/[^a-zA-Z0-9]/g, '');
+              openStandbyTrackerModal(dateId);
+            }
+          } else {
+            // Fallback if day is not found in cache (should not happen)
+            await fetchFreshData();
+          }
         } else {
           throw new Error((result && result.error) || 'Toggle failed');
         }
@@ -1868,7 +1895,7 @@
       });
 
       navigator.serviceWorker.getRegistrations().then(registrations => {
-        const targetScope = new URL('./snapshot.html', window.location.href).href;
+        const targetScope = new URL('./', window.location.href).href;
         let unregisteredOld = false;
         const promises = registrations.map(reg => {
           if (reg.scope !== targetScope) {
@@ -1879,7 +1906,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=74', { scope: './snapshot.html' })
+          navigator.serviceWorker.register('./sw.js?v=86')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
