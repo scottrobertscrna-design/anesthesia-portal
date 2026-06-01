@@ -1905,7 +1905,6 @@
       // 1. Create a deep copy of standbyTracker and sign-offs for rollback
       const standbyTrackerBackup = JSON.parse(JSON.stringify(day.standbyTracker || []));
       const signOffsBackup = JSON.parse(JSON.stringify(day.signOffs || []));
-      const allSignOffsBackup = JSON.parse(JSON.stringify(allSignOffsList || []));
 
       // 2. Perform Optimistic Update in cache
       if (!day.standbyTracker) day.standbyTracker = [];
@@ -1931,7 +1930,7 @@
           employeeEntry.count = (employeeEntry.count || 0) + 1;
         }
 
-        // Add to day.signOffs and allSignOffsList optimistically
+        // Add to day.signOffs optimistically
         const cleanName = name.toLowerCase().trim();
         const alreadySignedOff = (day.signOffs || []).some(s => s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role);
         if (!alreadySignedOff) {
@@ -1944,7 +1943,6 @@
             time: "7:00 AM"
           };
           day.signOffs.push(newSignOff);
-          allSignOffsList.push(newSignOff);
         }
       } else {
         const idx = datesArray.findIndex(d => datesMatch(d, isoDateStr));
@@ -1953,20 +1951,27 @@
           employeeEntry.count = Math.max(0, (employeeEntry.count || 0) - 1);
         }
 
-        // Remove from day.signOffs and allSignOffsList
+        // Remove from day.signOffs
         const cleanName = name.toLowerCase().trim();
         if (day.signOffs) {
           day.signOffs = day.signOffs.filter(s => !(s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role));
         }
-        allSignOffsList = allSignOffsList.filter(s => !(s.name.toLowerCase().split('(')[0].trim() === cleanName && s.role === role && s.dateStr === day.dateStr));
       }
       employeeEntry.dates = datesArray;
 
+      const triggerCheckboxSync = () => {
+        if (typeof syncCheckboxes === 'function') {
+          const signOffsToSync = [];
+          cachedDaysList.forEach(d => {
+            if (d && d.signOffs) signOffsToSync.push(...d.signOffs);
+          });
+          syncCheckboxes(signOffsToSync);
+        }
+      };
+
       // 3. Instantly Update the UI (Standby UI and staffing checkboxes)
       updateStandbyUI(dayIdx);
-      if (typeof syncCheckboxes === 'function') {
-        syncCheckboxes(allSignOffsList);
-      }
+      triggerCheckboxSync();
 
       // 4. Send backend API call in background
       try {
@@ -1986,13 +1991,10 @@
         // Rollback state in memory and UI
         day.standbyTracker = standbyTrackerBackup;
         day.signOffs = signOffsBackup;
-        allSignOffsList = allSignOffsBackup;
       } finally {
         pendingStandbySaves.delete(saveKey);
         updateStandbyUI(dayIdx);
-        if (typeof syncCheckboxes === 'function') {
-          syncCheckboxes(allSignOffsList);
-        }
+        triggerCheckboxSync();
       }
     }
 
