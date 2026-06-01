@@ -1197,16 +1197,10 @@
       };
 
       // Determine max shift number to define bottom half boundary (only for regular shifts < 100)
-      let maxShiftNum = 0;
-      if (Array.isArray(day.numbered)) {
-        day.numbered.forEach(crna => {
-          if (crna.num === "MD Locum") return;
-          const shiftNum = parseInt(crna.num, 10);
-          if (!isNaN(shiftNum) && shiftNum > maxShiftNum && shiftNum < 100) {
-            maxShiftNum = shiftNum;
-          }
-        });
-      }
+      const scheduledNums = (day.numbered || [])
+        .map(c => parseInt(c.num, 10))
+        .filter(n => !isNaN(n) && n < 100);
+      const maxShiftNum = scheduledNums.length > 0 ? Math.max(...scheduledNums) : 0;
       const boundary = Math.ceil(maxShiftNum / 2);
 
       // 1. Process LSC staff
