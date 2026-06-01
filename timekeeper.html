@@ -1173,12 +1173,27 @@
     function getStandbyCandidates(day) {
       if (!day.standbyTracker || day.standbyTracker.length === 0) return [];
 
+      const isoStr = day.isoDateStr || '';
+      const dayMD = (() => {
+        if (!isoStr) return '';
+        const p = isoStr.split('-');
+        return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
+      })();
+
       const trackerMap = new Map();
       day.standbyTracker.forEach(emp => {
         trackerMap.set(emp.name.toLowerCase().trim(), emp);
       });
 
       const candidates = [];
+
+      // Helper to check if already assigned standby today
+      const checkAssigned = (entry) => {
+        return !!(entry && dayMD && entry.dates && entry.dates.some(d => {
+          const dp = d.split('/');
+          return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
+        }));
+      };
 
       // 1. Process LSC staff
       if (Array.isArray(day.lsc)) {
@@ -1191,7 +1206,8 @@
               role: "LSC",
               shiftNum: -1,
               count: trackerEntry.count,
-              isLsc: true
+              isLsc: true,
+              alreadyAssigned: checkAssigned(trackerEntry)
             });
           }
         });
@@ -1213,20 +1229,27 @@
               role: crna.num,
               shiftNum: shiftNum,
               count: trackerEntry.count,
-              isLsc: false
+              isLsc: false,
+              alreadyAssigned: checkAssigned(trackerEntry)
             });
           }
         });
       }
 
-      // Sort: Lowest Count Cohort first, then LSC first, then highest shift number descending
-      // (highest shift# = later in day = granting standby is less disruptive to early departures)
+      // Sort: Already-assigned first (so they remain visible in top 3),
+      // then lowest count cohort (using pre-standby count if already assigned),
+      // then LSC first, then highest shift number descending.
       candidates.sort((a, b) => {
-        if (a.count !== b.count) return a.count - b.count;
+        if (a.alreadyAssigned !== b.alreadyAssigned) {
+          return a.alreadyAssigned ? -1 : 1;
+        }
+        const countA = a.alreadyAssigned ? a.count - 1 : a.count;
+        const countB = b.alreadyAssigned ? b.count - 1 : b.count;
+        if (countA !== countB) return countA - countB;
         if (a.isLsc && b.isLsc) return a.name.localeCompare(b.name);
         if (a.isLsc) return -1;
         if (b.isLsc) return 1;
-        return b.shiftNum - a.shiftNum;  // highest shift# first (top half of roster)
+        return b.shiftNum - a.shiftNum;  // highest shift# first
       });
 
       return candidates;
