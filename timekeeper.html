@@ -1195,6 +1195,19 @@
         }));
       };
 
+      // Determine max shift number to define bottom half boundary (rounded up for odd numbers)
+      let maxShiftNum = 0;
+      if (Array.isArray(day.numbered)) {
+        day.numbered.forEach(crna => {
+          if (crna.num === "MD Locum") return;
+          const shiftNum = parseInt(crna.num, 10);
+          if (!isNaN(shiftNum) && shiftNum > maxShiftNum) {
+            maxShiftNum = shiftNum;
+          }
+        });
+      }
+      const boundary = Math.ceil(maxShiftNum / 2);
+
       // 1. Process LSC staff
       if (Array.isArray(day.lsc)) {
         day.lsc.forEach(fullName => {
@@ -1222,6 +1235,9 @@
           const shiftNum = parseInt(crna.num, 10);
           if (isNaN(shiftNum)) return;
 
+          // Skip bottom half shifts (e.g. shifts 1-4 when max is 8)
+          if (shiftNum <= boundary) return;
+
           const trackerEntry = trackerMap.get(empName.toLowerCase().trim());
           if (trackerEntry) {
             candidates.push({
@@ -1238,7 +1254,7 @@
 
       // Sort: Already-assigned first (so they remain visible in top 3),
       // then lowest count cohort (using pre-standby count if already assigned),
-      // then LSC first, then highest shift number descending.
+      // then LSC sorted at the bottom of its cohort, then highest shift number descending.
       candidates.sort((a, b) => {
         if (a.alreadyAssigned !== b.alreadyAssigned) {
           return a.alreadyAssigned ? -1 : 1;
@@ -1247,8 +1263,8 @@
         const countB = b.alreadyAssigned ? b.count - 1 : b.count;
         if (countA !== countB) return countA - countB;
         if (a.isLsc && b.isLsc) return a.name.localeCompare(b.name);
-        if (a.isLsc) return -1;
-        if (b.isLsc) return 1;
+        if (a.isLsc) return 1;  // LSC goes to the bottom/last in the cohort
+        if (b.isLsc) return -1;
         return b.shiftNum - a.shiftNum;  // highest shift# first
       });
 
