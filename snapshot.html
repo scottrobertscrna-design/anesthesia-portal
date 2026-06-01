@@ -1615,7 +1615,8 @@
 
       const trackerMap = new Map();
       day.standbyTracker.forEach(emp => {
-        trackerMap.set(emp.name.toLowerCase().trim(), emp);
+        const cleanName = emp.name.split('(')[0].trim().toLowerCase();
+        trackerMap.set(cleanName, emp);
       });
 
       const candidates = [];
@@ -1644,8 +1645,8 @@
       // 1. Process LSC staff
       if (Array.isArray(day.lsc)) {
         day.lsc.forEach(fullName => {
-          const baseName = fullName.split('(')[0].trim();
-          const trackerEntry = trackerMap.get(baseName.toLowerCase());
+          const baseName = fullName.split('(')[0].trim().toLowerCase();
+          const trackerEntry = trackerMap.get(baseName);
           if (trackerEntry) {
             candidates.push({
               name: fullName,
@@ -1671,7 +1672,8 @@
           // Skip bottom half shifts (e.g. shifts 1-4 when max is 8)
           if (shiftNum <= boundary) return;
 
-          const trackerEntry = trackerMap.get(empName.toLowerCase().trim());
+          const cleanEmpName = empName.split('(')[0].trim().toLowerCase();
+          const trackerEntry = trackerMap.get(cleanEmpName);
           if (trackerEntry) {
             candidates.push({
               name: empName,
