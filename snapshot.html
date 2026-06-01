@@ -1050,6 +1050,15 @@
       return p1.month === p2.month && p1.day === p2.day;
     }
 
+    function ensureDatesArray(datesField) {
+      if (!datesField) return [];
+      if (Array.isArray(datesField)) return datesField;
+      if (typeof datesField === 'string') {
+        return datesField.split(',').map(d => d.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
     function renderStandbyListForDay(day) {
       const candidates = getStandbyCandidates(day);
       const top3 = candidates.slice(0, 3);
@@ -1065,7 +1074,8 @@
       return top3.map((cand, idx) => {
         const accentColor = badgeColors[idx] || 'var(--accent-indigo)';
         const trackerEntry = (day.standbyTracker || []).find(e => e.name.toLowerCase().split('(')[0].trim() === cand.name.toLowerCase().split('(')[0].trim());
-        const alreadyAssigned = !!(trackerEntry && trackerEntry.dates && trackerEntry.dates.split(',').some(d => datesMatch(d.trim(), isoStr)));
+        const datesArray = trackerEntry ? ensureDatesArray(trackerEntry.dates) : [];
+        const alreadyAssigned = datesArray.some(d => datesMatch(d, isoStr));
         const baseCandName = cand.name.split('(')[0].trim();
         const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
         const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
@@ -1836,8 +1846,8 @@
               <td class="has-text-centered" style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px; font-weight: 700;">
                 ${s.count}
               </td>
-              <td style="border-color: var(--border-color); color: var(--text-muted); font-size: 0.78rem; padding: 8px 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.dates || ''}">
-                ${s.dates || 'None'}
+              <td style="border-color: var(--border-color); color: var(--text-muted); font-size: 0.78rem; padding: 8px 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${Array.isArray(s.dates) ? s.dates.join(', ') : (s.dates || 'None')}">
+                ${Array.isArray(s.dates) ? s.dates.join(', ') : (s.dates || 'None')}
               </td>
             </tr>
           `;
@@ -1901,12 +1911,12 @@
       // Find the employee in day.standbyTracker
       let employeeEntry = day.standbyTracker.find(e => e.name.toLowerCase().split('(')[0].trim() === name.toLowerCase().trim());
       if (!employeeEntry) {
-        employeeEntry = { name: name, count: 0, dates: "" };
+        employeeEntry = { name: name, count: 0, dates: [] };
         day.standbyTracker.push(employeeEntry);
       }
 
       // Parse dates list
-      let datesArray = (employeeEntry.dates || '').split(',').map(d => d.trim()).filter(Boolean);
+      let datesArray = ensureDatesArray(employeeEntry.dates);
       const isAssignedNow = isChecked;
       if (isAssignedNow) {
         const exists = datesArray.some(d => datesMatch(d, isoDateStr));
@@ -1925,7 +1935,7 @@
           employeeEntry.count = Math.max(0, (employeeEntry.count || 0) - 1);
         }
       }
-      employeeEntry.dates = datesArray.join(', ');
+      employeeEntry.dates = datesArray;
 
       // 3. Instantly Update the UI
       updateStandbyUI(dayIdx);
