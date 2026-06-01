@@ -379,11 +379,16 @@
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
 
         if (cachedDaysList) {
-          cachedDaysList.forEach(day => {
+          cachedDaysList.forEach((day, dayIdx) => {
             if (day) {
               day.signOffs = (update.signOffs || []).filter(s => s.dateStr === day.dateStr);
               if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
                 day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
+              }
+              // Sync standby tracker data from poll
+              if (update.standbyTracker) {
+                day.standbyTracker = update.standbyTracker;
+                updateStandbyUI(dayIdx);
               }
             }
           });
@@ -982,59 +987,7 @@
                   }).join('');
 
               if (showStandbyFeature) {
-                const candidates = getStandbyCandidates(day);
-                const top3 = candidates.slice(0, 3);
-                const isoStr = day.isoDateStr || '';
-                // Compute m/d string for this day to detect already-assigned
-                const dayMD = (() => {
-                  if (!isoStr) return '';
-                  const p = isoStr.split('-');
-                  return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
-                })();
-
-                const badgeColors = ['var(--accent-emerald)', 'var(--accent-blue)', 'var(--accent-indigo)'];
-
-                const standbyHtml = top3.length === 0
-                  ? '<p class="italic-grey py-2" style="padding-left: 10px;">No candidates</p>'
-                  : top3.map((cand, idx) => {
-                      const accentColor = badgeColors[idx] || 'var(--accent-indigo)';
-                      const trackerEntry = (day.standbyTracker || []).find(e => e.name.toLowerCase().split('(')[0].trim() === cand.name.toLowerCase().split('(')[0].trim());
-                      const alreadyAssigned = trackerEntry && dayMD && trackerEntry.dates && trackerEntry.dates.some(d => {
-                        const dp = d.split('/');
-                        return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
-                      });
-                      const baseCandName = cand.name.split('(')[0].trim();
-                      const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
-                      const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
-                      const badgeBorder = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.35)';
-                      const badgeShadow = alreadyAssigned ? ('0 0 10px ' + accentColor) : 'none';
-                      return `
-                      <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between; padding-right: 8px;">
-                        <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
-                          <span
-                            id="sb-badge-${dateId}-${idx}"
-                            onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}')"
-                            title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
-                            style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:pointer; transition:all 0.22s;
-                              background:${badgeBg};
-                              color:${badgeColor};
-                              border: 1.5px solid ${badgeBorder};
-                              box-shadow:${badgeShadow};
-                              margin-right:10px;"
-                            data-assigned="${alreadyAssigned ? '1' : '0'}"
-                            data-accent="${accentColor}"
-                            onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(200,200,220,0.35)';this.style.color='#fff';this.style.borderColor='rgba(220,220,240,0.6)'}"
-                            onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(180,180,200,0.18)';this.style.color='rgba(200,200,215,0.75)';this.style.borderColor='rgba(180,180,200,0.35)'}">
-                            #${idx+1}
-                          </span>
-                          <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
-                        </div>
-                        <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; font-family:'Outfit',sans-serif; flex-shrink:0; margin-left:8px; padding-right:4px;">
-                          ${cand.role}&nbsp;(${cand.count})
-                        </div>
-                      </div>
-                      `;
-                    }).join('');
+                const standbyHtml = renderStandbyListForDay(day);
 
                 const trackerBtnHtml = `
                   <div style="padding: 8px 0 4px 0;">
@@ -1048,11 +1001,13 @@
                   <div class="column is-6" style="padding: 0 15px 0 0; border-right: 1px solid rgba(255,255,255,0.06);">
                     ${assignmentsHtml}
                   </div>
-                  <div class="column is-6" style="padding: 0 0 0 15px;">
+                  <div class="column is-6" style="padding: 0 0 0 15px;" id="standby-column-${dateId}">
                     <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-indigo); border-bottom: 1px solid rgba(129, 140, 248, 0.25); padding-bottom: 6px; margin-bottom: 12px; text-align: center;">
                       Suggested Standby Order
                     </div>
-                    ${standbyHtml}
+                    <div id="standby-list-${dateId}">
+                      ${standbyHtml}
+                    </div>
                     ${trackerBtnHtml}
                   </div>
                 </div>
@@ -1066,6 +1021,85 @@
 
       html += `</div>`;
       return html;
+    }
+
+    function renderStandbyListForDay(day) {
+      const candidates = getStandbyCandidates(day);
+      const top3 = candidates.slice(0, 3);
+      const isoStr = day.isoDateStr || '';
+      const dateId = day.dateStr.replace(/[^a-zA-Z0-9]/g, '');
+
+      // Compute m/d string for this day to detect already-assigned
+      const dayMD = (() => {
+        if (!isoStr) return '';
+        const p = isoStr.split('-');
+        return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
+      })();
+
+      const badgeColors = ['var(--accent-emerald)', 'var(--accent-blue)', 'var(--accent-indigo)'];
+
+      if (top3.length === 0) {
+        return '<p class="italic-grey py-2" style="padding-left: 10px;">No candidates</p>';
+      }
+
+      return top3.map((cand, idx) => {
+        const accentColor = badgeColors[idx] || 'var(--accent-indigo)';
+        const trackerEntry = (day.standbyTracker || []).find(e => e.name.toLowerCase().split('(')[0].trim() === cand.name.toLowerCase().split('(')[0].trim());
+        const alreadyAssigned = trackerEntry && dayMD && trackerEntry.dates && trackerEntry.dates.some(d => {
+          const dp = d.split('/');
+          return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
+        });
+        const baseCandName = cand.name.split('(')[0].trim();
+        const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
+        const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
+        const badgeBorder = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.35)';
+        const badgeShadow = alreadyAssigned ? ('0 0 10px ' + accentColor) : 'none';
+        return `
+        <div class="entry" style="min-height: 56px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: space-between; padding-right: 8px;">
+          <div style="display: flex; align-items: center; min-width: 0; flex-grow: 1;">
+            <span
+              id="sb-badge-${dateId}-${idx}"
+              onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}')"
+              title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
+              style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:pointer; transition:all 0.22s;
+                background:${badgeBg};
+                color:${badgeColor};
+                border: 1.5px solid ${badgeBorder};
+                box-shadow:${badgeShadow};
+                margin-right:10px;"
+              data-assigned="${alreadyAssigned ? '1' : '0'}"
+              data-accent="${accentColor}"
+              onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(200,200,220,0.35)';this.style.color='#fff';this.style.borderColor='rgba(220,220,240,0.6)'}"
+              onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(180,180,200,0.18)';this.style.color='rgba(200,200,215,0.75)';this.style.borderColor='rgba(180,180,200,0.35)'}">
+              #${idx+1}
+            </span>
+            <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; font-family:'Outfit',sans-serif; flex-shrink:0; margin-left:8px; padding-right:4px;">
+            ${cand.role}&nbsp;(${cand.count})
+          </div>
+        </div>
+        `;
+      }).join('');
+    }
+
+    function updateStandbyUI(dayIdx) {
+      const day = cachedDaysList[dayIdx];
+      if (!day) return;
+
+      const dateId = day.dateStr.replace(/[^a-zA-Z0-9]/g, '');
+      const standbyListEl = document.getElementById(`standby-list-${dateId}`);
+      if (standbyListEl) {
+        standbyListEl.innerHTML = renderStandbyListForDay(day);
+      }
+
+      const modal = document.getElementById("standby-tracker-modal");
+      if (modal && modal.classList.contains("is-active")) {
+        const modalTitleEl = modal.querySelector(".modal-card-title");
+        if (modalTitleEl && modalTitleEl.textContent.includes(day.dateStr)) {
+          openStandbyTrackerModal(dateId);
+        }
+      }
     }
 
     /* ============================================================================
@@ -1821,12 +1855,53 @@
 
     async function toggleStandbyCandidate(badge, name, isoDateStr, currentAssigned, accentColor) {
       const isChecked = !currentAssigned;
-      // Disable immediately to prevent double-clicks
-      badge.style.pointerEvents = 'none';
-      badge.style.opacity = '0.5';
-      const prev = badge.textContent;
-      badge.textContent = '⏳';
 
+      // Find the day in cachedDaysList
+      const dayIdx = cachedDaysList.findIndex(d => d && d.isoDateStr === isoDateStr);
+      if (dayIdx === -1) return;
+      const day = cachedDaysList[dayIdx];
+
+      const dateId = day.dateStr.replace(/[^a-zA-Z0-9]/g, '');
+      const dayMD = (() => {
+        if (!isoDateStr) return '';
+        const p = isoDateStr.split('-');
+        return parseInt(p[1], 10) + '/' + parseInt(p[2], 10);
+      })();
+
+      // 1. Create a deep copy of standbyTracker for rollback
+      const standbyTrackerBackup = JSON.parse(JSON.stringify(day.standbyTracker || []));
+
+      // 2. Perform Optimistic Update in cache
+      if (!day.standbyTracker) day.standbyTracker = [];
+
+      // Find the employee in day.standbyTracker
+      let employeeEntry = day.standbyTracker.find(e => e.name.toLowerCase().split('(')[0].trim() === name.toLowerCase().trim());
+      if (!employeeEntry) {
+        employeeEntry = { name: name, count: 0, dates: "" };
+        day.standbyTracker.push(employeeEntry);
+      }
+
+      // Parse dates list
+      let datesArray = (employeeEntry.dates || '').split(',').map(d => d.trim()).filter(Boolean);
+      const isAssignedNow = isChecked;
+      if (isAssignedNow) {
+        if (!datesArray.includes(dayMD)) {
+          datesArray.push(dayMD);
+          employeeEntry.count = (employeeEntry.count || 0) + 1;
+        }
+      } else {
+        const idx = datesArray.indexOf(dayMD);
+        if (idx !== -1) {
+          datesArray.splice(idx, 1);
+          employeeEntry.count = Math.max(0, (employeeEntry.count || 0) - 1);
+        }
+      }
+      employeeEntry.dates = datesArray.join(', ');
+
+      // 3. Instantly Update the UI
+      updateStandbyUI(dayIdx);
+
+      // 4. Send backend API call in background
       try {
         const result = await callApi('toggleStandbyAssignment', {
           name: name,
@@ -1834,45 +1909,16 @@
           isChecked: isChecked
         });
 
-        if (result && result.success !== false) {
-          // Perform targeted update: reload only this single date's card and modal
-          const dayIdx = cachedDaysList.findIndex(d => d && d.isoDateStr === isoDateStr);
-          if (dayIdx !== -1) {
-            const targetDay = cachedDaysList[dayIdx];
-            const dayData = await callApi("getDailySnapshotDataForDate", {
-              isoDateStr: targetDay.isoDateStr,
-              viewTitle: targetDay.viewTitle,
-              viewType: targetDay.viewType,
-              isEditable: targetDay.isEditable,
-              forceRefresh: true // Bypass backend cache to get latest updates
-            });
-
-            cachedDaysList[dayIdx] = dayData;
-            cachedData = cachedDaysList.filter(d => d !== null);
-
-            const cardEl = document.getElementById(`day-card-${dayIdx}`);
-            if (cardEl) {
-              cardEl.innerHTML = renderDay(dayData);
-            }
-
-            const modal = document.getElementById("standby-tracker-modal");
-            if (modal && modal.classList.contains("is-active")) {
-              const dateId = targetDay.dateStr.replace(/[^a-zA-Z0-9]/g, '');
-              openStandbyTrackerModal(dateId);
-            }
-          } else {
-            // Fallback if day is not found in cache (should not happen)
-            await fetchFreshData();
-          }
-        } else {
+        if (!result || result.success === false) {
           throw new Error((result && result.error) || 'Toggle failed');
         }
       } catch (err) {
         console.error('toggleStandbyCandidate error:', err);
-        // Revert badge on error
-        badge.textContent = prev;
-        badge.style.opacity = '1';
-        badge.style.pointerEvents = '';
+        showToast("Error updating standby: " + err.message);
+
+        // Rollback state in memory and UI
+        day.standbyTracker = standbyTrackerBackup;
+        updateStandbyUI(dayIdx);
       }
     }
 
