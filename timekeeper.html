@@ -806,45 +806,16 @@
     document.addEventListener('click', function(e) {
       const timeDisplay = e.target.closest('.arrival-time-display, .departure-time-display');
       if (timeDisplay) {
-        if (timeDisplay.getAttribute('onclick')) return; // Avoid double triggering if inline exists
         if (currentPage === 'entry') {
           const type = timeDisplay.classList.contains('arrival-time-display') ? 'arrival' : 'departure';
           const entryRow = timeDisplay.closest('.entry');
           if (entryRow) {
-            const name = entryRow.dataset.name;
-            const role = entryRow.dataset.role;
-            const dateStr = entryRow.dataset.date;
-            promptClearTime(name, role, dateStr, type);
+            const targetId = entryRow.id;
+            makeTimeEditable(timeDisplay, type, targetId);
           }
         }
       }
     });
-
-    async function promptClearTime(name, role, dateStr, type) {
-      const checkbox = document.querySelector(`.${type === 'arrival' ? 'arrival-checkbox' : 'departure-checkbox'}[data-name="${name}"][data-role="${role}"][data-date="${dateStr}"]`);
-      if (!checkbox) return;
-      const entryRow = checkbox.closest('.entry');
-      if (!entryRow) return;
-      const targetId = entryRow.id;
-      
-      const cleanName = name.split('(')[0].trim();
-      const label = type === 'arrival' ? 'arrival time' : 'departure time';
-      const clearConfirm = confirm(`Clear/delete ${label} for ${cleanName}?\n\n(Click OK to clear/delete, or Cancel to change/edit the time)`);
-      
-      if (clearConfirm) {
-        checkbox.checked = false;
-        if (type === 'arrival') {
-          await toggleArrival(checkbox, name, role, dateStr, targetId);
-        } else {
-          await toggleDeparture(checkbox, name, role, dateStr, targetId);
-        }
-      } else {
-        const timeDisplay = entryRow.querySelector(`.${type}-time-display`);
-        if (timeDisplay) {
-          makeTimeEditable(timeDisplay, type, targetId);
-        }
-      }
-    }
 
     function makeTimeEditable(span, type, targetId) {
       const row = document.getElementById(targetId);
@@ -855,6 +826,23 @@
         wrapper.style.display = 'flex';
         const input = wrapper.querySelector('input[type="time"]');
         if (input) {
+          const blurHandler = () => {
+            setTimeout(() => {
+              if (input.value) {
+                span.style.display = '';
+                wrapper.style.display = 'none';
+              } else {
+                const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
+                if (checkbox && !checkbox.checked) {
+                  wrapper.style.display = 'none';
+                  span.style.display = 'none';
+                }
+              }
+              input.removeEventListener('blur', blurHandler);
+            }, 200);
+          };
+          input.addEventListener('blur', blurHandler);
+
           setTimeout(() => {
             try {
               if (typeof input.showPicker === 'function') input.showPicker();
@@ -874,11 +862,20 @@
       const row = document.getElementById(targetId);
       if (!row) return;
       const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
-      if (checkbox && checkbox.checked) {
-        if (type === 'arrival') {
-          await toggleArrival(checkbox, name, role, dateStr, targetId);
-        } else {
-          await toggleDeparture(checkbox, name, role, dateStr, targetId);
+      if (checkbox) {
+        if (input.value === "") {
+          checkbox.checked = false;
+          if (type === 'arrival') {
+            await toggleArrival(checkbox, name, role, dateStr, targetId);
+          } else {
+            await toggleDeparture(checkbox, name, role, dateStr, targetId);
+          }
+        } else if (checkbox.checked) {
+          if (type === 'arrival') {
+            await toggleArrival(checkbox, name, role, dateStr, targetId);
+          } else {
+            await toggleDeparture(checkbox, name, role, dateStr, targetId);
+          }
         }
       }
     }
@@ -945,7 +942,7 @@
               <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">MD CALL</span>
-                  <span class="has-text-weight-bold">${day.docs.ac}</span>
+                  <span class="has-text-weight-bold" style="white-space: normal;">${day.docs.ac}</span>
                 </div>
                 ${isToday ? `
                 <div class="break-lunch-controls">
@@ -958,13 +955,13 @@
               <div class="entry" id="row-${dateId}-pc">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">PAIN</span>
-                  <span class="has-text-weight-bold">${day.docs.pc}</span>
+                  <span class="has-text-weight-bold" style="white-space: normal;">${day.docs.pc}</span>
                 </div>
               </div>` : ''}
               <div class="entry" id="row-${dateId}-backup">
                 <div class="entry-content">
                   <span class="num-badge">CRNA BACKUP</span>
-                  <span class="has-text-weight-bold">${day.backupCRNA}</span>
+                  <span class="has-text-weight-bold" style="white-space: normal;">${day.backupCRNA}</span>
                 </div>
               </div>
             </div>`;
@@ -998,13 +995,8 @@
               <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
-                  <span class="has-text-weight-bold">${day.docs.lsc}</span>
+                  <span class="has-text-weight-bold" style="white-space: normal;">${day.docs.lsc}</span>
                 </div>
-                ${isToday && viewMode === 'time' ? `
-                <div class="in-out-pin-row">
-                  <span class="in-pin-label">IN</span>
-                  <span class="out-pin-label">OUT</span>
-                </div>` : ''}
                 ${isToday && viewMode === 'break' ? `
                 <div class="break-lunch-controls">
                   <button class="btn-break ${blState[`${day.docs.lsc}|LSC Doc`]?.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.lsc}', 'LSC Doc', '${day.dateStr}', 'break')">
@@ -1015,7 +1007,13 @@
                   </button>
                 </div>` : ''}
               </div>
-              ${day.lsc.length ? day.lsc.map((name, i) => {
+              ${day.lsc.length ? `
+                ${isToday && viewMode === 'time' ? `
+                <div class="in-out-pin-row" style="margin-bottom: 2px;">
+                  <span class="in-pin-label">IN</span>
+                  <span class="out-pin-label">OUT</span>
+                </div>` : ''}
+                ${day.lsc.map((name, i) => {
           const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
           const off = getSignOff(name, activeRole);
           const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
@@ -1059,7 +1057,7 @@
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${name}', '${activeRole}', '${day.dateStr}', 'departure')"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                      ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
@@ -1088,7 +1086,8 @@
                 return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
               })()}
                     </div>` : ''}
-                </div>`}).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
+                </div>`}).join('')}
+              ` : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
             </div>
 
             <div class="section-title">
@@ -1097,10 +1096,14 @@
             ${(() => {
               const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
               const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-              const showStandbyFeature = isNextWorkday && hasTracker;
-
-              const assignmentsHtml = day.numbered.length 
-                ? day.numbered.map((e, i) => {
+                           const assignmentsHtml = day.numbered.length 
+                ? `
+                  ${isToday && viewMode === 'time' ? `
+                  <div class="in-out-pin-row" style="margin-bottom: 2px;">
+                    <span class="in-pin-label">IN</span>
+                    <span class="out-pin-label">OUT</span>
+                  </div>` : ''}
+                  ${day.numbered.map((e, i) => {
                     const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
                     const off = getSignOff(e.name, activeRole);
                     const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
@@ -1115,13 +1118,13 @@
                             <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
                                     style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
                                     onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'CLEAR')">
-                              ↔️ LSC
+                               ↔️ LSC
                             </button>
                           ` : `
                             <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
                                     style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
                                     onclick="toggleEmployeeLocation(this, '${e.name}', '${day.dateStr}', 'LSC')">
-                              ↔️ LSC
+                               ↔️ LSC
                             </button>
                           `}
                         ` : ''}
@@ -1131,8 +1134,8 @@
                       ${isToday && viewMode === 'time' ? `
                         <div class="controls-wrapper">
                           ${isEntry ? `
-                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${e.name}', '${activeRole}', '${day.dateStr}', 'arrival')"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                            <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                            <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}">
                               <div class="time-trigger-btn">🏥</div>
                               <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                             </div>
@@ -1144,8 +1147,8 @@
                               <span class="switch-track"><span class="switch-thumb"></span></span>
                             </label>
                           ` : ''}
-                          ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${e.name}', '${activeRole}', '${day.dateStr}', 'departure')"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                          <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
+                          ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                          <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}">
                               <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                               <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                           </div>
@@ -1171,10 +1174,11 @@
                           ${(() => {
                           const res = calculateRunningWeeklyHours(e.name, activeRole, day.dateStr, allSignOffsList);
                           return `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
-                        })()}
+                          })()}
                         </div>` : ''}
                     </div>`;
-                  }).join('')
+                  }).join('')}
+                `
                 : '<p class="italic-grey py-2">No numbered shifts assigned</p>';
 
               if (showStandbyFeature) {
@@ -1684,7 +1688,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=92')
+          navigator.serviceWorker.register('./sw.js?v=94')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
