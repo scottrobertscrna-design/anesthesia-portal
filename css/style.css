@@ -580,14 +580,15 @@ input[type="date"],
   margin-left: auto;
 }
 
-/* IN/OUT labels in the LSC Doc row — browser: IN under 'm' in Time, OUT far right */
+/* IN/OUT labels — now inline inside the LSC Doc entry row */
 .in-out-pin-row {
-  display: flex;
-  width: 240px;
-  justify-content: space-between;
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  margin-left: auto;
-  padding-left: 44px;   /* pushes IN under the 'm' in Time */
+  justify-content: flex-end;
+  gap: 0;
+  /* width matches the controls-wrapper min-width so labels sit above IN/OUT columns */
+  width: 170px;
 }
 
 .in-pin-label {
@@ -596,6 +597,9 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-blue);
+  /* center over the arrival side — half the controls-wrapper width */
+  width: 50%;
+  text-align: center;
 }
 
 .out-pin-label {
@@ -604,6 +608,8 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-emerald);
+  width: 50%;
+  text-align: center;
 }
 
 .italic-grey {
@@ -686,9 +692,13 @@ input[type="date"],
   }
 
 
-  /* Mobile: shift IN right to sit under 'B' in Break (second button) */
+  /* Mobile: shrink IN/OUT labels to match compact controls-wrapper */
   .in-out-pin-row {
-    padding-left: 111px;
+    width: 110px;
+  }
+
+  .in-pin-label, .out-pin-label {
+    font-size: 0.85rem;
   }
 
   /* Prevent LSC header controls from wrapping or crowding on mobile */

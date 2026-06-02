@@ -1066,13 +1066,13 @@
                     <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
                   </button>
                 </div>` : ''}
-              </div>
-              ${day.lsc.length ? `
-                ${isToday && viewMode === 'time' ? `
-                <div class="in-out-pin-row" style="margin-bottom: 2px;">
+                ${isToday && viewMode === 'time' && day.lsc.length ? `
+                <div class="in-out-pin-row" style="margin-bottom: 0; margin-left: 10px;">
                   <span class="in-pin-label">IN</span>
                   <span class="out-pin-label">OUT</span>
                 </div>` : ''}
+              </div>
+              ${day.lsc.length ? `
                 ${day.lsc.map((name, i) => {
           const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
           const off = getSignOff(name, activeRole);
@@ -1159,11 +1159,6 @@
               const showStandbyFeature = isNextWorkday && hasTracker;
               const assignmentsHtml = day.numbered.length 
                 ? `
-                  ${isToday && viewMode === 'time' ? `
-                  <div class="in-out-pin-row" style="margin-bottom: 2px;">
-                    <span class="in-pin-label">IN</span>
-                    <span class="out-pin-label">OUT</span>
-                  </div>` : ''}
                   ${day.numbered.map((e, i) => {
                     const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
                     const off = getSignOff(e.name, activeRole);
