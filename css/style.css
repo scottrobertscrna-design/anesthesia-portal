@@ -702,6 +702,7 @@ input[type="date"],
   .in-pin-label {
     width: 110px;
     font-size: 0.85rem;
+    transform: translateX(-20px);
   }
 
   .out-pin-label {
