@@ -826,6 +826,9 @@
         wrapper.style.display = 'flex';
         const input = wrapper.querySelector('input[type="time"]');
         if (input) {
+          // Track whether a clear was already handled to avoid double-firing
+          let clearHandled = false;
+
           const blurHandler = () => {
             setTimeout(() => {
               if (input.value) {
@@ -833,15 +836,59 @@
                 wrapper.style.display = 'none';
               } else {
                 const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
-                if (checkbox && !checkbox.checked) {
+                // If the checkbox was checked it means a time was previously saved —
+                // the user just cleared it via the native picker. Trigger the API clear.
+                if (checkbox && checkbox.checked && !clearHandled) {
+                  clearHandled = true;
+                  checkbox.checked = false;
+                  wrapper.style.display = 'none';
+                  span.style.display = 'none';
+                  const name = row.dataset.name;
+                  const role = row.dataset.role;
+                  const dateStr = row.dataset.date;
+                  if (name && role && dateStr) {
+                    if (type === 'arrival') {
+                      toggleArrival(checkbox, name, role, dateStr, targetId);
+                    } else {
+                      toggleDeparture(checkbox, name, role, dateStr, targetId);
+                    }
+                  }
+                } else if (checkbox && !checkbox.checked) {
                   wrapper.style.display = 'none';
                   span.style.display = 'none';
                 }
               }
               input.removeEventListener('blur', blurHandler);
+              input.removeEventListener('input', inputClearHandler);
             }, 200);
           };
+
+          // Android's native time picker sometimes fires 'input' (not 'change') when
+          // the user taps the "Clear" button. Catch it here as a supplemental trigger.
+          const inputClearHandler = () => {
+            if (input.value === '' && !clearHandled) {
+              clearHandled = true;
+              const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
+              if (checkbox && checkbox.checked) {
+                checkbox.checked = false;
+                wrapper.style.display = 'none';
+                span.style.display = 'none';
+                const name = row.dataset.name;
+                const role = row.dataset.role;
+                const dateStr = row.dataset.date;
+                if (name && role && dateStr) {
+                  if (type === 'arrival') {
+                    toggleArrival(checkbox, name, role, dateStr, targetId);
+                  } else {
+                    toggleDeparture(checkbox, name, role, dateStr, targetId);
+                  }
+                }
+              }
+            }
+          };
+
           input.addEventListener('blur', blurHandler);
+          input.addEventListener('input', inputClearHandler);
 
           setTimeout(() => {
             try {
