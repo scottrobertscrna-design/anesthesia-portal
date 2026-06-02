@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v102';
+const CACHE_NAME = 'lawrence-anaesthesia-v103';
 
 const APP_SHELL = [
   './portal.html',
@@ -23,6 +23,8 @@ const APP_SHELL = [
   './manifest_snapshot.json',
   './manifest_timekeeper.json',
   './offline.html',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js',
   'https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap'
 ];
