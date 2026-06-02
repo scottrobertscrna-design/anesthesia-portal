@@ -826,13 +826,16 @@
         wrapper.style.display = 'flex';
         const input = wrapper.querySelector('input[type="time"]');
         if (input) {
-          try {
-            if (typeof input.showPicker === 'function') input.showPicker();
-            else input.focus();
-          } catch (e) {
-            input.style.opacity = "1";
-            input.focus();
-          }
+          setTimeout(() => {
+            try {
+              if (typeof input.showPicker === 'function') input.showPicker();
+              else input.focus();
+            } catch (e) {
+              console.warn("showPicker failed:", e);
+              input.style.opacity = "1";
+              input.focus();
+            }
+          }, 50);
         }
       }
     }
@@ -1652,7 +1655,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=88')
+          navigator.serviceWorker.register('./sw.js?v=89')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
