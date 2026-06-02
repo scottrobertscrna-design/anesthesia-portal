@@ -469,7 +469,8 @@
           }
           if (isEntry && data.arrivalTime) {
             const span = document.createElement('span');
-            span.className = 'arrival-time-display';
+            span.className = 'arrival-time-display clickable-time-display';
+            span.title = 'Click to edit time';
             span.innerHTML = '<span class="time-prefix">IN @ </span>';
             span.appendChild(document.createTextNode(data.arrivalTime));
 
@@ -490,7 +491,8 @@
           }
           if (data.time) {
             const span = document.createElement('span');
-            span.className = 'departure-time-display';
+            span.className = 'departure-time-display clickable-time-display';
+            span.title = 'Click to edit time';
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
 
@@ -693,7 +695,8 @@
 
         if (res.status && res.timestamp) {
           const span = document.createElement('span');
-          span.className = 'arrival-time-display';
+          span.className = 'arrival-time-display clickable-time-display';
+          span.title = 'Click to edit time';
           span.innerHTML = '<span class="time-prefix">IN @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
 
@@ -736,7 +739,8 @@
 
         if (res.status && res.timestamp) {
           const span = document.createElement('span');
-          span.className = 'departure-time-display';
+          span.className = 'departure-time-display clickable-time-display';
+          span.title = 'Click to edit time';
           span.innerHTML = '<span class="time-prefix">OUT @ </span>';
           span.appendChild(document.createTextNode(res.timestamp));
 
@@ -758,7 +762,8 @@
               if (existingArrivalDisplay) existingArrivalDisplay.remove();
 
               const aSpan = document.createElement('span');
-              aSpan.className = 'arrival-time-display';
+              aSpan.className = 'arrival-time-display clickable-time-display';
+              aSpan.title = 'Click to edit time';
               aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
               aSpan.appendChild(document.createTextNode(res.arrivalTime));
 
@@ -795,6 +800,54 @@
         wrapper.classList.add('has-value');
       } else {
         wrapper.classList.remove('has-value');
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      const timeDisplay = e.target.closest('.arrival-time-display, .departure-time-display');
+      if (timeDisplay) {
+        if (currentPage === 'entry') {
+          const type = timeDisplay.classList.contains('arrival-time-display') ? 'arrival' : 'departure';
+          const entryRow = timeDisplay.closest('.entry');
+          if (entryRow) {
+            const targetId = entryRow.id;
+            makeTimeEditable(timeDisplay, type, targetId);
+          }
+        }
+      }
+    });
+
+    function makeTimeEditable(span, type, targetId) {
+      const row = document.getElementById(targetId);
+      if (!row) return;
+      const wrapper = row.querySelector(type === 'arrival' ? '.arrival-time-wrapper' : '.departure-time-wrapper');
+      if (wrapper) {
+        span.style.display = 'none';
+        wrapper.style.display = 'flex';
+        const input = wrapper.querySelector('input[type="time"]');
+        if (input) {
+          try {
+            if (typeof input.showPicker === 'function') input.showPicker();
+            else input.focus();
+          } catch (e) {
+            input.style.opacity = "1";
+            input.focus();
+          }
+        }
+      }
+    }
+
+    async function handleTimeInputChange(input, type, name, role, dateStr, targetId) {
+      updateTimeDisplay(input);
+      const row = document.getElementById(targetId);
+      if (!row) return;
+      const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
+      if (checkbox && checkbox.checked) {
+        if (type === 'arrival') {
+          await toggleArrival(checkbox, name, role, dateStr, targetId);
+        } else {
+          await toggleDeparture(checkbox, name, role, dateStr, targetId);
+        }
       }
     }
 
@@ -961,10 +1014,10 @@
                   ${isToday && viewMode === 'time' ? `
                     <div class="controls-wrapper">
                       ${isEntry ? `
-                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                        ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                         <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">🏥</div>
-                          <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                          <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                         </div>
                         <label class="switch-container arrival-switch">
                           <input type="checkbox" class="switch-input arrival-checkbox" 
@@ -974,10 +1027,10 @@
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                      ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
-                          <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                          <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                       </div>
                       <label class="switch-container">
                         <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
@@ -1046,10 +1099,10 @@
                       ${isToday && viewMode === 'time' ? `
                         <div class="controls-wrapper">
                           ${isEntry ? `
-                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                             <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">🏥</div>
-                              <input type="time" class="input is-small arrival-time-input" onchange="updateTimeDisplay(this)">
+                              <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                             </div>
                             <label class="switch-container arrival-switch">
                               <input type="checkbox" class="switch-input arrival-checkbox" 
@@ -1059,10 +1112,10 @@
                               <span class="switch-track"><span class="switch-thumb"></span></span>
                             </label>
                           ` : ''}
-                          ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                          ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                           <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
-                              <input type="time" class="input is-small departure-time-input" onchange="updateTimeDisplay(this)">
+                              <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                           </div>
                           <label class="switch-container">
                             <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
@@ -1108,8 +1161,11 @@
                     ${assignmentsHtml}
                   </div>
                   <div class="column is-6" style="padding: 0 0 0 15px;" id="standby-column-${dateId}">
-                    <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-indigo); border-bottom: 1px solid rgba(129, 140, 248, 0.25); padding-bottom: 6px; margin-bottom: 12px; text-align: center;">
+                    <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-indigo); border-bottom: 1px solid rgba(129, 140, 248, 0.25); padding-bottom: 6px; text-align: center;">
                       Suggested Standby Order
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); font-style: italic; text-align: center; margin-top: 4px; margin-bottom: 12px;">
+                      👉 Tap rank badge to assign standby
                     </div>
                     <div id="standby-list-${dateId}">
                       ${standbyHtml}
@@ -1182,9 +1238,11 @@
         const datesArray = trackerEntry ? ensureDatesArray(trackerEntry.dates) : [];
         const alreadyAssigned = datesArray.some(d => datesMatch(d, isoStr));
         const baseCandName = cand.name.split('(')[0].trim();
-        const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
-        const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
-        const badgeBorder = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.35)';
+        const rankLabels = ['1st', '2nd', '3rd'];
+        const rankLabel = rankLabels[idx] || (idx + 1) + 'th';
+        const badgeBg = alreadyAssigned ? accentColor : 'transparent';
+        const badgeColor = alreadyAssigned ? '#fff' : accentColor;
+        const badgeBorder = accentColor;
         const badgeShadow = alreadyAssigned ? ('0 0 10px ' + accentColor) : 'none';
 
         const saveKey = `${baseCandName}|${isoStr}`;
@@ -1199,19 +1257,19 @@
               id="sb-badge-${dateId}-${idx}"
               onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}', '${cand.role}')"
               title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
-              style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:${isSaving ? 'default' : 'pointer'}; transition:all 0.22s;
+              style="flex-shrink:0; min-width:38px; height:38px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:${isSaving ? 'default' : 'pointer'}; transition:all 0.22s;
                 background:${badgeBg};
                 color:${badgeColor};
-                border: 1.5px solid ${badgeBorder};
+                border: 2px solid ${badgeBorder};
                 box-shadow:${badgeShadow};
                 pointer-events:${pointerEvents};
                 opacity:${opacity};
                 margin-right:10px;"
               data-assigned="${alreadyAssigned ? '1' : '0'}"
               data-accent="${accentColor}"
-              onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(200,200,220,0.35)';this.style.color='#fff';this.style.borderColor='rgba(220,220,240,0.6)'}"
-              onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(180,180,200,0.18)';this.style.color='rgba(200,200,215,0.75)';this.style.borderColor='rgba(180,180,200,0.35)'}">
-              ${isSaving ? '⏳' : `#${idx+1}`}
+              onmouseover="if(this.dataset.assigned==='0'){this.style.background='${accentColor}';this.style.color='#fff';this.style.transform='scale(1.08)'}else{this.style.transform='scale(1.08)'}"
+              onmouseout="if(this.dataset.assigned==='0'){this.style.background='transparent';this.style.color='${accentColor}';this.style.transform='none'}else{this.style.transform='none'}">
+              ${isSaving ? '⏳' : rankLabel}
             </span>
             <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
           </div>
@@ -1594,7 +1652,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=87')
+          navigator.serviceWorker.register('./sw.js?v=88')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

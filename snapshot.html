@@ -1003,8 +1003,11 @@
                     ${assignmentsHtml}
                   </div>
                   <div class="column is-6" style="padding: 0 0 0 15px;" id="standby-column-${dateId}">
-                    <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-indigo); border-bottom: 1px solid rgba(129, 140, 248, 0.25); padding-bottom: 6px; margin-bottom: 12px; text-align: center;">
+                    <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-indigo); border-bottom: 1px solid rgba(129, 140, 248, 0.25); padding-bottom: 6px; text-align: center;">
                       Suggested Standby Order
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); font-style: italic; text-align: center; margin-top: 4px; margin-bottom: 12px;">
+                      👉 Tap rank badge to assign standby
                     </div>
                     <div id="standby-list-${dateId}">
                       ${standbyHtml}
@@ -1077,9 +1080,11 @@
         const datesArray = trackerEntry ? ensureDatesArray(trackerEntry.dates) : [];
         const alreadyAssigned = datesArray.some(d => datesMatch(d, isoStr));
         const baseCandName = cand.name.split('(')[0].trim();
-        const badgeBg = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.18)';
-        const badgeColor = alreadyAssigned ? '#fff' : 'rgba(200,200,215,0.75)';
-        const badgeBorder = alreadyAssigned ? accentColor : 'rgba(180,180,200,0.35)';
+        const rankLabels = ['1st', '2nd', '3rd'];
+        const rankLabel = rankLabels[idx] || (idx + 1) + 'th';
+        const badgeBg = alreadyAssigned ? accentColor : 'transparent';
+        const badgeColor = alreadyAssigned ? '#fff' : accentColor;
+        const badgeBorder = accentColor;
         const badgeShadow = alreadyAssigned ? ('0 0 10px ' + accentColor) : 'none';
 
         const saveKey = `${baseCandName}|${isoStr}`;
@@ -1094,19 +1099,19 @@
               id="sb-badge-${dateId}-${idx}"
               onclick="toggleStandbyCandidate(this, '${baseCandName}', '${isoStr}', ${alreadyAssigned ? 'true' : 'false'}, '${accentColor}', '${cand.role}')"
               title="${alreadyAssigned ? 'Click to un-assign standby' : 'Click to assign standby'}"
-              style="flex-shrink:0; min-width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:${isSaving ? 'default' : 'pointer'}; transition:all 0.22s;
+              style="flex-shrink:0; min-width:38px; height:38px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:800; cursor:${isSaving ? 'default' : 'pointer'}; transition:all 0.22s;
                 background:${badgeBg};
                 color:${badgeColor};
-                border: 1.5px solid ${badgeBorder};
+                border: 2px solid ${badgeBorder};
                 box-shadow:${badgeShadow};
                 pointer-events:${pointerEvents};
                 opacity:${opacity};
                 margin-right:10px;"
               data-assigned="${alreadyAssigned ? '1' : '0'}"
               data-accent="${accentColor}"
-              onmouseover="if(this.dataset.assigned==='0'){this.style.background='rgba(200,200,220,0.35)';this.style.color='#fff';this.style.borderColor='rgba(220,220,240,0.6)'}"
-              onmouseout="if(this.dataset.assigned==='0'){this.style.background='rgba(180,180,200,0.18)';this.style.color='rgba(200,200,215,0.75)';this.style.borderColor='rgba(180,180,200,0.35)'}">
-              ${isSaving ? '⏳' : `#${idx+1}`}
+              onmouseover="if(this.dataset.assigned==='0'){this.style.background='${accentColor}';this.style.color='#fff';this.style.transform='scale(1.08)'}else{this.style.transform='scale(1.08)'}"
+              onmouseout="if(this.dataset.assigned==='0'){this.style.background='transparent';this.style.color='${accentColor}';this.style.transform='none'}else{this.style.transform='none'}">
+              ${isSaving ? '⏳' : rankLabel}
             </span>
             <span class="has-text-weight-bold" style="font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${cand.name}">${baseCandName}</span>
           </div>
@@ -2028,7 +2033,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=87')
+          navigator.serviceWorker.register('./sw.js?v=88')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

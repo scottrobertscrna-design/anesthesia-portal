@@ -187,7 +187,7 @@ h1, h2, h3, .title, .subtitle {
 .num-badge {
   background: var(--accent-blue);
   color: #ffffff;
-  padding: 5px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   font-weight: 700;
   min-width: 75px;
@@ -626,7 +626,7 @@ input[type="date"],
   .num-badge {
     min-width: 60px;
     margin-right: 10px;
-    padding: 4px 8px;
+    padding: 7px 10px;
     font-size: 0.75rem;
   }
 
@@ -1068,5 +1068,17 @@ input[type="date"],
 .skeleton-name {
   width: 140px;
   height: 20px;
+}
+
+/* Clickable time displays in MD portal */
+.clickable-time-display {
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.clickable-time-display:hover {
+  filter: brightness(1.2) contrast(1.1);
+  text-decoration: underline;
+  transform: translateY(-1px);
 }
 
