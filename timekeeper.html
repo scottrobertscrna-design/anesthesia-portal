@@ -459,7 +459,9 @@
           // Sync Arrival (Entry Mode Only)
           if (isEntry && arrivalCb) {
             arrivalCb.checked = !!data.arrivalTime;
+            const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
             if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = data.arrivalTime ? 'none' : 'flex';
+            if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = data.arrivalTime ? 'none' : 'inline-flex';
             if (arrivalTimeInput) {
               arrivalTimeInput.value = data.arrivalTime ? formatTimeForInput(data.arrivalTime) : '';
               updateTimeDisplay(arrivalTimeInput);
@@ -484,7 +486,9 @@
 
           // Sync Departure
           if (departureCb) departureCb.checked = !!data.time;
+          const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
           if (departureTimeWrapper) departureTimeWrapper.style.display = data.time ? 'none' : 'flex';
+          if (departureSwitchContainer) departureSwitchContainer.style.display = data.time ? 'none' : 'inline-flex';
           if (departureTimeInput) {
             departureTimeInput.value = data.time ? formatTimeForInput(data.time) : '';
             updateTimeDisplay(departureTimeInput);
@@ -496,9 +500,8 @@
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(data.time));
 
-            const departureSwitch = departureCb ? departureCb.closest('.switch-container') : null;
-            if (departureSwitch) {
-              departureSwitch.before(span);
+            if (departureSwitchContainer) {
+              departureSwitchContainer.before(span);
             } else {
               content.appendChild(span);
             }
@@ -511,7 +514,10 @@
           if (arrivalCb) arrivalCb.checked = false;
           if (departureCb) departureCb.checked = false;
           content.classList.remove('strikethrough');
+          const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
+          const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
           if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = isEntry ? 'flex' : 'none';
+          if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = isEntry ? 'inline-flex' : 'none';
           if (departureTimeWrapper) {
             departureTimeWrapper.style.display = 'flex';
             if (departureTimeInput) {
@@ -519,6 +525,7 @@
               updateTimeDisplay(departureTimeInput);
             }
           }
+          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
         }
 
         // Sync break/lunch/ob buttons
@@ -684,8 +691,10 @@
       const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
       const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
       const manualTime = (arrivalTimeInput && checkbox.checked) ? arrivalTimeInput.value : null;
+      const arrivalSwitchContainer = row.querySelector('.arrival-switch');
 
       if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
 
       pendingRows.add(targetId);
       try {
@@ -716,6 +725,7 @@
         alert("Arrival action failed: " + err.message);
         checkbox.checked = !checkbox.checked;
         if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
       }
@@ -727,9 +737,11 @@
       const departureTimeWrapper = row.querySelector('.departure-time-wrapper');
       const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
       const manualTime = (departureTimeInput && checkbox.checked) ? departureTimeInput.value : null;
+      const departureSwitchContainer = checkbox.closest('.switch-container');
 
       content.classList.toggle('strikethrough', checkbox.checked);
       if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+      if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
 
       pendingRows.add(targetId);
       try {
@@ -788,6 +800,7 @@
         checkbox.checked = !checkbox.checked;
         content.classList.toggle('strikethrough', checkbox.checked);
         if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+        if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
       }
