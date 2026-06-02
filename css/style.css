@@ -580,15 +580,16 @@ input[type="date"],
   margin-left: auto;
 }
 
-/* IN/OUT labels — now inline inside the LSC Doc entry row */
+/* IN/OUT labels — inline in LSC Doc row, widths derived from controls-wrapper geometry.
+   Desktop: emoji=36px switch=44px gap=8px  → in=110px gap=8px out=66px (total 184px)
+   Mobile:  emoji=34px switch=36px gap=12px → in=110px gap=12px out=54px (total 176px)
+   Each label's center aligns with the switch thumb in the CRNA rows below. */
 .in-out-pin-row {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0;
-  /* width matches the controls-wrapper min-width so labels sit above IN/OUT columns */
-  width: 170px;
+  gap: 8px;
+  margin-left: 10px;  /* matches controls-wrapper desktop margin */
 }
 
 .in-pin-label {
@@ -597,8 +598,7 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-blue);
-  /* center over the arrival side — half the controls-wrapper width */
-  width: 50%;
+  width: 110px;
   text-align: center;
 }
 
@@ -608,7 +608,7 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-emerald);
-  width: 50%;
+  width: 66px;
   text-align: center;
 }
 
@@ -692,12 +692,20 @@ input[type="date"],
   }
 
 
-  /* Mobile: shrink IN/OUT labels to match compact controls-wrapper */
+  /* Mobile: IN/OUT label widths match the mobile controls-wrapper geometry.
+     emoji=34px switch=36px gap=12px → in=110px gap=12px out=54px = 176px total */
   .in-out-pin-row {
-    width: 110px;
+    gap: 12px;
+    margin-left: auto;
   }
 
-  .in-pin-label, .out-pin-label {
+  .in-pin-label {
+    width: 110px;
+    font-size: 0.85rem;
+  }
+
+  .out-pin-label {
+    width: 54px;
     font-size: 0.85rem;
   }
 
