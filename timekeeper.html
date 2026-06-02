@@ -806,16 +806,45 @@
     document.addEventListener('click', function(e) {
       const timeDisplay = e.target.closest('.arrival-time-display, .departure-time-display');
       if (timeDisplay) {
+        if (timeDisplay.getAttribute('onclick')) return; // Avoid double triggering if inline exists
         if (currentPage === 'entry') {
           const type = timeDisplay.classList.contains('arrival-time-display') ? 'arrival' : 'departure';
           const entryRow = timeDisplay.closest('.entry');
           if (entryRow) {
-            const targetId = entryRow.id;
-            makeTimeEditable(timeDisplay, type, targetId);
+            const name = entryRow.dataset.name;
+            const role = entryRow.dataset.role;
+            const dateStr = entryRow.dataset.date;
+            promptClearTime(name, role, dateStr, type);
           }
         }
       }
     });
+
+    async function promptClearTime(name, role, dateStr, type) {
+      const checkbox = document.querySelector(`.${type === 'arrival' ? 'arrival-checkbox' : 'departure-checkbox'}[data-name="${name}"][data-role="${role}"][data-date="${dateStr}"]`);
+      if (!checkbox) return;
+      const entryRow = checkbox.closest('.entry');
+      if (!entryRow) return;
+      const targetId = entryRow.id;
+      
+      const cleanName = name.split('(')[0].trim();
+      const label = type === 'arrival' ? 'arrival time' : 'departure time';
+      const clearConfirm = confirm(`Clear/delete ${label} for ${cleanName}?\n\n(Click OK to clear/delete, or Cancel to change/edit the time)`);
+      
+      if (clearConfirm) {
+        checkbox.checked = false;
+        if (type === 'arrival') {
+          await toggleArrival(checkbox, name, role, dateStr, targetId);
+        } else {
+          await toggleDeparture(checkbox, name, role, dateStr, targetId);
+        }
+      } else {
+        const timeDisplay = entryRow.querySelector(`.${type}-time-display`);
+        if (timeDisplay) {
+          makeTimeEditable(timeDisplay, type, targetId);
+        }
+      }
+    }
 
     function makeTimeEditable(span, type, targetId) {
       const row = document.getElementById(targetId);
@@ -1022,7 +1051,7 @@
                           <div class="time-trigger-btn">🏥</div>
                           <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                         </div>
-                        <label class="switch-container arrival-switch">
+                        <label class="switch-container arrival-switch" style="${(off && off.arrivalTime) ? 'display:none' : 'display:inline-flex'}">
                           <input type="checkbox" class="switch-input arrival-checkbox" 
                               data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}"
                               ${off && off.arrivalTime ? 'checked' : ''} 
@@ -1030,12 +1059,12 @@
                           <span class="switch-track"><span class="switch-thumb"></span></span>
                         </label>
                       ` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                      ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${name}', '${activeRole}', '${day.dateStr}', 'departure')"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                           <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                       </div>
-                      <label class="switch-container">
+                      <label class="switch-container" style="${(off && off.time) ? 'display:none' : 'display:inline-flex'}">
                         <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
                           data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}"
                           ${off && off.time ? 'checked' : ''} 
@@ -1102,12 +1131,12 @@
                       ${isToday && viewMode === 'time' ? `
                         <div class="controls-wrapper">
                           ${isEntry ? `
-                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                            ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${e.name}', '${activeRole}', '${day.dateStr}', 'arrival')"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                             <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">🏥</div>
                               <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                             </div>
-                            <label class="switch-container arrival-switch">
+                            <label class="switch-container arrival-switch" style="${(off && off.arrivalTime) ? 'display:none' : 'display:inline-flex'}">
                               <input type="checkbox" class="switch-input arrival-checkbox" 
                                   data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
                                   ${off && off.arrivalTime ? 'checked' : ''} 
@@ -1115,12 +1144,12 @@
                               <span class="switch-track"><span class="switch-thumb"></span></span>
                             </label>
                           ` : ''}
-                          ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                          ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to clear time" onclick="promptClearTime('${e.name}', '${activeRole}', '${day.dateStr}', 'departure')"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                           <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                               <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                           </div>
-                          <label class="switch-container">
+                          <label class="switch-container" style="${(off && off.time) ? 'display:none' : 'display:inline-flex'}">
                             <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
                               data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
                               ${off && off.time ? 'checked' : ''} 
@@ -1655,7 +1684,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=91')
+          navigator.serviceWorker.register('./sw.js?v=92')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
