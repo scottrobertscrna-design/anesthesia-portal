@@ -624,17 +624,21 @@ input[type="date"],
 
   .entry {
     padding: 12px 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
   }
 
   .entry-content {
-    flex: 1 1 100%;
-    margin-bottom: 6px;
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
   }
 
   .entry-content > .has-text-weight-bold {
     font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .num-badge {
@@ -646,7 +650,7 @@ input[type="date"],
 
   .entry-page .controls-wrapper {
     margin-left: auto;
-    width: 100%;
+    width: auto;
     justify-content: flex-end;
     gap: 12px;
   }
