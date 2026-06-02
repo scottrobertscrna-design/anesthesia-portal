@@ -1096,7 +1096,8 @@
             ${(() => {
               const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
               const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-                           const assignmentsHtml = day.numbered.length 
+              const showStandbyFeature = isNextWorkday && hasTracker;
+              const assignmentsHtml = day.numbered.length 
                 ? `
                   ${isToday && viewMode === 'time' ? `
                   <div class="in-out-pin-row" style="margin-bottom: 2px;">
