@@ -607,6 +607,31 @@
       }
     }
 
+    async function confirmArrivalFromBadge(name, role, dateStr) {
+      const displayName = name.split('(')[0].trim();
+      const confirmCheckIn = confirm(`Mark ${displayName} (${role === 'LSC' ? 'CRNA' : role}) as arrived now?`);
+      if (!confirmCheckIn) return;
+
+      try {
+        const res = await callApi("toggleArrival", {
+          name: name,
+          role: role,
+          dateStr: dateStr,
+          isChecked: true,
+          manualTime: null
+        });
+        if (res && res.timestamp) {
+          showToast(`Checked in ${displayName} at ${res.timestamp}!`, "success");
+          const picker = document.getElementById('entry-date-picker');
+          await fetchFreshData(picker ? picker.value : '');
+        } else {
+          showToast("Error checking in: " + (res.error || "Unknown error"));
+        }
+      } catch (err) {
+        showToast("Check-in failed: " + err.message);
+      }
+    }
+
     function formatTimeForInput(timeStr) {
       if (!timeStr) return '';
       const [time, ampm] = timeStr.split(' ');
@@ -889,10 +914,13 @@
               const off = getSignOff(name, activeRole);
               const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
               const isHome = !!(off && off.time);
+              const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
+              const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
+              const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
               return `
                   <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                     <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                      <span class="num-badge">${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
+                      <span class="${badgeClass}" ${badgeOnClick}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
                       <span class="has-text-weight-bold">${name}</span>
                       ${!isHome && canTransfer(name) ? `
                         ${day.coverageOverrides && day.coverageOverrides[name] ? `
@@ -952,10 +980,13 @@
                     const off = getSignOff(e.name, activeRole);
                     const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
                     const isHome = !!(off && off.time);
+                    const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
+                    const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
+                    const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
                     return `
                     <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                       <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                        <span class="num-badge">${e.num}</span>
+                        <span class="${badgeClass}" ${badgeOnClick}>${e.num}</span>
                         <span class="has-text-weight-bold">${e.name}</span>
                         ${!isHome && canTransfer(e.name) ? `
                           ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
@@ -2033,7 +2064,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=89')
+          navigator.serviceWorker.register('./sw.js?v=90')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
