@@ -2063,7 +2063,29 @@
         return;
       }
 
+      // Gather names of staff who have gone home (strikethrough in the DOM)
+      const goneHomeNames = new Set();
+      const dateId = dateStr.replace(/[^a-zA-Z0-9]/g, '');
+      const dayRows = document.querySelectorAll(`[id^="row-${dateId}-"]`);
+      dayRows.forEach(row => {
+        const contentEl = row.querySelector('.entry-content');
+        if (contentEl && contentEl.classList.contains('strikethrough')) {
+          const nameEl = row.querySelector('.has-text-weight-bold');
+          if (nameEl) {
+            const cleanName = nameEl.textContent.trim().toLowerCase().split('(')[0].trim();
+            if (cleanName) {
+              goneHomeNames.add(cleanName);
+            }
+          }
+        }
+      });
+
       const phoneNumbers = day.activePhones
+        .filter(ap => {
+          const cleanApName = String(ap.name || "").toLowerCase().split('(')[0].trim();
+          // Exclude any staff members who are marked as gone home (strikethrough) in the UI
+          return !goneHomeNames.has(cleanApName);
+        })
         .map(ap => {
           let p = String(ap.phone || "").trim();
           const hasPlus = p.startsWith('+');
@@ -2075,7 +2097,7 @@
 
       const uniqueNumbers = [...new Set(phoneNumbers)];
       if (uniqueNumbers.length === 0) {
-        alert("No valid phone numbers found for " + dateStr + ".");
+        alert("No active phone numbers found for " + dateStr + " (everyone may have gone home).");
         return;
       }
 
