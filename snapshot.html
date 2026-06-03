@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v67)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v68)</span>
       </div>
     </div>
 
@@ -765,6 +765,12 @@
             }
           }
         });
+
+        const debugFooter = document.getElementById('debug-log-footer');
+        if (debugFooter && data[0]) {
+          const d = data[0];
+          debugFooter.textContent = `v68 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+        }
       }
     }
 
@@ -2033,7 +2039,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=96')
+          navigator.serviceWorker.register('./sw.js?v=97')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -2523,6 +2529,10 @@
         <!-- Content will be rendered dynamically here -->
       </section>
     </div>
+  </div>
+
+  <div class="has-text-centered mt-6 pb-6" style="opacity: 0.25; font-size: 0.65rem; color: var(--text-muted);" id="debug-log-footer">
+    Debug info: Loading...
   </div>
 
 </body>
