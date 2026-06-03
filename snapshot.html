@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v73)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v74)</span>
       </div>
     </div>
 
@@ -814,7 +814,7 @@
               </div>
             </div>
 
-            <div class="section-title">LMH Coverage</div>
+            <div class="section-title">On-Call & Support</div>
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}" data-today="${isToday}">
                 <div class="entry-content">
@@ -942,7 +942,7 @@
             </div>
 
             <div class="section-title">
-              <span>CRNA Coverage</span>
+              <span>LMH</span>
             </div>
             ${day.activePhones && day.activePhones.some(ap => ap.group === 'hosp') ? `
             <div class="mb-3" style="display: flex; justify-content: flex-start;">
@@ -2056,7 +2056,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=102')
+          navigator.serviceWorker.register('./sw.js?v=103')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
