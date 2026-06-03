@@ -646,6 +646,17 @@
       }
     }
 
+    function format24hToAmPm(time24) {
+      if (!time24) return '';
+      const [hStr, mStr] = time24.split(':');
+      let h = parseInt(hStr, 10);
+      const m = mStr;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      if (h === 0) h = 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
     async function toggleArrival(checkbox, name, role, dateStr, targetId) {
       const row = document.getElementById(targetId);
       const content = row.querySelector('.entry-content');
@@ -654,14 +665,49 @@
       const manualTime = (arrivalTimeInput && checkbox.checked) ? arrivalTimeInput.value : null;
       const arrivalSwitchContainer = row.querySelector('.arrival-switch');
 
-      if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
-      if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+      // Store old state for rollback
+      let oldSpanText = '';
+      let oldSpanExists = false;
+      const existingArrivalDisplay = row.querySelector('.arrival-time-display');
+      if (existingArrivalDisplay) {
+        oldSpanExists = true;
+        oldSpanText = existingArrivalDisplay.innerText;
+      }
+
+      if (manualTime && checkbox.checked) {
+        // Hide wrapper immediately
+        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
+        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'none';
+
+        // Show optimistic span
+        let span = existingArrivalDisplay;
+        if (!span) {
+          span = document.createElement('span');
+          span.className = 'arrival-time-display clickable-time-display';
+          span.title = 'Click to edit time';
+          span.innerHTML = '<span class="time-prefix">IN @ </span>';
+          const arrivalSwitch = row.querySelector('.arrival-switch');
+          if (arrivalSwitch) {
+            arrivalSwitch.before(span);
+          } else {
+            content.appendChild(span);
+          }
+        }
+        const textNode = span.childNodes[1] || document.createTextNode('');
+        textNode.textContent = format24hToAmPm(manualTime);
+        if (!span.childNodes[1]) span.appendChild(textNode);
+        span.style.display = '';
+        span.style.opacity = '0.5'; // Visual cue that it's saving
+      } else {
+        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+      }
 
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingArrivalDisplay = row.querySelector('.arrival-time-display');
-        if (existingArrivalDisplay) existingArrivalDisplay.remove();
+        const existingArrivalDisplayNow = row.querySelector('.arrival-time-display');
+        if (existingArrivalDisplayNow) existingArrivalDisplayNow.remove();
 
         if (res.status && res.timestamp) {
           const span = document.createElement('span');
@@ -685,6 +731,21 @@
       } catch (err) {
         alert("Arrival action failed: " + err.message);
         checkbox.checked = !checkbox.checked;
+
+        // Revert optimistic UI
+        if (oldSpanExists) {
+          const span = row.querySelector('.arrival-time-display');
+          if (span) {
+            const textNode = span.childNodes[1];
+            if (textNode) textNode.textContent = oldSpanText.replace("IN @ ", "");
+            span.style.display = '';
+            span.style.opacity = '';
+          }
+        } else {
+          const span = row.querySelector('.arrival-time-display');
+          if (span) span.remove();
+        }
+
         if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
         if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
@@ -701,14 +762,49 @@
       const departureSwitchContainer = checkbox.closest('.switch-container');
 
       content.classList.toggle('strikethrough', checkbox.checked);
-      if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
-      if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+
+      // Store old state for rollback
+      let oldSpanText = '';
+      let oldSpanExists = false;
+      const existingDepartureDisplay = row.querySelector('.departure-time-display');
+      if (existingDepartureDisplay) {
+        oldSpanExists = true;
+        oldSpanText = existingDepartureDisplay.innerText;
+      }
+
+      if (manualTime && checkbox.checked) {
+        // Hide wrapper immediately
+        if (departureTimeWrapper) departureTimeWrapper.style.display = 'none';
+        if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
+
+        // Show optimistic span
+        let span = existingDepartureDisplay;
+        if (!span) {
+          span = document.createElement('span');
+          span.className = 'departure-time-display clickable-time-display';
+          span.title = 'Click to edit time';
+          span.innerHTML = '<span class="time-prefix">OUT @ </span>';
+          if (departureSwitchContainer) {
+            departureSwitchContainer.before(span);
+          } else {
+            content.appendChild(span);
+          }
+        }
+        const textNode = span.childNodes[1] || document.createTextNode('');
+        textNode.textContent = format24hToAmPm(manualTime);
+        if (!span.childNodes[1]) span.appendChild(textNode);
+        span.style.display = '';
+        span.style.opacity = '0.5'; // Visual cue that it's saving
+      } else {
+        if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
+        if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+      }
 
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingDepartureDisplay = row.querySelector('.departure-time-display');
-        if (existingDepartureDisplay) existingDepartureDisplay.remove();
+        const existingDepartureDisplayNow = row.querySelector('.departure-time-display');
+        if (existingDepartureDisplayNow) existingDepartureDisplayNow.remove();
 
         if (res.status && res.timestamp) {
           const span = document.createElement('span');
@@ -760,6 +856,21 @@
         alert("Departure action failed: " + err.message);
         checkbox.checked = !checkbox.checked;
         content.classList.toggle('strikethrough', checkbox.checked);
+
+        // Revert optimistic UI
+        if (oldSpanExists) {
+          const span = row.querySelector('.departure-time-display');
+          if (span) {
+            const textNode = span.childNodes[1];
+            if (textNode) textNode.textContent = oldSpanText.replace("OUT @ ", "");
+            span.style.display = '';
+            span.style.opacity = '';
+          }
+        } else {
+          const span = row.querySelector('.departure-time-display');
+          if (span) span.remove();
+        }
+
         if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
         if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
@@ -805,6 +916,8 @@
 
           const blurHandler = () => {
             setTimeout(() => {
+              if (pendingRows.has(targetId)) return;
+
               if (input.value) {
                 span.style.display = '';
                 wrapper.style.display = 'none';
@@ -864,16 +977,25 @@
           input.addEventListener('blur', blurHandler);
           input.addEventListener('input', inputClearHandler);
 
-          setTimeout(() => {
-            try {
-              if (typeof input.showPicker === 'function') input.showPicker();
-              else input.focus();
-            } catch (e) {
-              console.warn("showPicker failed:", e);
-              input.style.opacity = "1";
+          try {
+            if (typeof input.showPicker === 'function') {
+              input.showPicker();
+            } else {
               input.focus();
             }
-          }, 50);
+          } catch (e) {
+            console.warn("Synchronous showPicker failed, falling back to timeout:", e);
+            setTimeout(() => {
+              try {
+                if (typeof input.showPicker === 'function') input.showPicker();
+                else input.focus();
+              } catch (err) {
+                console.warn("Timeout showPicker failed:", err);
+                input.style.opacity = "1";
+                input.focus();
+              }
+            }, 50);
+          }
         }
       }
     }
@@ -903,12 +1025,14 @@
 
     function forcePicker(el) {
       const input = el.querySelector('input[type="time"]');
-      if (input && !input.value) {
+      const e = window.event;
+      if (input && (!e || e.target !== input)) {
         try {
           if (typeof input.showPicker === 'function') input.showPicker();
           else input.focus();
-        } catch (e) {
+        } catch (err) {
           input.style.opacity = "1";
+          input.focus();
         }
       }
     }
@@ -1152,7 +1276,7 @@
                         <div class="controls-wrapper">
                           ${isEntry ? `
                             ${(off && off.arrivalTime) ? `<span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                            <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}">
+                            <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="${(off && off.arrivalTime) ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">🏥</div>
                               <input type="time" class="input is-small arrival-time-input" onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                             </div>
@@ -1165,7 +1289,7 @@
                             </label>
                           ` : ''}
                           ${(off && off.time) ? `<span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                          <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}">
+                          <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="${off && off.time ? 'display:none' : 'display:flex'}" onclick="forcePicker(this)">
                               <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                               <input type="time" class="input is-small departure-time-input" onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                           </div>

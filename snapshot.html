@@ -743,12 +743,14 @@
 
     function forcePicker(el) {
       const input = el.querySelector('input[type="time"]');
-      if (input && !input.value) {
+      const e = window.event;
+      if (input && (!e || e.target !== input)) {
         try {
           if (typeof input.showPicker === 'function') input.showPicker();
           else input.focus();
-        } catch (e) {
+        } catch (err) {
           input.style.opacity = "1";
+          input.focus();
         }
       }
     }
