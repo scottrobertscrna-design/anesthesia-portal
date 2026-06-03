@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v71)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v72)</span>
       </div>
     </div>
 
@@ -814,14 +814,14 @@
               </div>
             </div>
 
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <span>LMH Coverage</span>
-              ${day.activePhones && day.activePhones.some(ap => ap.group === 'hosp') ? `
-              <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 22px; border-radius: 6px; font-size: 0.75rem; padding: 0 8px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 6px rgba(16,185,129,0.3); margin-bottom: 0; text-transform: none;">
+            <div class="section-title">LMH Coverage</div>
+            ${day.activePhones && day.activePhones.some(ap => ap.group === 'hosp') ? `
+            <div class="mb-3" style="display: flex; justify-content: flex-start;">
+              <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 34px; border-radius: 8px; font-size: 0.85rem; padding: 0 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
                 💬 Hosp Text
               </button>
-              ` : ''}
             </div>
+            ` : ''}
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-ac" data-name="${day.docs.ac}" data-role="MD Call" data-date="${day.dateStr}" data-today="${isToday}">
                 <div class="entry-content">
@@ -863,19 +863,19 @@
                   <span class="switch-track"><span class="switch-thumb"></span></span>
                 </label>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                ${day.activePhones && day.activePhones.some(ap => ap.group === 'lsc') ? `
-                <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'lsc')" title="Send group SMS to LSC staff" style="height: 22px; border-radius: 6px; font-size: 0.75rem; padding: 0 8px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 6px rgba(16,185,129,0.3); margin-bottom: 0; text-transform: none;">
-                  💬 LSC Text
-                </button>
-                ` : ''}
-                ${isToday ? `
-                <div class="break-lunch-header-labels-text" style="margin-left: 0; position: static;">
-                  <span>Break</span>
-                  <span>Lunch</span>
-                </div>` : ''}
-              </div>
+              ${isToday ? `
+              <div class="break-lunch-header-labels-text" style="margin-left: 0; position: static;">
+                <span>Break</span>
+                <span>Lunch</span>
+              </div>` : ''}
             </div>
+            ${day.activePhones && day.activePhones.some(ap => ap.group === 'lsc') ? `
+            <div class="mb-3" style="display: flex; justify-content: flex-start;">
+              <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'lsc')" title="Send group SMS to LSC staff" style="height: 34px; border-radius: 8px; font-size: 0.85rem; padding: 0 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
+                💬 LSC Text
+              </button>
+            </div>
+            ` : ''}
             <div class="mb-5">
               <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}" data-today="${isToday}">
                 <div class="entry-content">
@@ -2056,7 +2056,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=100')
+          navigator.serviceWorker.register('./sw.js?v=101')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
