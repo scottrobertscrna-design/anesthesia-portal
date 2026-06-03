@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v74)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v75)</span>
       </div>
     </div>
 
@@ -1865,10 +1865,16 @@
       } else {
         standingsHtml = standings.map((s, idx) => {
           const isTop3 = top3.some(c => c.name.toLowerCase().split('(')[0].trim() === s.name.toLowerCase().trim());
-          const rowStyle = isTop3 ? 'background: rgba(129, 140, 248, 0.08); font-weight: 600;' : '';
+          let rowBg = '';
+          if (isTop3) {
+            rowBg = 'rgba(129, 140, 248, 0.12)';
+          } else if (idx % 2 === 1) {
+            rowBg = 'rgba(255, 255, 255, 0.03)';
+          }
+          const rowStyle = `background: ${rowBg}; font-weight: ${isTop3 ? '600' : 'normal'};`;
           return `
             <tr style="${rowStyle}">
-              <td style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px; font-weight: 600;">
+              <td style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px;">
                 ${s.name} ${isTop3 ? '<span style="color: var(--accent-indigo); margin-left: 5px;">★</span>' : ''}
               </td>
               <td class="has-text-centered" style="border-color: var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 8px 12px; font-weight: 700;">
@@ -1892,7 +1898,7 @@
           Full Standings (All Tracked)
         </div>
         <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.15);">
-          <table class="table is-fullwidth is-striped" style="background: transparent; margin-bottom: 0;">
+          <table class="table is-fullwidth" style="background: transparent; margin-bottom: 0;">
             <thead>
               <tr>
                 <th style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 700; padding: 8px 12px; text-transform: uppercase; background: rgba(0,0,0,0.15);">CRNA</th>
@@ -2056,7 +2062,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=103')
+          navigator.serviceWorker.register('./sw.js?v=104')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
