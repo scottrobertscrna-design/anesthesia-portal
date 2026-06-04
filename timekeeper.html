@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v76)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v77)</span>
       </div>
     </div>
 
@@ -917,6 +917,7 @@
         wrapper.style.display = 'flex';
         const input = wrapper.querySelector('input[type="time"]');
         if (input) {
+          input.dataset.originalValue = input.value;
           // Track whether a clear was already handled to avoid double-firing
           let clearHandled = false;
 
@@ -927,6 +928,21 @@
               if (input.value) {
                 span.style.display = '';
                 wrapper.style.display = 'none';
+
+                const originalValue = input.dataset.originalValue || "";
+                if (input.value !== originalValue) {
+                  const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
+                  const name = row.dataset.name;
+                  const role = row.dataset.role;
+                  const dateStr = row.dataset.date;
+                  if (name && role && dateStr && checkbox) {
+                    if (type === 'arrival') {
+                      toggleArrival(checkbox, name, role, dateStr, targetId);
+                    } else {
+                      toggleDeparture(checkbox, name, role, dateStr, targetId);
+                    }
+                  }
+                }
               } else {
                 const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
                 // If the checkbox was checked it means a time was previously saved —
@@ -1008,6 +1024,9 @@
 
     async function handleTimeInputChange(input, type, name, role, dateStr, targetId) {
       updateTimeDisplay(input);
+      if (document.activeElement === input) {
+        return; // Don't write to sheet while user is spinning wheel/actively focused on input
+      }
       const row = document.getElementById(targetId);
       if (!row) return;
       const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
