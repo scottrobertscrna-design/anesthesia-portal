@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v79)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v80)</span>
       </div>
     </div>
 
@@ -431,54 +431,76 @@
           if (isEntry && arrivalCb) {
             arrivalCb.checked = !!data.arrivalTime;
             const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
-            if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = data.arrivalTime ? 'none' : 'flex';
             if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = data.arrivalTime ? 'none' : 'inline-flex';
             if (arrivalTimeInput) {
               arrivalTimeInput.value = data.arrivalTime ? formatTimeForInput(data.arrivalTime) : '';
               updateTimeDisplay(arrivalTimeInput);
             }
+            if (arrivalTimeWrapper) {
+              if (data.arrivalTime) {
+                arrivalTimeWrapper.classList.add('has-value');
+                const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+                if (triggerBtn) triggerBtn.style.display = 'none';
+
+                let span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+                if (!span) {
+                  span = document.createElement('span');
+                  span.className = 'arrival-time-display clickable-time-display';
+                  span.title = 'Click to edit time';
+                  span.innerHTML = '<span class="time-prefix">IN @ </span>';
+                  arrivalTimeWrapper.prepend(span);
+                }
+                const textNode = span.childNodes[1] || document.createTextNode('');
+                textNode.textContent = data.arrivalTime;
+                if (!span.childNodes[1]) span.appendChild(textNode);
+                span.style.display = '';
+              } else {
+                arrivalTimeWrapper.classList.remove('has-value');
+                const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+                if (triggerBtn) triggerBtn.style.display = 'flex';
+                const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+                if (span) span.remove();
+              }
+            }
           } else if (arrivalCb) {
             arrivalCb.style.display = 'none';
-          }
-          if (isEntry && data.arrivalTime) {
-            const span = document.createElement('span');
-            span.className = 'arrival-time-display clickable-time-display';
-            span.title = 'Click to edit time';
-            span.innerHTML = '<span class="time-prefix">IN @ </span>';
-            span.appendChild(document.createTextNode(data.arrivalTime));
-
-            const arrivalSwitch = entryRow.querySelector('.arrival-switch');
-            if (arrivalSwitch) {
-              arrivalSwitch.before(span);
-            } else {
-              content.appendChild(span);
-            }
           }
 
           // Sync Departure
           if (departureCb) departureCb.checked = !!data.time;
           const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
-          if (departureTimeWrapper) departureTimeWrapper.style.display = data.time ? 'none' : 'flex';
           if (departureSwitchContainer) departureSwitchContainer.style.display = data.time ? 'none' : 'inline-flex';
           if (departureTimeInput) {
             departureTimeInput.value = data.time ? formatTimeForInput(data.time) : '';
             updateTimeDisplay(departureTimeInput);
           }
-          if (data.time) {
-            const span = document.createElement('span');
-            span.className = 'departure-time-display clickable-time-display';
-            span.title = 'Click to edit time';
-            span.innerHTML = '<span class="time-prefix">OUT @ </span>';
-            span.appendChild(document.createTextNode(data.time));
+          if (departureTimeWrapper) {
+            if (data.time) {
+              departureTimeWrapper.classList.add('has-value');
+              const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+              if (triggerBtn) triggerBtn.style.display = 'none';
 
-            if (departureSwitchContainer) {
-              departureSwitchContainer.before(span);
+              let span = departureTimeWrapper.querySelector('.departure-time-display');
+              if (!span) {
+                span = document.createElement('span');
+                span.className = 'departure-time-display clickable-time-display';
+                span.title = 'Click to edit time';
+                span.innerHTML = '<span class="time-prefix">OUT @ </span>';
+                departureTimeWrapper.prepend(span);
+              }
+              const textNode = span.childNodes[1] || document.createTextNode('');
+              textNode.textContent = data.time;
+              if (!span.childNodes[1]) span.appendChild(textNode);
+              span.style.display = '';
+              content.classList.add('strikethrough');
             } else {
-              content.appendChild(span);
+              departureTimeWrapper.classList.remove('has-value');
+              const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+              if (triggerBtn) triggerBtn.style.display = 'flex';
+              const span = departureTimeWrapper.querySelector('.departure-time-display');
+              if (span) span.remove();
+              content.classList.remove('strikethrough');
             }
-            content.classList.add('strikethrough');
-          } else {
-            content.classList.remove('strikethrough');
           }
         } else {
           // No sign-off data, ensure everything is unchecked and visible
@@ -487,16 +509,23 @@
           content.classList.remove('strikethrough');
           const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
           const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
-          if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = isEntry ? 'flex' : 'none';
           if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = isEntry ? 'inline-flex' : 'none';
+          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
+
+          if (arrivalTimeWrapper) {
+            arrivalTimeWrapper.classList.remove('has-value');
+            const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = isEntry ? 'flex' : 'none';
+          }
           if (departureTimeWrapper) {
-            departureTimeWrapper.style.display = 'flex';
+            departureTimeWrapper.classList.remove('has-value');
+            const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'flex';
             if (departureTimeInput) {
               departureTimeInput.value = '';
               updateTimeDisplay(departureTimeInput);
             }
           }
-          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
         }
 
         // Sync break/lunch/ob buttons
@@ -681,55 +710,67 @@
       }
 
       if (manualTime && checkbox.checked) {
-        // Hide wrapper immediately
-        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
+        if (arrivalTimeWrapper) {
+          arrivalTimeWrapper.classList.add('has-value');
+          const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+          if (triggerBtn) triggerBtn.style.display = 'none';
+        }
         if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'none';
 
         // Show optimistic span
-        let span = existingArrivalDisplay;
-        if (!span) {
+        let span = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.arrival-time-display') : null;
+        if (!span && arrivalTimeWrapper) {
           span = document.createElement('span');
           span.className = 'arrival-time-display clickable-time-display';
           span.title = 'Click to edit time';
           span.innerHTML = '<span class="time-prefix">IN @ </span>';
-          const arrivalSwitch = row.querySelector('.arrival-switch');
-          if (arrivalSwitch) {
-            arrivalSwitch.before(span);
-          } else {
-            content.appendChild(span);
-          }
+          arrivalTimeWrapper.prepend(span);
         }
-        const textNode = span.childNodes[1] || document.createTextNode('');
-        textNode.textContent = format24hToAmPm(manualTime);
-        if (!span.childNodes[1]) span.appendChild(textNode);
-        span.style.display = '';
-        span.style.opacity = '0.5'; // Visual cue that it's saving
+        if (span) {
+          const textNode = span.childNodes[1] || document.createTextNode('');
+          textNode.textContent = format24hToAmPm(manualTime);
+          if (!span.childNodes[1]) span.appendChild(textNode);
+          span.style.display = '';
+          span.style.opacity = '0.5'; // Visual cue that it's saving
+        }
       } else {
-        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
-        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+        if (arrivalTimeWrapper) {
+          arrivalTimeWrapper.classList.remove('has-value');
+          const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+          if (triggerBtn) triggerBtn.style.display = 'flex';
+          const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+          if (span) span.remove();
+        }
+        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'inline-flex';
       }
 
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingArrivalDisplayNow = row.querySelector('.arrival-time-display');
-        if (existingArrivalDisplayNow) existingArrivalDisplayNow.remove();
+        
+        let span = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.arrival-time-display') : null;
+        if (span) span.remove();
 
         if (res.status && res.timestamp) {
-          const span = document.createElement('span');
-          span.className = 'arrival-time-display clickable-time-display';
-          span.title = 'Click to edit time';
-          span.innerHTML = '<span class="time-prefix">IN @ </span>';
-          span.appendChild(document.createTextNode(res.timestamp));
+          if (arrivalTimeWrapper) {
+            arrivalTimeWrapper.classList.add('has-value');
+            const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'none';
 
-          const arrivalSwitch = row.querySelector('.arrival-switch');
-          if (arrivalSwitch) {
-            arrivalSwitch.before(span);
-          } else {
-            content.appendChild(span);
+            span = document.createElement('span');
+            span.className = 'arrival-time-display clickable-time-display';
+            span.title = 'Click to edit time';
+            span.innerHTML = '<span class="time-prefix">IN @ </span>';
+            span.appendChild(document.createTextNode(res.timestamp));
+            arrivalTimeWrapper.prepend(span);
           }
           updateLocalCacheSignOff(dateStr, name, role, res.timestamp, undefined);
         } else if (!res.status && arrivalTimeInput) {
+          if (arrivalTimeWrapper) {
+            arrivalTimeWrapper.classList.remove('has-value');
+            const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'flex';
+          }
           arrivalTimeInput.value = '';
           updateTimeDisplay(arrivalTimeInput);
           updateLocalCacheSignOff(dateStr, name, role, "", undefined);
@@ -740,19 +781,34 @@
 
         // Revert optimistic UI
         if (oldSpanExists) {
-          const span = row.querySelector('.arrival-time-display');
-          if (span) {
-            const textNode = span.childNodes[1];
-            if (textNode) textNode.textContent = oldSpanText.replace("IN @ ", "");
+          if (arrivalTimeWrapper) {
+            arrivalTimeWrapper.classList.add('has-value');
+            const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'none';
+            
+            let span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+            if (!span) {
+              span = document.createElement('span');
+              span.className = 'arrival-time-display clickable-time-display';
+              span.title = 'Click to edit time';
+              span.innerHTML = '<span class="time-prefix">IN @ </span>';
+              arrivalTimeWrapper.prepend(span);
+            }
+            const textNode = span.childNodes[1] || document.createTextNode('');
+            textNode.textContent = oldSpanText.replace("IN @ ", "");
+            if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
           }
         } else {
-          const span = row.querySelector('.arrival-time-display');
-          if (span) span.remove();
+          if (arrivalTimeWrapper) {
+            arrivalTimeWrapper.classList.remove('has-value');
+            const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'flex';
+            const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+            if (span) span.remove();
+          }
         }
-
-        if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
         if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
@@ -779,84 +835,99 @@
       }
 
       if (manualTime && checkbox.checked) {
-        // Hide wrapper immediately
-        if (departureTimeWrapper) departureTimeWrapper.style.display = 'none';
+        if (departureTimeWrapper) {
+          departureTimeWrapper.classList.add('has-value');
+          const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+          if (triggerBtn) triggerBtn.style.display = 'none';
+        }
         if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
 
-        // Show optimistic span
-        let span = existingDepartureDisplay;
-        if (!span) {
+        // Show optimistic span inside wrapper
+        let span = departureTimeWrapper ? departureTimeWrapper.querySelector('.departure-time-display') : null;
+        if (!span && departureTimeWrapper) {
           span = document.createElement('span');
           span.className = 'departure-time-display clickable-time-display';
           span.title = 'Click to edit time';
           span.innerHTML = '<span class="time-prefix">OUT @ </span>';
-          if (departureSwitchContainer) {
-            departureSwitchContainer.before(span);
-          } else {
-            content.appendChild(span);
-          }
+          departureTimeWrapper.prepend(span);
         }
-        const textNode = span.childNodes[1] || document.createTextNode('');
-        textNode.textContent = format24hToAmPm(manualTime);
-        if (!span.childNodes[1]) span.appendChild(textNode);
-        span.style.display = '';
-        span.style.opacity = '0.5'; // Visual cue that it's saving
+        if (span) {
+          const textNode = span.childNodes[1] || document.createTextNode('');
+          textNode.textContent = format24hToAmPm(manualTime);
+          if (!span.childNodes[1]) span.appendChild(textNode);
+          span.style.display = '';
+          span.style.opacity = '0.5'; // Visual cue that it's saving
+        }
       } else {
-        if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
-        if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
+        if (departureTimeWrapper) {
+          departureTimeWrapper.classList.remove('has-value');
+          const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+          if (triggerBtn) triggerBtn.style.display = 'flex';
+          const span = departureTimeWrapper.querySelector('.departure-time-display');
+          if (span) span.remove();
+        }
+        if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
       }
 
       pendingRows.add(targetId);
       try {
         const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
-        const existingDepartureDisplayNow = row.querySelector('.departure-time-display');
-        if (existingDepartureDisplayNow) existingDepartureDisplayNow.remove();
+        
+        let span = departureTimeWrapper ? departureTimeWrapper.querySelector('.departure-time-display') : null;
+        if (span) span.remove();
 
         if (res.status && res.timestamp) {
-          const span = document.createElement('span');
-          span.className = 'departure-time-display clickable-time-display';
-          span.title = 'Click to edit time';
-          span.innerHTML = '<span class="time-prefix">OUT @ </span>';
-          span.appendChild(document.createTextNode(res.timestamp));
+          if (departureTimeWrapper) {
+            departureTimeWrapper.classList.add('has-value');
+            const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'none';
 
-          const departureSwitch = checkbox.closest('.switch-container');
-          if (departureSwitch) {
-            departureSwitch.before(span);
-          } else {
-            content.appendChild(span);
+            span = document.createElement('span');
+            span.className = 'departure-time-display clickable-time-display';
+            span.title = 'Click to edit time';
+            span.innerHTML = '<span class="time-prefix">OUT @ </span>';
+            span.appendChild(document.createTextNode(res.timestamp));
+            departureTimeWrapper.prepend(span);
           }
+          if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
 
           if (res.arrivalTime) {
             const arrivalCb = row.querySelector('.arrival-checkbox');
             const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
             if (arrivalCb && !arrivalCb.checked) {
               arrivalCb.checked = true;
-              if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
+              if (arrivalTimeWrapper) {
+                arrivalTimeWrapper.classList.add('has-value');
+                const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+                if (triggerBtn) triggerBtn.style.display = 'none';
 
-              const existingArrivalDisplay = row.querySelector('.arrival-time-display');
-              if (existingArrivalDisplay) existingArrivalDisplay.remove();
+                const existingArrivalDisplay = row.querySelector('.arrival-time-display');
+                if (existingArrivalDisplay) existingArrivalDisplay.remove();
 
-              const aSpan = document.createElement('span');
-              aSpan.className = 'arrival-time-display clickable-time-display';
-              aSpan.title = 'Click to edit time';
-              aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
-              aSpan.appendChild(document.createTextNode(res.arrivalTime));
-
-              const arrivalSwitch = row.querySelector('.arrival-switch');
-              if (arrivalSwitch) {
-                arrivalSwitch.before(aSpan);
-              } else {
-                content.appendChild(aSpan);
+                const aSpan = document.createElement('span');
+                aSpan.className = 'arrival-time-display clickable-time-display';
+                aSpan.title = 'Click to edit time';
+                aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
+                aSpan.appendChild(document.createTextNode(res.arrivalTime));
+                arrivalTimeWrapper.prepend(aSpan);
               }
+              const arrivalSwitch = row.querySelector('.arrival-switch');
+              if (arrivalSwitch) arrivalSwitch.style.display = 'none';
             }
             updateLocalCacheSignOff(dateStr, name, role, res.arrivalTime, res.timestamp);
           } else {
             updateLocalCacheSignOff(dateStr, name, role, undefined, res.timestamp);
           }
         } else if (!res.status && departureTimeInput) {
+          if (departureTimeWrapper) {
+            departureTimeWrapper.classList.remove('has-value');
+            const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'flex';
+          }
           departureTimeInput.value = '';
           updateTimeDisplay(departureTimeInput);
           updateLocalCacheSignOff(dateStr, name, role, undefined, "");
+          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
         }
       } catch (err) {
         alert("Departure action failed: " + err.message);
@@ -865,19 +936,34 @@
 
         // Revert optimistic UI
         if (oldSpanExists) {
-          const span = row.querySelector('.departure-time-display');
-          if (span) {
-            const textNode = span.childNodes[1];
-            if (textNode) textNode.textContent = oldSpanText.replace("OUT @ ", "");
+          if (departureTimeWrapper) {
+            departureTimeWrapper.classList.add('has-value');
+            const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'none';
+            
+            let span = departureTimeWrapper.querySelector('.departure-time-display');
+            if (!span) {
+              span = document.createElement('span');
+              span.className = 'departure-time-display clickable-time-display';
+              span.title = 'Click to edit time';
+              span.innerHTML = '<span class="time-prefix">OUT @ </span>';
+              departureTimeWrapper.prepend(span);
+            }
+            const textNode = span.childNodes[1] || document.createTextNode('');
+            textNode.textContent = oldSpanText.replace("OUT @ ", "");
+            if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
           }
         } else {
-          const span = row.querySelector('.departure-time-display');
-          if (span) span.remove();
+          if (departureTimeWrapper) {
+            departureTimeWrapper.classList.remove('has-value');
+            const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
+            if (triggerBtn) triggerBtn.style.display = 'flex';
+            const span = departureTimeWrapper.querySelector('.departure-time-display');
+            if (span) span.remove();
+          }
         }
-
-        if (departureTimeWrapper) departureTimeWrapper.style.display = checkbox.checked ? 'none' : 'flex';
         if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
@@ -1170,6 +1256,7 @@
                           `}
                           <input type="time" class="input is-small arrival-time-input" 
                                  value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
+                                 onclick="try { this.showPicker(); } catch(e) {}"
                                  onfocus="this.dataset.originalValue = this.value"
                                  onblur="handleTimeInputBlur(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
                                  onchange="handleTimeInputChange(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
@@ -1190,6 +1277,7 @@
                           `}
                           <input type="time" class="input is-small departure-time-input" 
                                  value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
+                                 onclick="try { this.showPicker(); } catch(e) {}"
                                  onfocus="this.dataset.originalValue = this.value"
                                  onblur="handleTimeInputBlur(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
                                  onchange="handleTimeInputChange(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
@@ -1277,6 +1365,7 @@
                               `}
                               <input type="time" class="input is-small arrival-time-input" 
                                      value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
+                                     onclick="try { this.showPicker(); } catch(e) {}"
                                      onfocus="this.dataset.originalValue = this.value"
                                      onblur="handleTimeInputBlur(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
                                      onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
@@ -1297,6 +1386,7 @@
                               `}
                               <input type="time" class="input is-small departure-time-input" 
                                      value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
+                                     onclick="try { this.showPicker(); } catch(e) {}"
                                      onfocus="this.dataset.originalValue = this.value"
                                      onblur="handleTimeInputBlur(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
                                      onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
