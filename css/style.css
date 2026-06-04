@@ -441,6 +441,7 @@ input[type="date"],
   cursor: pointer;
   margin: 0 !important;
   appearance: none;
+  pointer-events: none !important;
 }
 
 .time-input-wrapper.has-value {
