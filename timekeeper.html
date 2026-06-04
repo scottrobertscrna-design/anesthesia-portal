@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v83)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v84)</span>
       </div>
     </div>
 
@@ -1082,8 +1082,8 @@
       });
 
       if (phoneEntry && phoneEntry.phone) {
-        return `<span class="has-text-weight-bold clickable-name-contact" style="cursor: pointer; color: var(--accent-indigo); text-decoration: underline dotted; text-underline-offset: 3px;" onclick="openContactModal('${name.replace(/'/g, "\\'")}', ${dayIdx})" title="Click to call/text ${name}">
-          ${name} <span style="font-size: 0.72rem; margin-left: 2px; opacity: 0.85;">📱</span>
+        return `<span class="has-text-weight-bold clickable-name-contact" style="cursor: pointer; color: var(--text-main) !important; text-decoration: none !important;" onclick="openContactModal('${name.replace(/'/g, "\\'")}', ${dayIdx})" title="Click to call/text ${name}">
+          ${name}<span class="contact-badge">📱</span>
         </span>`;
       }
       return `<span class="has-text-weight-bold">${name}</span>`;
@@ -1240,7 +1240,7 @@
               <div class="entry" id="row-${dateId}-lscdoc" data-name="${day.docs.lsc}" data-role="LSC Doc" data-date="${day.dateStr}">
                 <div class="entry-content">
                   <span class="num-badge" style="background-color: #48c78e;">DOC</span>
-                  <span class="has-text-weight-bold" style="white-space: normal;">${day.docs.lsc}</span>
+                  ${getContactBadgeHtml(day.docs.lsc, day, dayIdx)}
                 </div>
                 ${isToday && viewMode === 'break' ? `
                 <div class="break-lunch-controls">
@@ -1972,7 +1972,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=120')
+          navigator.serviceWorker.register('./sw.js?v=121')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

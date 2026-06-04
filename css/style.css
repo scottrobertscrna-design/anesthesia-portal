@@ -192,9 +192,8 @@ h3,
   color: var(--text-main);
 }
 
-/* Badges */
 .num-badge {
-  background: var(--accent-blue);
+  background: linear-gradient(135deg, var(--accent-blue), #1e40af) !important;
   color: #ffffff;
   padding: 8px 12px;
   border-radius: 8px;
@@ -206,12 +205,47 @@ h3,
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
   font-family: 'Outfit', sans-serif;
   flex-shrink: 0;
+  border: none !important;
 }
 
 /* Custom premium color badges */
 .num-badge[style*="background-color: #48c78e"],
-.num-badge[style*="background-color: rgb(72, 199, 142)"] {
-  background-color: var(--accent-emerald) !important;
+.num-badge[style*="background-color: rgb(72, 199, 142)"],
+.num-badge[style*="background-color: rgb(72,199,142)"] {
+  background: linear-gradient(135deg, var(--accent-emerald), #059669) !important;
+  border: none !important;
+}
+
+/* Contact badge next to names */
+.contact-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(129, 140, 248, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  font-size: 0.75rem;
+  margin-left: 6px;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.contact-badge:hover {
+  transform: scale(1.15);
+  background: rgba(129, 140, 248, 0.3);
+}
+
+@media (prefers-color-scheme: light) {
+  .contact-badge {
+    background: rgba(79, 70, 229, 0.12);
+    border: 1px solid rgba(79, 70, 229, 0.3);
+  }
+  .contact-badge:hover {
+    background: rgba(79, 70, 229, 0.25);
+  }
 }
 
 /* Clickable badges for CRNA portal check-in */
@@ -816,9 +850,9 @@ input[type="date"],
 /* Active states - break and lunch are green (darker fill, dark green text/borders) */
 .break-lunch-controls button.btn-break.active,
 .break-lunch-controls button.btn-lunch.active {
-  background-color: rgba(16, 185, 129, 0.25) !important;
-  border-color: rgba(16, 185, 129, 0.55) !important;
-  color: #34d399 !important;
+  background-color: rgba(16, 185, 129, 0.45) !important;
+  border-color: rgba(16, 185, 129, 0.8) !important;
+  color: #a7f3d0 !important;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }
 
@@ -988,9 +1022,9 @@ input[type="date"],
 
   .break-lunch-controls button.btn-break.active,
   .break-lunch-controls button.btn-lunch.active {
-    background-color: rgba(5, 150, 105, 0.16) !important;
-    border-color: rgba(5, 150, 105, 0.45) !important;
-    color: #047857 !important;
+    background-color: rgba(5, 150, 105, 0.35) !important;
+    border-color: rgba(5, 150, 105, 0.75) !important;
+    color: #064e3b !important;
   }
 
   .break-lunch-controls button.btn-ob.active {
