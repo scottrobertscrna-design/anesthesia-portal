@@ -1082,8 +1082,8 @@
       });
 
       if (phoneEntry && phoneEntry.phone) {
-        return `<span class="has-text-weight-bold clickable-name-contact" style="cursor: pointer; color: var(--text-main) !important; text-decoration: none !important;" onclick="openContactModal('${name.replace(/'/g, "\\'")}', ${dayIdx})" title="Click to call/text ${name}">
-          ${name}<span class="contact-badge">📱</span>
+        return `<span class="has-text-weight-bold clickable-name-contact" style="cursor: pointer; color: var(--text-main) !important; text-decoration: underline dotted !important; text-underline-offset: 3px;" onclick="openContactModal('${name.replace(/'/g, "\\'")}', ${dayIdx})" title="Click to call/text ${name}">
+          ${name}<span style="color: var(--accent-indigo) !important; text-decoration: none !important; display: inline-block; margin-left: 4px; font-size: 0.85rem; vertical-align: middle;">📱</span>
         </span>`;
       }
       return `<span class="has-text-weight-bold">${name}</span>`;
