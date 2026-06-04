@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v81)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v82)</span>
       </div>
     </div>
 
@@ -982,63 +982,16 @@
 
 
 
-    async function handleTimeInputChange(input, type, name, role, dateStr, targetId) {
-      updateTimeDisplay(input);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (!isIOS) {
-        // On Android/Desktop, the change event signifies a final commit (user clicked OK/Set).
-        // Blurring the input programmatically will trigger handleTimeInputBlur to save.
-        input.blur();
-        return;
-      }
-      if (document.activeElement === input) {
-        return; // Don't write to sheet while user is spinning wheel/actively focused on input
-      }
-      const row = document.getElementById(targetId);
-      if (!row) return;
-      const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
-      if (checkbox) {
-        if (input.value === "") {
-          checkbox.checked = false;
-          if (type === 'arrival') {
-            await toggleArrival(checkbox, name, role, dateStr, targetId);
-          } else {
-            await toggleDeparture(checkbox, name, role, dateStr, targetId);
-          }
-        } else if (checkbox.checked) {
-          if (type === 'arrival') {
-            await toggleArrival(checkbox, name, role, dateStr, targetId);
-          } else {
-            await toggleDeparture(checkbox, name, role, dateStr, targetId);
-          }
-        }
-      }
-    }
-
-    function formatAmPmTo24h(timeStr) {
-      if (!timeStr) return '';
-      const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (!match) return '';
-      let [_, hoursStr, minutesStr, ampm] = match;
-      let hours = parseInt(hoursStr, 10);
-      ampm = ampm.toUpperCase();
-      if (ampm === 'PM' && hours < 12) {
-        hours += 12;
-      } else if (ampm === 'AM' && hours === 12) {
-        hours = 0;
-      }
-      const hStr = String(hours).padStart(2, '0');
-      return `${hStr}:${minutesStr}`;
-    }
-
-    async function handleTimeInputBlur(input, type, name, role, dateStr, targetId) {
+    async function saveTimeInput(input, type, name, role, dateStr, targetId) {
       const originalValue = input.dataset.originalValue || "";
       const newValue = input.value || "";
 
       if (newValue === originalValue) {
         return;
       }
+
+      // Update cached originalValue to prevent duplicate saves
+      input.dataset.originalValue = newValue;
 
       const row = document.getElementById(targetId);
       if (!row) return;
@@ -1065,11 +1018,47 @@
       }
     }
 
+    async function handleTimeInputChange(input, type, name, role, dateStr, targetId) {
+      updateTimeDisplay(input);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (!isIOS) {
+        // On Android/Desktop, change event signifies final commit
+        await saveTimeInput(input, type, name, role, dateStr, targetId);
+      } else {
+        // On iOS, if we are not actively focused/spinning, save immediately
+        if (document.activeElement !== input) {
+          await saveTimeInput(input, type, name, role, dateStr, targetId);
+        }
+      }
+    }
+
+    function formatAmPmTo24h(timeStr) {
+      if (!timeStr) return '';
+      const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return '';
+      let [_, hoursStr, minutesStr, ampm] = match;
+      let hours = parseInt(hoursStr, 10);
+      ampm = ampm.toUpperCase();
+      if (ampm === 'PM' && hours < 12) {
+        hours += 12;
+      } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+      }
+      const hStr = String(hours).padStart(2, '0');
+      return `${hStr}:${minutesStr}`;
+    }
+
+    async function handleTimeInputBlur(input, type, name, role, dateStr, targetId) {
+      await saveTimeInput(input, type, name, role, dateStr, targetId);
+    }
+
     function forcePicker(el) {
       const input = el.querySelector('input[type="time"]');
       const e = window.event;
       if (input && (!e || e.target !== input)) {
         try {
+          input.focus(); // Focus first programmatically to trigger the focus lifecycle
           if (typeof input.showPicker === 'function') input.showPicker();
           else input.focus();
         } catch (err) {
@@ -1256,6 +1245,7 @@
                           `}
                           <input type="time" class="input is-small arrival-time-input" 
                                  value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
+                                 data-original-value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
                                  onclick="try { this.showPicker(); } catch(e) {}"
                                  onfocus="this.dataset.originalValue = this.value"
                                  onblur="handleTimeInputBlur(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
@@ -1277,6 +1267,7 @@
                           `}
                           <input type="time" class="input is-small departure-time-input" 
                                  value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
+                                 data-original-value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
                                  onclick="try { this.showPicker(); } catch(e) {}"
                                  onfocus="this.dataset.originalValue = this.value"
                                  onblur="handleTimeInputBlur(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
@@ -1365,6 +1356,7 @@
                               `}
                               <input type="time" class="input is-small arrival-time-input" 
                                      value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
+                                     data-original-value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
                                      onclick="try { this.showPicker(); } catch(e) {}"
                                      onfocus="this.dataset.originalValue = this.value"
                                      onblur="handleTimeInputBlur(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
@@ -1386,6 +1378,7 @@
                               `}
                               <input type="time" class="input is-small departure-time-input" 
                                      value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
+                                     data-original-value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
                                      onclick="try { this.showPicker(); } catch(e) {}"
                                      onfocus="this.dataset.originalValue = this.value"
                                      onblur="handleTimeInputBlur(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
@@ -1927,7 +1920,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=105')
+          navigator.serviceWorker.register('./sw.js?v=119')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

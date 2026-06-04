@@ -404,6 +404,8 @@ input[type="date"],
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .time-trigger-btn {
@@ -1138,6 +1140,8 @@ input[type="date"],
 .clickable-time-display {
   cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .clickable-time-display:hover {
