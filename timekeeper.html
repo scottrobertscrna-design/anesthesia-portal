@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v78)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v79)</span>
       </div>
     </div>
 
@@ -898,6 +898,14 @@
 
     async function handleTimeInputChange(input, type, name, role, dateStr, targetId) {
       updateTimeDisplay(input);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (!isIOS) {
+        // On Android/Desktop, the change event signifies a final commit (user clicked OK/Set).
+        // Blurring the input programmatically will trigger handleTimeInputBlur to save.
+        input.blur();
+        return;
+      }
       if (document.activeElement === input) {
         return; // Don't write to sheet while user is spinning wheel/actively focused on input
       }
