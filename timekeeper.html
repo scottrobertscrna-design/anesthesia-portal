@@ -385,8 +385,8 @@
         const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
         const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
 
-        // Clear existing display spans across the whole row
-        entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
+        // Clear existing display spans and clear buttons across the whole row
+        entryRow.querySelectorAll('.arrival-time-display, .departure-time-display, .clear-time-btn').forEach(el => el.remove());
 
         // If in hours view mode, we ONLY want to sync the running hours badge and nothing else!
         if (viewMode === 'hours') {
@@ -454,12 +454,25 @@
                 textNode.textContent = data.arrivalTime;
                 if (!span.childNodes[1]) span.appendChild(textNode);
                 span.style.display = '';
+
+                // Add clear button
+                let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+                if (!clearBtn) {
+                  clearBtn = document.createElement('span');
+                  clearBtn.className = 'clear-time-btn';
+                  clearBtn.title = 'Clear time';
+                  clearBtn.innerHTML = '✕';
+                  clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, entryRow.id);
+                  arrivalTimeWrapper.appendChild(clearBtn);
+                }
               } else {
                 arrivalTimeWrapper.classList.remove('has-value');
                 const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
                 if (triggerBtn) triggerBtn.style.display = 'flex';
                 const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
                 if (span) span.remove();
+                const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+                if (clearBtn) clearBtn.remove();
               }
             }
           } else if (arrivalCb) {
@@ -493,12 +506,25 @@
               if (!span.childNodes[1]) span.appendChild(textNode);
               span.style.display = '';
               content.classList.add('strikethrough');
+
+              // Add clear button
+              let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+              if (!clearBtn) {
+                clearBtn = document.createElement('span');
+                clearBtn.className = 'clear-time-btn';
+                clearBtn.title = 'Clear time';
+                clearBtn.innerHTML = '✕';
+                clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, entryRow.id);
+                departureTimeWrapper.appendChild(clearBtn);
+              }
             } else {
               departureTimeWrapper.classList.remove('has-value');
               const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
               if (triggerBtn) triggerBtn.style.display = 'flex';
               const span = departureTimeWrapper.querySelector('.departure-time-display');
               if (span) span.remove();
+              const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+              if (clearBtn) clearBtn.remove();
               content.classList.remove('strikethrough');
             }
           }
@@ -516,11 +542,15 @@
             arrivalTimeWrapper.classList.remove('has-value');
             const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = isEntry ? 'flex' : 'none';
+            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
           }
           if (departureTimeWrapper) {
             departureTimeWrapper.classList.remove('has-value');
             const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
+            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
             if (departureTimeInput) {
               departureTimeInput.value = '';
               updateTimeDisplay(departureTimeInput);
@@ -733,6 +763,17 @@
           span.style.display = '';
           span.style.opacity = '0.5'; // Visual cue that it's saving
         }
+
+        // Show optimistic clear button
+        let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+        if (!clearBtn && arrivalTimeWrapper) {
+          clearBtn = document.createElement('span');
+          clearBtn.className = 'clear-time-btn';
+          clearBtn.title = 'Clear time';
+          clearBtn.innerHTML = '✕';
+          clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
+          arrivalTimeWrapper.appendChild(clearBtn);
+        }
       } else {
         if (arrivalTimeWrapper) {
           arrivalTimeWrapper.classList.remove('has-value');
@@ -740,6 +781,8 @@
           if (triggerBtn) triggerBtn.style.display = 'flex';
           const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
           if (span) span.remove();
+          const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+          if (clearBtn) clearBtn.remove();
         }
         if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'inline-flex';
       }
@@ -750,6 +793,8 @@
         
         let span = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.arrival-time-display') : null;
         if (span) span.remove();
+        let clearBtn = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.clear-time-btn') : null;
+        if (clearBtn) clearBtn.remove();
 
         if (res.status && res.timestamp) {
           if (arrivalTimeWrapper) {
@@ -763,6 +808,14 @@
             span.innerHTML = '<span class="time-prefix">IN @ </span>';
             span.appendChild(document.createTextNode(res.timestamp));
             arrivalTimeWrapper.prepend(span);
+
+            // Add clear button
+            clearBtn = document.createElement('span');
+            clearBtn.className = 'clear-time-btn';
+            clearBtn.title = 'Clear time';
+            clearBtn.innerHTML = '✕';
+            clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
+            arrivalTimeWrapper.appendChild(clearBtn);
           }
           updateLocalCacheSignOff(dateStr, name, role, res.timestamp, undefined);
         } else if (!res.status && arrivalTimeInput) {
@@ -770,6 +823,8 @@
             arrivalTimeWrapper.classList.remove('has-value');
             const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
+            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
           }
           arrivalTimeInput.value = '';
           updateTimeDisplay(arrivalTimeInput);
@@ -799,6 +854,16 @@
             if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
+
+            let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+            if (!clearBtn) {
+              clearBtn = document.createElement('span');
+              clearBtn.className = 'clear-time-btn';
+              clearBtn.title = 'Clear time';
+              clearBtn.innerHTML = '✕';
+              clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
+              arrivalTimeWrapper.appendChild(clearBtn);
+            }
           }
         } else {
           if (arrivalTimeWrapper) {
@@ -807,6 +872,8 @@
             if (triggerBtn) triggerBtn.style.display = 'flex';
             const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
             if (span) span.remove();
+            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
           }
         }
         if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
@@ -858,6 +925,17 @@
           span.style.display = '';
           span.style.opacity = '0.5'; // Visual cue that it's saving
         }
+
+        // Show optimistic clear button
+        let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+        if (!clearBtn && departureTimeWrapper) {
+          clearBtn = document.createElement('span');
+          clearBtn.className = 'clear-time-btn';
+          clearBtn.title = 'Clear time';
+          clearBtn.innerHTML = '✕';
+          clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
+          departureTimeWrapper.appendChild(clearBtn);
+        }
       } else {
         if (departureTimeWrapper) {
           departureTimeWrapper.classList.remove('has-value');
@@ -865,6 +943,8 @@
           if (triggerBtn) triggerBtn.style.display = 'flex';
           const span = departureTimeWrapper.querySelector('.departure-time-display');
           if (span) span.remove();
+          const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+          if (clearBtn) clearBtn.remove();
         }
         if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
       }
@@ -875,6 +955,8 @@
         
         let span = departureTimeWrapper ? departureTimeWrapper.querySelector('.departure-time-display') : null;
         if (span) span.remove();
+        let clearBtn = departureTimeWrapper ? departureTimeWrapper.querySelector('.clear-time-btn') : null;
+        if (clearBtn) clearBtn.remove();
 
         if (res.status && res.timestamp) {
           if (departureTimeWrapper) {
@@ -888,6 +970,14 @@
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(res.timestamp));
             departureTimeWrapper.prepend(span);
+
+            // Add clear button
+            clearBtn = document.createElement('span');
+            clearBtn.className = 'clear-time-btn';
+            clearBtn.title = 'Clear time';
+            clearBtn.innerHTML = '✕';
+            clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
+            departureTimeWrapper.appendChild(clearBtn);
           }
           if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
 
@@ -910,6 +1000,17 @@
                 aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
                 aSpan.appendChild(document.createTextNode(res.arrivalTime));
                 arrivalTimeWrapper.prepend(aSpan);
+
+                // Add clear button for auto-arrival
+                let aClearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
+                if (!aClearBtn) {
+                  aClearBtn = document.createElement('span');
+                  aClearBtn.className = 'clear-time-btn';
+                  aClearBtn.title = 'Clear time';
+                  aClearBtn.innerHTML = '✕';
+                  aClearBtn.onclick = (e) => clearTimeInput(e, aClearBtn, 'arrival', name, role, dateStr, targetId);
+                  arrivalTimeWrapper.appendChild(aClearBtn);
+                }
               }
               const arrivalSwitch = row.querySelector('.arrival-switch');
               if (arrivalSwitch) arrivalSwitch.style.display = 'none';
@@ -923,6 +1024,8 @@
             departureTimeWrapper.classList.remove('has-value');
             const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
+            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
           }
           departureTimeInput.value = '';
           updateTimeDisplay(departureTimeInput);
@@ -954,6 +1057,16 @@
             if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
+
+            let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+            if (!clearBtn) {
+              clearBtn = document.createElement('span');
+              clearBtn.className = 'clear-time-btn';
+              clearBtn.title = 'Clear time';
+              clearBtn.innerHTML = '✕';
+              clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
+              departureTimeWrapper.appendChild(clearBtn);
+            }
           }
         } else {
           if (departureTimeWrapper) {
@@ -962,6 +1075,8 @@
             if (triggerBtn) triggerBtn.style.display = 'flex';
             const span = departureTimeWrapper.querySelector('.departure-time-display');
             if (span) span.remove();
+            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
+            if (clearBtn) clearBtn.remove();
           }
         }
         if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
@@ -1053,9 +1168,28 @@
       await saveTimeInput(input, type, name, role, dateStr, targetId);
     }
 
+    function clearTimeInput(event, btn, type, name, role, dateStr, targetId) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const row = document.getElementById(targetId);
+      if (!row) return;
+      const wrapper = row.querySelector(type === 'arrival' ? '.arrival-time-wrapper' : '.departure-time-wrapper');
+      if (!wrapper) return;
+      const input = wrapper.querySelector('input[type="time"]');
+      if (input) {
+        input.value = '';
+        handleTimeInputChange(input, type, name, role, dateStr, targetId);
+      }
+    }
+
     function forcePicker(el) {
       const input = el.querySelector('input[type="time"]');
       const e = window.event;
+      if (e && e.target && e.target.classList.contains('clear-time-btn')) {
+        return; // Don't trigger picker when clicking clear button
+      }
       if (input && (!e || e.target !== input)) {
         try {
           input.focus(); // Focus first programmatically to trigger the focus lifecycle
@@ -1292,6 +1426,7 @@
                         <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                           ${(off && off.arrivalTime) ? `
                             <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
+                            <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'arrival', '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">✕</span>
                           ` : `
                             <div class="time-trigger-btn">🏥</div>
                           `}
@@ -1314,6 +1449,7 @@
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                           ${(off && off.time) ? `
                             <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
+                            <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'departure', '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">✕</span>
                           ` : `
                             <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           `}
@@ -1403,6 +1539,7 @@
                             <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                               ${(off && off.arrivalTime) ? `
                                 <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
+                                <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'arrival', '${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-num-${i}')">✕</span>
                               ` : `
                                 <div class="time-trigger-btn">🏥</div>
                               `}
@@ -1425,6 +1562,7 @@
                           <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                               ${(off && off.time) ? `
                                 <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
+                                <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'departure', '${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-num-${i}')">✕</span>
                               ` : `
                                 <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                               `}
