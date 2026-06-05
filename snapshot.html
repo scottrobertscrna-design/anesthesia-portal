@@ -1497,10 +1497,8 @@
 
     async function refreshClockStatus(sheetId) {
       const statusText = document.getElementById("tc-clock-status-text");
-      const punchText = document.getElementById("tc-last-punch-text");
       const clockInBtn = document.getElementById("tc-clock-in-btn");
       const clockOutBtn = document.getElementById("tc-clock-out-btn");
-
       const otBtn = document.getElementById("tc-overtime-btn");
       const prnBtn = document.getElementById("tc-prn-btn");
       const otPicker = document.getElementById("tc-overtime-date-picker");
@@ -1523,96 +1521,119 @@
 
       try {
         const res = await callApi("timecardGetClockStatus", { sheetId });
-
-        if (res.status === "IN") {
-          statusText.innerText = "CLOCKED IN";
-          statusText.style.color = "var(--accent-emerald)";
-          clockInBtn.style.display = "none";
-          clockOutBtn.style.display = "inline-flex";
-        } else {
-          statusText.innerText = "CLOCKED OUT";
-          statusText.style.color = "var(--accent-rose)";
-          clockInBtn.style.display = "inline-flex";
-          clockOutBtn.style.display = "none";
-        }
-
-        punchText.innerText = res.lastPunch ? `Last punch: ${res.lastPunch}` : "Last punch: None";
-
-        // 1. Fill Overtime picker based on lastFillDate from spreadsheet
-        if (res.lastFillDate) {
-          const nextMon = getNextMonday(res.lastFillDate);
-          if (nextMon) {
-            otPicker.value = nextMon.toISOString().split('T')[0];
-          }
-        } else if (!otPicker.value) {
-          // Default to current week's Monday
-          const d = new Date();
-          const day = d.getDay();
-          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-          const mon = new Date(d.setDate(diff));
-          otPicker.value = mon.toISOString().split('T')[0];
-        }
-
-        // 2. Fill PRN pull dates based on lastPullRange from spreadsheet
-        let pullDatesSet = false;
-        if (res.lastPullRange) {
-          const nextPull = getNextPullRange(res.lastPullRange);
-          if (nextPull) {
-            prnStart.value = nextPull.start.toISOString().split('T')[0];
-            prnEnd.value = nextPull.end.toISOString().split('T')[0];
-            pullDatesSet = true;
-          }
-        }
-
-        // Fallback: If no pull range is set but a last fill range is available, default to that range
-        if (!pullDatesSet && res.lastFillDate && res.lastFillDate.includes("-")) {
-          const fillParts = res.lastFillDate.split("-");
-          if (fillParts.length === 2) {
-            const startParts = fillParts[0].trim().split("/");
-            const endParts = fillParts[1].trim().split("/");
-            if (startParts.length >= 2 && endParts.length >= 2) {
-              const startYear = startParts[2] ? parseInt(startParts[2], 10) : new Date().getFullYear();
-              const endYear = endParts[2] ? parseInt(endParts[2], 10) : new Date().getFullYear();
-              const startDate = new Date(startYear, parseInt(startParts[0], 10) - 1, parseInt(startParts[1], 10));
-              const endDate = new Date(endYear, parseInt(endParts[0], 10) - 1, parseInt(endParts[1], 10));
-              if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                prnStart.value = startDate.toISOString().split('T')[0];
-                prnEnd.value = endDate.toISOString().split('T')[0];
-                pullDatesSet = true;
-              }
-            }
-          }
-        }
-
-        if (!pullDatesSet && (!prnStart.value || !prnEnd.value)) {
-          // Default: 24th of last month to 24th of this month
-          const today = new Date();
-          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 24);
-          const currentMonth = new Date(today.getFullYear(), today.getMonth(), 24);
-          prnStart.value = lastMonth.toISOString().split('T')[0];
-          prnEnd.value = currentMonth.toISOString().split('T')[0];
-        }
-
+        updateClockStatusUI(res);
       } catch (err) {
         statusText.innerText = "ERROR LOADING STATUS";
         statusText.style.color = "var(--accent-rose)";
-        punchText.innerText = err.message;
+        const punchText = document.getElementById("tc-last-punch-text");
+        if (punchText) punchText.innerText = err.message;
         clockInBtn.style.display = "inline-flex";
         clockOutBtn.style.display = "none";
-      } finally {
+        
         clockInBtn.disabled = false;
         clockOutBtn.disabled = false;
-
-        // Re-enable calculation buttons & pickers, update labels
         otPicker.disabled = false;
         prnStart.disabled = false;
         prnEnd.disabled = false;
         otBtn.disabled = false;
         prnBtn.disabled = false;
-
         updateFillButtonLabel();
         updatePullButtonLabel();
       }
+    }
+
+    function updateClockStatusUI(res) {
+      const statusText = document.getElementById("tc-clock-status-text");
+      const punchText = document.getElementById("tc-last-punch-text");
+      const clockInBtn = document.getElementById("tc-clock-in-btn");
+      const clockOutBtn = document.getElementById("tc-clock-out-btn");
+
+      const otBtn = document.getElementById("tc-overtime-btn");
+      const prnBtn = document.getElementById("tc-prn-btn");
+      const otPicker = document.getElementById("tc-overtime-date-picker");
+      const prnStart = document.getElementById("tc-prn-start-date");
+      const prnEnd = document.getElementById("tc-prn-end-date");
+
+      if (res.status === "IN") {
+        statusText.innerText = "CLOCKED IN";
+        statusText.style.color = "var(--accent-emerald)";
+        clockInBtn.style.display = "none";
+        clockOutBtn.style.display = "inline-flex";
+      } else {
+        statusText.innerText = "CLOCKED OUT";
+        statusText.style.color = "var(--accent-rose)";
+        clockInBtn.style.display = "inline-flex";
+        clockOutBtn.style.display = "none";
+      }
+
+      punchText.innerText = res.lastPunch ? `Last punch: ${res.lastPunch}` : "Last punch: None";
+
+      // 1. Fill Overtime picker based on lastFillDate from spreadsheet
+      if (res.lastFillDate) {
+        const nextMon = getNextMonday(res.lastFillDate);
+        if (nextMon) {
+          otPicker.value = nextMon.toISOString().split('T')[0];
+        }
+      } else if (!otPicker.value) {
+        // Default to current week's Monday
+        const d = new Date();
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const mon = new Date(d.setDate(diff));
+        otPicker.value = mon.toISOString().split('T')[0];
+      }
+
+      // 2. Fill PRN pull dates based on lastPullRange from spreadsheet
+      let pullDatesSet = false;
+      if (res.lastPullRange) {
+        const nextPull = getNextPullRange(res.lastPullRange);
+        if (nextPull) {
+          prnStart.value = nextPull.start.toISOString().split('T')[0];
+          prnEnd.value = nextPull.end.toISOString().split('T')[0];
+          pullDatesSet = true;
+        }
+      }
+
+      // Fallback: If no pull range is set but a last fill range is available, default to that range
+      if (!pullDatesSet && res.lastFillDate && res.lastFillDate.includes("-")) {
+        const fillParts = res.lastFillDate.split("-");
+        if (fillParts.length === 2) {
+          const startParts = fillParts[0].trim().split("/");
+          const endParts = fillParts[1].trim().split("/");
+          if (startParts.length >= 2 && endParts.length >= 2) {
+            const startYear = startParts[2] ? parseInt(startParts[2], 10) : new Date().getFullYear();
+            const endYear = endParts[2] ? parseInt(endParts[2], 10) : new Date().getFullYear();
+            const startDate = new Date(startYear, parseInt(startParts[0], 10) - 1, parseInt(startParts[1], 10));
+            const endDate = new Date(endYear, parseInt(endParts[0], 10) - 1, parseInt(endParts[1], 10));
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              prnStart.value = startDate.toISOString().split('T')[0];
+              prnEnd.value = endDate.toISOString().split('T')[0];
+              pullDatesSet = true;
+            }
+          }
+        }
+      }
+
+      if (!pullDatesSet && (!prnStart.value || !prnEnd.value)) {
+        // Default: 24th of last month to 24th of this month
+        const today = new Date();
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 24);
+        const currentMonth = new Date(today.getFullYear(), today.getMonth(), 24);
+        prnStart.value = lastMonth.toISOString().split('T')[0];
+        prnEnd.value = currentMonth.toISOString().split('T')[0];
+      }
+
+      // Re-enable everything
+      clockInBtn.disabled = false;
+      clockOutBtn.disabled = false;
+      otPicker.disabled = false;
+      prnStart.disabled = false;
+      prnEnd.disabled = false;
+      otBtn.disabled = false;
+      prnBtn.disabled = false;
+
+      updateFillButtonLabel();
+      updatePullButtonLabel();
     }
 
     function toggleBacktimeView() {
@@ -1669,7 +1690,11 @@
         document.getElementById("tc-backtime-checkbox").checked = false;
         toggleBacktimeView();
 
-        refreshClockStatus(sheetId);
+        if (res.clockStatus) {
+          updateClockStatusUI(res.clockStatus);
+        } else {
+          refreshClockStatus(sheetId);
+        }
         showToast(`Successfully punched: ${res.action} at ${res.timestamp}!`, "success");
       } catch (err) {
         targetBtn.classList.remove("is-loading");
