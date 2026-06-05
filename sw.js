@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v124';
+const CACHE_NAME = 'lawrence-anaesthesia-v125';
 
 const APP_SHELL = [
   './portal.html',
@@ -86,6 +86,12 @@ self.addEventListener('fetch', event => {
 
   // For Google Fonts (non-critical) — stale-while-revalidate
   if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  // For HTML pages / navigation requests → stale-while-revalidate (loads instantly, checks network in background)
+  if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
