@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v87)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v126)</span>
       </div>
     </div>
 
@@ -369,13 +369,10 @@
         // Skip rows that have a pending API call in progress
         if (pendingRows.has(entryRow.id)) return;
 
-        const arrivalCb = entryRow.querySelector('.arrival-checkbox');
-        const departureCb = entryRow.querySelector('.departure-checkbox') || entryRow.querySelector('.gone-home-checkbox');
-
         // In break view mode, time controls may not exist — use row data-* attributes instead
-        const name = departureCb ? departureCb.dataset.name : entryRow.dataset.name;
-        const role = departureCb ? departureCb.dataset.role : entryRow.dataset.role;
-        const dateStr = departureCb ? departureCb.dataset.date : entryRow.dataset.date;
+        const name = entryRow.dataset.name;
+        const role = entryRow.dataset.role;
+        const dateStr = entryRow.dataset.date;
         if (!name || !role || !dateStr) return;
         const key = `${name}|${role}|${dateStr}`;
         const data = signedOffKeys.get(key);
@@ -385,8 +382,8 @@
         const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
         const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
 
-        // Clear existing display spans and clear buttons across the whole row
-        entryRow.querySelectorAll('.arrival-time-display, .departure-time-display, .clear-time-btn').forEach(el => el.remove());
+        // Clear existing display spans across the whole row
+        entryRow.querySelectorAll('.arrival-time-display, .departure-time-display').forEach(el => el.remove());
 
         // If in hours view mode, we ONLY want to sync the running hours badge and nothing else!
         if (viewMode === 'hours') {
@@ -428,10 +425,7 @@
 
         if (data) {
           // Sync Arrival (Entry Mode Only)
-          if (isEntry && arrivalCb) {
-            arrivalCb.checked = !!data.arrivalTime;
-            const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
-            if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = data.arrivalTime ? 'none' : 'inline-flex';
+          if (isEntry) {
             if (arrivalTimeInput) {
               arrivalTimeInput.value = data.arrivalTime ? formatTimeForInput(data.arrivalTime) : '';
               updateTimeDisplay(arrivalTimeInput);
@@ -454,35 +448,17 @@
                 textNode.textContent = data.arrivalTime;
                 if (!span.childNodes[1]) span.appendChild(textNode);
                 span.style.display = '';
-
-                // Add clear button
-                let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-                if (!clearBtn) {
-                  clearBtn = document.createElement('span');
-                  clearBtn.className = 'clear-time-btn';
-                  clearBtn.title = 'Clear time';
-                  clearBtn.innerHTML = '✕';
-                  clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, entryRow.id);
-                  arrivalTimeWrapper.appendChild(clearBtn);
-                }
               } else {
                 arrivalTimeWrapper.classList.remove('has-value');
                 const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
                 if (triggerBtn) triggerBtn.style.display = 'flex';
                 const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
                 if (span) span.remove();
-                const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-                if (clearBtn) clearBtn.remove();
               }
             }
-          } else if (arrivalCb) {
-            arrivalCb.style.display = 'none';
           }
 
           // Sync Departure
-          if (departureCb) departureCb.checked = !!data.time;
-          const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
-          if (departureSwitchContainer) departureSwitchContainer.style.display = data.time ? 'none' : 'inline-flex';
           if (departureTimeInput) {
             departureTimeInput.value = data.time ? formatTimeForInput(data.time) : '';
             updateTimeDisplay(departureTimeInput);
@@ -506,51 +482,32 @@
               if (!span.childNodes[1]) span.appendChild(textNode);
               span.style.display = '';
               content.classList.add('strikethrough');
-
-              // Add clear button
-              let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-              if (!clearBtn) {
-                clearBtn = document.createElement('span');
-                clearBtn.className = 'clear-time-btn';
-                clearBtn.title = 'Clear time';
-                clearBtn.innerHTML = '✕';
-                clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, entryRow.id);
-                departureTimeWrapper.appendChild(clearBtn);
-              }
             } else {
               departureTimeWrapper.classList.remove('has-value');
               const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
               if (triggerBtn) triggerBtn.style.display = 'flex';
               const span = departureTimeWrapper.querySelector('.departure-time-display');
               if (span) span.remove();
-              const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-              if (clearBtn) clearBtn.remove();
               content.classList.remove('strikethrough');
             }
           }
         } else {
           // No sign-off data, ensure everything is unchecked and visible
-          if (arrivalCb) arrivalCb.checked = false;
-          if (departureCb) departureCb.checked = false;
           content.classList.remove('strikethrough');
-          const arrivalSwitchContainer = entryRow.querySelector('.arrival-switch');
-          const departureSwitchContainer = departureCb ? departureCb.closest('.switch-container') : null;
-          if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = isEntry ? 'inline-flex' : 'none';
-          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
 
           if (arrivalTimeWrapper) {
             arrivalTimeWrapper.classList.remove('has-value');
             const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = isEntry ? 'flex' : 'none';
-            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
+            const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
+            if (span) span.remove();
           }
           if (departureTimeWrapper) {
             departureTimeWrapper.classList.remove('has-value');
             const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
-            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
+            const span = departureTimeWrapper.querySelector('.departure-time-display');
+            if (span) span.remove();
             if (departureTimeInput) {
               departureTimeInput.value = '';
               updateTimeDisplay(departureTimeInput);
@@ -582,6 +539,29 @@
           hoursDisplay.innerHTML = `<span class="tag is-info is-medium" style="font-weight: 700; border-radius: 8px;">📊 ${res.hours} hrs <span style="font-size: 0.75rem; font-weight: 600; margin-left: 4px; opacity: 0.85;">(${res.rangeLabel})</span></span>`;
         }
       });
+    }
+
+    async function handleRoleClick(badge, name, role, dateStr, targetId) {
+      const row = document.getElementById(targetId);
+      if (!row) return;
+      const content = row.querySelector('.entry-content');
+      const isStrikethrough = content && content.classList.contains('strikethrough');
+
+      if (isStrikethrough) {
+        if (role.toLowerCase() === 'standby') {
+          // Standby check-in: update arrival to now, clear departure, erase column L
+          const now24 = new Date().toTimeString().slice(0, 5); // "HH:MM"
+          const nowAmPm = format24hToAmPm(now24);
+          await toggleArrival(true, name, role, dateStr, targetId, nowAmPm);
+          await toggleDeparture(false, name, role, dateStr, targetId);
+        } else {
+          // Tapping grey badge: wipe departure time
+          await toggleDeparture(false, name, role, dateStr, targetId);
+        }
+      } else {
+        // Tapping blue badge: checkout at current time
+        await toggleDeparture(true, name, role, dateStr, targetId);
+      }
     }
 
     function renderSkeletonLayout(dates) {
@@ -664,7 +644,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v70 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v126 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -722,13 +702,11 @@
       return `${h}:${m} ${ampm}`;
     }
 
-    async function toggleArrival(checkbox, name, role, dateStr, targetId) {
+    async function toggleArrival(isChecked, name, role, dateStr, targetId, manualTime = null) {
       const row = document.getElementById(targetId);
-      const content = row.querySelector('.entry-content');
+      if (!row) return;
       const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
       const arrivalTimeInput = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('input[type="time"]') : null;
-      const manualTime = (arrivalTimeInput && checkbox.checked) ? arrivalTimeInput.value : null;
-      const arrivalSwitchContainer = row.querySelector('.arrival-switch');
 
       // Store old state for rollback
       let oldSpanText = '';
@@ -739,13 +717,12 @@
         oldSpanText = existingArrivalDisplay.innerText;
       }
 
-      if (manualTime && checkbox.checked) {
+      if (isChecked && manualTime) {
         if (arrivalTimeWrapper) {
           arrivalTimeWrapper.classList.add('has-value');
           const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
           if (triggerBtn) triggerBtn.style.display = 'none';
         }
-        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'none';
 
         // Show optimistic span
         let span = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.arrival-time-display') : null;
@@ -763,38 +740,22 @@
           span.style.display = '';
           span.style.opacity = '0.5'; // Visual cue that it's saving
         }
-
-        // Show optimistic clear button
-        let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-        if (!clearBtn && arrivalTimeWrapper) {
-          clearBtn = document.createElement('span');
-          clearBtn.className = 'clear-time-btn';
-          clearBtn.title = 'Clear time';
-          clearBtn.innerHTML = '✕';
-          clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
-          arrivalTimeWrapper.appendChild(clearBtn);
-        }
-      } else {
+      } else if (!isChecked) {
         if (arrivalTimeWrapper) {
           arrivalTimeWrapper.classList.remove('has-value');
           const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
           if (triggerBtn) triggerBtn.style.display = 'flex';
           const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
           if (span) span.remove();
-          const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-          if (clearBtn) clearBtn.remove();
         }
-        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = 'inline-flex';
       }
 
       pendingRows.add(targetId);
       try {
-        const res = await callApi("toggleArrival", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
+        const res = await callApi("toggleArrival", { name, role, dateStr, isChecked, manualTime });
         
         let span = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.arrival-time-display') : null;
         if (span) span.remove();
-        let clearBtn = arrivalTimeWrapper ? arrivalTimeWrapper.querySelector('.clear-time-btn') : null;
-        if (clearBtn) clearBtn.remove();
 
         if (res.status && res.timestamp) {
           if (arrivalTimeWrapper) {
@@ -808,31 +769,22 @@
             span.innerHTML = '<span class="time-prefix">IN @ </span>';
             span.appendChild(document.createTextNode(res.timestamp));
             arrivalTimeWrapper.prepend(span);
-
-            // Add clear button
-            clearBtn = document.createElement('span');
-            clearBtn.className = 'clear-time-btn';
-            clearBtn.title = 'Clear time';
-            clearBtn.innerHTML = '✕';
-            clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
-            arrivalTimeWrapper.appendChild(clearBtn);
           }
           updateLocalCacheSignOff(dateStr, name, role, res.timestamp, undefined);
-        } else if (!res.status && arrivalTimeInput) {
+        } else if (!res.status) {
           if (arrivalTimeWrapper) {
             arrivalTimeWrapper.classList.remove('has-value');
             const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
-            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
           }
-          arrivalTimeInput.value = '';
-          updateTimeDisplay(arrivalTimeInput);
+          if (arrivalTimeInput) {
+            arrivalTimeInput.value = '';
+            updateTimeDisplay(arrivalTimeInput);
+          }
           updateLocalCacheSignOff(dateStr, name, role, "", undefined);
         }
       } catch (err) {
         alert("Arrival action failed: " + err.message);
-        checkbox.checked = !checkbox.checked;
 
         // Revert optimistic UI
         if (oldSpanExists) {
@@ -854,16 +806,6 @@
             if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
-
-            let clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-            if (!clearBtn) {
-              clearBtn = document.createElement('span');
-              clearBtn.className = 'clear-time-btn';
-              clearBtn.title = 'Clear time';
-              clearBtn.innerHTML = '✕';
-              clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'arrival', name, role, dateStr, targetId);
-              arrivalTimeWrapper.appendChild(clearBtn);
-            }
           }
         } else {
           if (arrivalTimeWrapper) {
@@ -872,25 +814,21 @@
             if (triggerBtn) triggerBtn.style.display = 'flex';
             const span = arrivalTimeWrapper.querySelector('.arrival-time-display');
             if (span) span.remove();
-            const clearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
           }
         }
-        if (arrivalSwitchContainer) arrivalSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
       }
     }
 
-    async function toggleDeparture(checkbox, name, role, dateStr, targetId) {
+    async function toggleDeparture(isChecked, name, role, dateStr, targetId, manualTime = null) {
       const row = document.getElementById(targetId);
+      if (!row) return;
       const content = row.querySelector('.entry-content');
       const departureTimeWrapper = row.querySelector('.departure-time-wrapper');
       const departureTimeInput = departureTimeWrapper ? departureTimeWrapper.querySelector('input[type="time"]') : null;
-      const manualTime = (departureTimeInput && checkbox.checked) ? departureTimeInput.value : null;
-      const departureSwitchContainer = checkbox.closest('.switch-container');
 
-      content.classList.toggle('strikethrough', checkbox.checked);
+      if (content) content.classList.toggle('strikethrough', isChecked);
 
       // Store old state for rollback
       let oldSpanText = '';
@@ -901,13 +839,12 @@
         oldSpanText = existingDepartureDisplay.innerText;
       }
 
-      if (manualTime && checkbox.checked) {
+      if (isChecked && manualTime) {
         if (departureTimeWrapper) {
           departureTimeWrapper.classList.add('has-value');
           const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
           if (triggerBtn) triggerBtn.style.display = 'none';
         }
-        if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
 
         // Show optimistic span inside wrapper
         let span = departureTimeWrapper ? departureTimeWrapper.querySelector('.departure-time-display') : null;
@@ -925,38 +862,22 @@
           span.style.display = '';
           span.style.opacity = '0.5'; // Visual cue that it's saving
         }
-
-        // Show optimistic clear button
-        let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-        if (!clearBtn && departureTimeWrapper) {
-          clearBtn = document.createElement('span');
-          clearBtn.className = 'clear-time-btn';
-          clearBtn.title = 'Clear time';
-          clearBtn.innerHTML = '✕';
-          clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
-          departureTimeWrapper.appendChild(clearBtn);
-        }
-      } else {
+      } else if (!isChecked) {
         if (departureTimeWrapper) {
           departureTimeWrapper.classList.remove('has-value');
           const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
           if (triggerBtn) triggerBtn.style.display = 'flex';
           const span = departureTimeWrapper.querySelector('.departure-time-display');
           if (span) span.remove();
-          const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-          if (clearBtn) clearBtn.remove();
         }
-        if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
       }
 
       pendingRows.add(targetId);
       try {
-        const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked: checkbox.checked, manualTime });
+        const res = await callApi("toggleSignOff", { name, role, dateStr, isChecked, manualTime });
         
         let span = departureTimeWrapper ? departureTimeWrapper.querySelector('.departure-time-display') : null;
         if (span) span.remove();
-        let clearBtn = departureTimeWrapper ? departureTimeWrapper.querySelector('.clear-time-btn') : null;
-        if (clearBtn) clearBtn.remove();
 
         if (res.status && res.timestamp) {
           if (departureTimeWrapper) {
@@ -970,72 +891,44 @@
             span.innerHTML = '<span class="time-prefix">OUT @ </span>';
             span.appendChild(document.createTextNode(res.timestamp));
             departureTimeWrapper.prepend(span);
-
-            // Add clear button
-            clearBtn = document.createElement('span');
-            clearBtn.className = 'clear-time-btn';
-            clearBtn.title = 'Clear time';
-            clearBtn.innerHTML = '✕';
-            clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
-            departureTimeWrapper.appendChild(clearBtn);
           }
-          if (departureSwitchContainer) departureSwitchContainer.style.display = 'none';
 
           if (res.arrivalTime) {
-            const arrivalCb = row.querySelector('.arrival-checkbox');
             const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
-            if (arrivalCb && !arrivalCb.checked) {
-              arrivalCb.checked = true;
-              if (arrivalTimeWrapper) {
-                arrivalTimeWrapper.classList.add('has-value');
-                const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
-                if (triggerBtn) triggerBtn.style.display = 'none';
+            if (arrivalTimeWrapper) {
+              arrivalTimeWrapper.classList.add('has-value');
+              const triggerBtn = arrivalTimeWrapper.querySelector('.time-trigger-btn');
+              if (triggerBtn) triggerBtn.style.display = 'none';
 
-                const existingArrivalDisplay = row.querySelector('.arrival-time-display');
-                if (existingArrivalDisplay) existingArrivalDisplay.remove();
+              const existingArrivalDisplay = row.querySelector('.arrival-time-display');
+              if (existingArrivalDisplay) existingArrivalDisplay.remove();
 
-                const aSpan = document.createElement('span');
-                aSpan.className = 'arrival-time-display clickable-time-display';
-                aSpan.title = 'Click to edit time';
-                aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
-                aSpan.appendChild(document.createTextNode(res.arrivalTime));
-                arrivalTimeWrapper.prepend(aSpan);
-
-                // Add clear button for auto-arrival
-                let aClearBtn = arrivalTimeWrapper.querySelector('.clear-time-btn');
-                if (!aClearBtn) {
-                  aClearBtn = document.createElement('span');
-                  aClearBtn.className = 'clear-time-btn';
-                  aClearBtn.title = 'Clear time';
-                  aClearBtn.innerHTML = '✕';
-                  aClearBtn.onclick = (e) => clearTimeInput(e, aClearBtn, 'arrival', name, role, dateStr, targetId);
-                  arrivalTimeWrapper.appendChild(aClearBtn);
-                }
-              }
-              const arrivalSwitch = row.querySelector('.arrival-switch');
-              if (arrivalSwitch) arrivalSwitch.style.display = 'none';
+              const aSpan = document.createElement('span');
+              aSpan.className = 'arrival-time-display clickable-time-display';
+              aSpan.title = 'Click to edit time';
+              aSpan.innerHTML = '<span class="time-prefix">IN @ </span>';
+              aSpan.appendChild(document.createTextNode(res.arrivalTime));
+              arrivalTimeWrapper.prepend(aSpan);
             }
             updateLocalCacheSignOff(dateStr, name, role, res.arrivalTime, res.timestamp);
           } else {
             updateLocalCacheSignOff(dateStr, name, role, undefined, res.timestamp);
           }
-        } else if (!res.status && departureTimeInput) {
+        } else if (!res.status) {
           if (departureTimeWrapper) {
             departureTimeWrapper.classList.remove('has-value');
             const triggerBtn = departureTimeWrapper.querySelector('.time-trigger-btn');
             if (triggerBtn) triggerBtn.style.display = 'flex';
-            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
           }
-          departureTimeInput.value = '';
-          updateTimeDisplay(departureTimeInput);
+          if (departureTimeInput) {
+            departureTimeInput.value = '';
+            updateTimeDisplay(departureTimeInput);
+          }
           updateLocalCacheSignOff(dateStr, name, role, undefined, "");
-          if (departureSwitchContainer) departureSwitchContainer.style.display = 'inline-flex';
         }
       } catch (err) {
         alert("Departure action failed: " + err.message);
-        checkbox.checked = !checkbox.checked;
-        content.classList.toggle('strikethrough', checkbox.checked);
+        if (content) content.classList.toggle('strikethrough', !isChecked);
 
         // Revert optimistic UI
         if (oldSpanExists) {
@@ -1057,16 +950,6 @@
             if (!span.childNodes[1]) span.appendChild(textNode);
             span.style.display = '';
             span.style.opacity = '';
-
-            let clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-            if (!clearBtn) {
-              clearBtn = document.createElement('span');
-              clearBtn.className = 'clear-time-btn';
-              clearBtn.title = 'Clear time';
-              clearBtn.innerHTML = '✕';
-              clearBtn.onclick = (e) => clearTimeInput(e, clearBtn, 'departure', name, role, dateStr, targetId);
-              departureTimeWrapper.appendChild(clearBtn);
-            }
           }
         } else {
           if (departureTimeWrapper) {
@@ -1075,11 +958,8 @@
             if (triggerBtn) triggerBtn.style.display = 'flex';
             const span = departureTimeWrapper.querySelector('.departure-time-display');
             if (span) span.remove();
-            const clearBtn = departureTimeWrapper.querySelector('.clear-time-btn');
-            if (clearBtn) clearBtn.remove();
           }
         }
-        if (departureSwitchContainer) departureSwitchContainer.style.display = checkbox.checked ? 'none' : 'inline-flex';
       } finally {
         pendingRows.delete(targetId);
       }
@@ -1095,8 +975,6 @@
       }
     }
 
-
-
     async function saveTimeInput(input, type, name, role, dateStr, targetId) {
       const originalValue = input.dataset.originalValue || "";
       const newValue = input.value || "";
@@ -1111,24 +989,17 @@
       const row = document.getElementById(targetId);
       if (!row) return;
 
-      const checkbox = row.querySelector(type === 'arrival' ? '.arrival-checkbox' : '.departure-checkbox');
-      if (!checkbox) return;
-
       if (newValue === "") {
-        if (checkbox.checked) {
-          checkbox.checked = false;
-          if (type === 'arrival') {
-            await toggleArrival(checkbox, name, role, dateStr, targetId);
-          } else {
-            await toggleDeparture(checkbox, name, role, dateStr, targetId);
-          }
+        if (type === 'arrival') {
+          await toggleArrival(false, name, role, dateStr, targetId);
+        } else {
+          await toggleDeparture(false, name, role, dateStr, targetId);
         }
       } else {
-        checkbox.checked = true;
         if (type === 'arrival') {
-          await toggleArrival(checkbox, name, role, dateStr, targetId);
+          await toggleArrival(true, name, role, dateStr, targetId, newValue);
         } else {
-          await toggleDeparture(checkbox, name, role, dateStr, targetId);
+          await toggleDeparture(true, name, role, dateStr, targetId, newValue);
         }
       }
     }
@@ -1268,7 +1139,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v70 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v126 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -1400,7 +1271,7 @@
           return `
                 <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="num-badge">${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
+                    <span class="num-badge ${isToday ? 'clickable-badge' : ''}" ${isToday ? `onclick="handleRoleClick(this, '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"` : ''}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
                     ${getContactBadgeHtml(name, day, dayIdx)}
                     ${!isHome && canTransfer(name) ? `
                       ${day.coverageOverrides && day.coverageOverrides[name] ? `
@@ -1426,7 +1297,6 @@
                         <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                           ${(off && off.arrivalTime) ? `
                             <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
-                            <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'arrival', '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">✕</span>
                           ` : `
                             <div class="time-trigger-btn">🏥</div>
                           `}
@@ -1438,18 +1308,10 @@
                                  onblur="handleTimeInputBlur(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
                                  onchange="handleTimeInputChange(this, 'arrival', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                         </div>
-                        <label class="switch-container arrival-switch" style="${(off && off.arrivalTime) ? 'display:none' : 'display:inline-flex'}">
-                          <input type="checkbox" class="switch-input arrival-checkbox" 
-                              data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                              ${off && off.arrivalTime ? 'checked' : ''} 
-                              onchange="toggleArrival(this, '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
-                          <span class="switch-track"><span class="switch-thumb"></span></span>
-                        </label>
                       ` : ''}
                       <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                           ${(off && off.time) ? `
                             <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
-                            <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'departure', '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">✕</span>
                           ` : `
                             <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                           `}
@@ -1461,13 +1323,6 @@
                                  onblur="handleTimeInputBlur(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"
                                  onchange="handleTimeInputChange(this, 'departure', '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
                       </div>
-                      <label class="switch-container" style="${(off && off.time) ? 'display:none' : 'display:inline-flex'}">
-                        <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
-                          data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                          ${off && off.time ? 'checked' : ''} 
-                          onchange="toggleDeparture(this, '${name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')">
-                        <span class="switch-track"><span class="switch-thumb"></span></span>
-                      </label>
                     </div>` : ''}
                   ${isToday && viewMode === 'break' ? `
                     <div class="break-lunch-controls">
@@ -1502,8 +1357,7 @@
             ${(() => {
               const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
               const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-              const showStandbyFeature = isNextWorkday && hasTracker;
-              const assignmentsHtml = day.numbered.length 
+                 const assignmentsHtml = day.numbered.length 
                 ? `
                   ${day.numbered.map((e, i) => {
                     const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
@@ -1513,7 +1367,7 @@
                     return `
                     <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}">
                       <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                        <span class="num-badge">${e.num}</span>
+                        <span class="num-badge ${isToday ? 'clickable-badge' : ''}" ${isToday ? `onclick="handleRoleClick(this, '${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-num-${i}')"` : ''}>${e.num}</span>
                         ${getContactBadgeHtml(e.name, day, dayIdx)}
                         ${!isHome && canTransfer(e.name) ? `
                           ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
@@ -1539,7 +1393,6 @@
                             <div class="time-input-wrapper arrival-time-wrapper ${off && off.arrivalTime ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                               ${(off && off.arrivalTime) ? `
                                 <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
-                                <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'arrival', '${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-num-${i}')">✕</span>
                               ` : `
                                 <div class="time-trigger-btn">🏥</div>
                               `}
@@ -1551,18 +1404,10 @@
                                      onblur="handleTimeInputBlur(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
                                      onchange="handleTimeInputChange(this, 'arrival', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                             </div>
-                            <label class="switch-container arrival-switch" style="${(off && off.arrivalTime) ? 'display:none' : 'display:inline-flex'}">
-                              <input type="checkbox" class="switch-input arrival-checkbox" 
-                                  data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                                  ${off && off.arrivalTime ? 'checked' : ''} 
-                                  onchange="toggleArrival(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
-                              <span class="switch-track"><span class="switch-thumb"></span></span>
-                            </label>
                           ` : ''}
                           <div class="time-input-wrapper departure-time-wrapper ${off && off.time ? 'has-value' : ''}" style="display:flex" onclick="forcePicker(this)">
                               ${(off && off.time) ? `
                                 <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
-                                <span class="clear-time-btn" title="Clear time" onclick="clearTimeInput(event, this, 'departure', '${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-num-${i}')">✕</span>
                               ` : `
                                 <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
                               `}
@@ -1574,13 +1419,6 @@
                                      onblur="handleTimeInputBlur(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')"
                                      onchange="handleTimeInputChange(this, 'departure', '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
                           </div>
-                          <label class="switch-container" style="${(off && off.time) ? 'display:none' : 'display:inline-flex'}">
-                            <input type="checkbox" class="switch-input ${isEntry ? 'departure-checkbox' : 'gone-home-checkbox'}" 
-                              data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}"
-                              ${off && off.time ? 'checked' : ''} 
-                              onchange="toggleDeparture(this, '${e.name}', '${activeRole}', '${day.dateStr}', 'row-${dateId}-num-${i}')">
-                            <span class="switch-track"><span class="switch-thumb"></span></span>
-                          </label>
                         </div>` : ''}
                       ${isToday && viewMode === 'break' ? `
                         <div class="break-lunch-controls">
@@ -2110,7 +1948,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=125')
+          navigator.serviceWorker.register('./sw.js?v=126')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
