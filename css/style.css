@@ -433,13 +433,19 @@ input[type="date"],
 /* Time inputs and clocks */
 .time-input-wrapper {
   position: relative;
-  width: 36px;
+  width: 96px;
   height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   user-select: none !important;
   -webkit-user-select: none !important;
+}
+.time-input-wrapper .arrival-time-display,
+.time-input-wrapper .departure-time-display {
+  width: 100%;
+  text-align: center;
+  margin-left: 0 !important;
 }
 
 .time-trigger-btn {
@@ -456,7 +462,8 @@ input[type="date"],
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.88rem; /* slightly adjusted for label text */
+  font-weight: 600;
   transition: background 0.2s ease;
 }
 
@@ -481,7 +488,6 @@ input[type="date"],
 }
 
 .time-input-wrapper.has-value {
-  width: auto;
   height: auto;
   position: relative;
   display: inline-flex;
@@ -679,7 +685,7 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-blue);
-  width: 110px;
+  width: 96px;
   text-align: center;
 }
 
@@ -689,7 +695,7 @@ input[type="date"],
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-emerald);
-  width: 66px;
+  width: 96px;
   text-align: center;
 }
 
@@ -738,6 +744,7 @@ input[type="date"],
 
   .entry-page .controls-wrapper {
     margin-left: auto;
+    min-width: 172px;
     width: auto;
     justify-content: flex-end;
     gap: 12px;
@@ -759,12 +766,12 @@ input[type="date"],
   }
 
   .time-input-wrapper {
-    width: 34px;
+    width: 80px;
     height: 28px;
   }
 
   .time-trigger-btn {
-    font-size: 1.2rem;
+    font-size: 0.8rem;
   }
 
 
@@ -774,21 +781,19 @@ input[type="date"],
   }
 
 
-  /* Mobile: IN/OUT label widths match the mobile controls-wrapper geometry.
-     emoji=34px switch=36px gap=12px → in=110px gap=12px out=54px = 176px total */
+  /* Mobile: IN/OUT label widths match the mobile controls-wrapper geometry. */
   .in-out-pin-row {
     gap: 12px;
     margin-left: auto;
   }
 
   .in-pin-label {
-    width: 110px;
+    width: 80px;
     font-size: 0.85rem;
-    transform: translateX(-10px);
   }
 
   .out-pin-label {
-    width: 54px;
+    width: 80px;
     font-size: 0.85rem;
   }
 

@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v126)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v127)</span>
       </div>
     </div>
 
@@ -644,7 +644,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v126 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v127 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1139,7 +1139,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v126 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v127 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -1298,7 +1298,7 @@
                           ${(off && off.arrivalTime) ? `
                             <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
                           ` : `
-                            <div class="time-trigger-btn">🏥</div>
+                            <div class="time-trigger-btn">🏥 IN</div>
                           `}
                           <input type="time" class="input is-small arrival-time-input" 
                                  value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
@@ -1313,7 +1313,7 @@
                           ${(off && off.time) ? `
                             <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
                           ` : `
-                            <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                            <div class="time-trigger-btn">${isEntry ? '🏠 OUT' : '⏰ OUT'}</div>
                           `}
                           <input type="time" class="input is-small departure-time-input" 
                                  value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
@@ -1344,8 +1344,13 @@
               ` : '<p class="italic-grey py-2">No LSC staff assigned</p>'}
             </div>
 
-            <div class="section-title">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
               <span>LMH</span>
+              ${isToday && viewMode === 'time' && day.numbered.length ? `
+              <div class="in-out-pin-row" style="margin-bottom: 0;">
+                <span class="in-pin-label">IN</span>
+                <span class="out-pin-label">OUT</span>
+              </div>` : ''}
             </div>
             ${day.activePhones && day.activePhones.some(ap => ap.group === 'hosp') ? `
             <div class="mb-3" style="display: flex; justify-content: flex-start;">
@@ -1395,7 +1400,7 @@
                               ${(off && off.arrivalTime) ? `
                                 <span class="arrival-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>
                               ` : `
-                                <div class="time-trigger-btn">🏥</div>
+                                <div class="time-trigger-btn">🏥 IN</div>
                               `}
                               <input type="time" class="input is-small arrival-time-input" 
                                      value="${off && off.arrivalTime ? formatAmPmTo24h(off.arrivalTime) : ''}"
@@ -1410,7 +1415,7 @@
                               ${(off && off.time) ? `
                                 <span class="departure-time-display clickable-time-display" title="Click to edit time"><span class="time-prefix">OUT @ </span>${off.time}</span>
                               ` : `
-                                <div class="time-trigger-btn">${isEntry ? '🏠' : '⏰'}</div>
+                                <div class="time-trigger-btn">${isEntry ? '🏠 OUT' : '⏰ OUT'}</div>
                               `}
                               <input type="time" class="input is-small departure-time-input" 
                                      value="${off && off.time ? formatAmPmTo24h(off.time) : ''}"
@@ -1949,7 +1954,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=126')
+          navigator.serviceWorker.register('./sw.js?v=127')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
