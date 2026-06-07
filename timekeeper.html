@@ -2028,11 +2028,14 @@
       }
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const label = groupType === 'lsc' ? 'LSC' : 'LMH';
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const bodyText = `${label} - ${dateStr} @ ${timeStr}\n`;
       let url;
       if (isIOS) {
-        url = `sms:open?addresses=${uniqueNumbers.join(',')}`;
+        url = `sms:open?addresses=${uniqueNumbers.join(',')}&body=${encodeURIComponent(bodyText)}`;
       } else {
-        url = `sms:${uniqueNumbers.join(',')}`;
+        url = `sms:${uniqueNumbers.join(',')}?body=${encodeURIComponent(bodyText)}`;
       }
       window.location.href = url;
     }
