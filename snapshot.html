@@ -2132,7 +2132,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=128')
+          navigator.serviceWorker.register('./sw.js?v=129')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
