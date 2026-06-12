@@ -243,6 +243,7 @@ h3,
     background: rgba(79, 70, 229, 0.12);
     border: 1px solid rgba(79, 70, 229, 0.3);
   }
+
   .contact-badge:hover {
     background: rgba(79, 70, 229, 0.25);
   }
@@ -441,6 +442,7 @@ input[type="date"],
   user-select: none !important;
   -webkit-user-select: none !important;
 }
+
 .time-input-wrapper .arrival-time-display,
 .time-input-wrapper .departure-time-display {
   width: 100%;
@@ -516,15 +518,18 @@ input[type="date"],
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(244, 63, 94, 0.15); /* Subtle rose background */
-  color: #fda4af;                      /* Rose text/icon */
+  background: rgba(244, 63, 94, 0.15);
+  /* Subtle rose background */
+  color: #fda4af;
+  /* Rose text/icon */
   border: 1px solid rgba(244, 63, 94, 0.3);
   font-size: 0.65rem;
   font-weight: bold;
   cursor: pointer;
   margin-left: 6px;
   transition: all 0.2s ease;
-  z-index: 10;                         /* Sits above the invisible input */
+  z-index: 10;
+  /* Sits above the invisible input */
   position: relative;
 }
 
@@ -540,6 +545,7 @@ input[type="date"],
     color: #e11d48;
     border: 1px solid rgba(225, 29, 72, 0.25);
   }
+
   .clear-time-btn:hover {
     background: rgba(225, 29, 72, 0.25);
     color: #ffffff;
@@ -901,8 +907,8 @@ input[type="date"],
 
 /* Active state for OB button - baby pink background with baby blue text */
 .break-lunch-controls button.btn-ob.active {
-  background-color: rgba(251, 113, 133, 0.22) !important;
-  border-color: rgba(251, 113, 133, 0.5) !important;
+  background-color: rgba(251, 113, 133, 0.45) !important;
+  border-color: rgba(251, 113, 133, 0.8) !important;
   color: #93c5fd !important;
   box-shadow: 0 0 10px rgba(251, 113, 133, 0.15);
 }
@@ -1313,7 +1319,8 @@ input[type="date"],
   #standby-tracker-modal .table tbody tr:nth-child(even) {
     background-color: rgba(15, 23, 42, 0.02) !important;
   }
+
   #standby-tracker-modal .table tbody tr.is-top-3 {
     background-color: rgba(79, 70, 229, 0.08) !important;
   }
-}
+}

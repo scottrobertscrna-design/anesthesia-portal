@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v132)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v134)</span>
       </div>
     </div>
 
@@ -620,7 +620,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v132 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v134 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -858,7 +858,7 @@
 
     function getContactBadgeHtml(name, day, dayIdx) {
       if (!day || !day.activePhones || !name) return `<span class="has-text-weight-bold">${name}</span>`;
-      
+
       const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
       if (cleanTarget === 'none assigned' || cleanTarget === 'not found' || cleanTarget === 'none' || cleanTarget === '') {
         return `<span class="has-text-weight-bold">${name}</span>`;
@@ -881,7 +881,7 @@
       if (isScrolling) return;
       const day = cachedDaysList[dayIdx];
       if (!day || !day.activePhones) return;
-      
+
       const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
       const phoneEntry = day.activePhones.find(ap => {
         const cleanAp = ap.name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
@@ -895,7 +895,7 @@
 
       document.getElementById('contact-modal-title').innerText = `Contact ${name}`;
       document.getElementById('contact-modal-phone').innerText = phoneEntry.phone;
-      
+
       const cleanPhone = phoneEntry.phone.replace(/[^0-9+]/g, '');
 
       document.getElementById('contact-link-text').href = `sms:${cleanPhone}`;
@@ -922,7 +922,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v132 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v134 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -971,15 +971,15 @@
                 ${isToday ? `
                 <div class="break-lunch-controls">
                   ${(() => {
-                    const obVal = blState[`${day.docs.ac}|MD Call`]?.ob;
-                    const isActive = !!obVal;
-                    const obStartAttr = (isActive && typeof obVal === 'string') ? `data-ob-start="${obVal}"` : '';
-                    return `
+            const obVal = blState[`${day.docs.ac}|MD Call`]?.ob;
+            const isActive = !!obVal;
+            const obStartAttr = (isActive && typeof obVal === 'string') ? `data-ob-start="${obVal}"` : '';
+            return `
                     <button class="btn-ob ${isActive ? 'active' : ''}" ${obStartAttr} onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
                       <span class="btn-icon">👶</span> <span class="btn-text">OB</span><span class="btn-timer"></span>
                     </button>
                     `;
-                  })()}
+          })()}
                 </div>` : ''}
               </div>
               ${!isWeekend ? `
@@ -1106,30 +1106,30 @@
             </div>
             ` : ''}
             ${(() => {
-              const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
-              const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
-              const showStandbyFeature = isNextWorkday && hasTracker;
+            const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
+            const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
+            const showStandbyFeature = isNextWorkday && hasTracker;
 
-              // Filter out MD Locum rows where the cell value is a non-assignment word
-              const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
-              const filteredNumbered = day.numbered.filter(e => {
-                if (e.num === 'MD Locum') {
-                  return !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim());
-                }
-                return true;
-              });
+            // Filter out MD Locum rows where the cell value is a non-assignment word
+            const NON_ASSIGNMENTS = ['holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
+            const filteredNumbered = day.numbered.filter(e => {
+              if (e.num === 'MD Locum') {
+                return !NON_ASSIGNMENTS.includes(e.name.toLowerCase().trim());
+              }
+              return true;
+            });
 
-              const assignmentsHtml = filteredNumbered.length === 0 
-                ? '<p class="italic-grey py-2">No numbered shifts assigned</p>' 
-                : filteredNumbered.map((e, i) => {
-                    const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
-                    const off = getSignOff(e.name, activeRole);
-                    const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
-                    const isHome = !!(off && off.time);
-                    const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
-                    const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
-                    const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
-                    return `
+            const assignmentsHtml = filteredNumbered.length === 0
+              ? '<p class="italic-grey py-2">No numbered shifts assigned</p>'
+              : filteredNumbered.map((e, i) => {
+                const activeRole = (day.coverageOverrides && day.coverageOverrides[e.name]) ? day.coverageOverrides[e.name] : e.num;
+                const off = getSignOff(e.name, activeRole);
+                const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
+                const isHome = !!(off && off.time);
+                const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
+                const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
+                const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
+                return `
                     <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                       <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                         <span class="${badgeClass}" ${badgeOnClick}>${e.num}</span>
@@ -1162,19 +1162,19 @@
                         </button>
                       </div>` : ''}
                     </div>`;
-                  }).join('');
+              }).join('');
 
-              if (showStandbyFeature) {
-                const standbyHtml = renderStandbyListForDay(day);
+            if (showStandbyFeature) {
+              const standbyHtml = renderStandbyListForDay(day);
 
-                const trackerBtnHtml = `
+              const trackerBtnHtml = `
                   <div style="padding: 8px 0 4px 0;">
                     <button onclick="openStandbyTrackerModal('${dateId}')" style="width: 100%; padding: 7px 0; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: var(--accent-indigo); transition: all 0.2s;" onmouseover="this.style.background='rgba(129,140,248,0.13)'; this.style.borderColor='var(--accent-indigo)';" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.12)';">
                       🛡️ View Full Standby Tracker
                     </button>
                   </div>`;
 
-                return `
+              return `
                 <div class="columns is-mobile" style="margin: 0; width: 100%;">
                   <div class="column is-6" style="padding: 0 15px 0 0; border-right: 1px solid rgba(255,255,255,0.06);">
                     ${assignmentsHtml}
@@ -1193,10 +1193,10 @@
                   </div>
                 </div>
                 `;
-              } else {
-                return `<div>${assignmentsHtml}</div>`;
-              }
-            })()}
+            } else {
+              return `<div>${assignmentsHtml}</div>`;
+            }
+          })()}
             </div>`;
       }
 
@@ -1632,7 +1632,7 @@
         if (punchText) punchText.innerText = err.message;
         clockInBtn.style.display = "inline-flex";
         clockOutBtn.style.display = "none";
-        
+
         clockInBtn.disabled = false;
         clockOutBtn.disabled = false;
         otPicker.disabled = false;
@@ -1904,7 +1904,7 @@
       const checkAssigned = (entry) => {
         return !!(entry && dayMD && entry.dates && entry.dates.some(d => {
           const dp = d.split('/');
-          return dp.length >= 2 && parseInt(dp[0],10) + '/' + parseInt(dp[1],10) === dayMD;
+          return dp.length >= 2 && parseInt(dp[0], 10) + '/' + parseInt(dp[1], 10) === dayMD;
         }));
       };
 
@@ -2742,24 +2742,31 @@
      ============================================================ -->
   <div id="contact-modal" class="modal">
     <div class="modal-background" onclick="closeContactModal()"></div>
-    <div class="modal-card" style="max-width: 320px; width: 90%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);">
-      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 12px 16px;">
+    <div class="modal-card"
+      style="max-width: 320px; width: 90%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);">
+      <header class="modal-card-head"
+        style="background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 12px 16px;">
         <p class="modal-card-title has-text-weight-bold" id="contact-modal-title"
           style="font-size: 1.1rem; color: var(--text-main) !important;"></p>
         <button class="delete" aria-label="close" onclick="closeContactModal()"></button>
       </header>
       <section class="modal-card-body" id="contact-modal-body"
         style="background: var(--bg-gradient); padding: 20px; color: var(--text-main); display: flex; flex-direction: column; gap: 12px;">
-        <div id="contact-modal-phone" style="text-align: center; font-size: 1.25rem; font-weight: 700; color: var(--accent-indigo); margin-bottom: 8px;"></div>
-        
+        <div id="contact-modal-phone"
+          style="text-align: center; font-size: 1.25rem; font-weight: 700; color: var(--accent-indigo); margin-bottom: 8px;">
+        </div>
+
         <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-          <a id="contact-link-text" href="#" class="button is-link is-fullwidth" style="height: 44px; font-weight: 700; border-radius: 8px;">
+          <a id="contact-link-text" href="#" class="button is-link is-fullwidth"
+            style="height: 44px; font-weight: 700; border-radius: 8px;">
             💬 Text Message
           </a>
-          <a id="contact-link-call" href="#" class="button is-success is-fullwidth" style="height: 44px; font-weight: 700; border-radius: 8px; background-color: #10b981;">
+          <a id="contact-link-call" href="#" class="button is-success is-fullwidth"
+            style="height: 44px; font-weight: 700; border-radius: 8px; background-color: #10b981;">
             📞 Phone Call
           </a>
-          <button class="button is-light is-fullwidth" onclick="closeContactModal()" style="height: 40px; font-weight: 600; border-radius: 8px; margin-top: 4px;">
+          <button class="button is-light is-fullwidth" onclick="closeContactModal()"
+            style="height: 40px; font-weight: 600; border-radius: 8px; margin-top: 4px;">
             Cancel
           </button>
         </div>
