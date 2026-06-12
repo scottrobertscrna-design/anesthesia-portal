@@ -907,6 +907,16 @@ input[type="date"],
   box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
 }
 
+.break-lunch-controls button .btn-timer {
+  font-size: 0.8rem;
+  opacity: 0.95;
+  font-weight: 700;
+}
+
+.break-lunch-controls button .btn-timer:not(:empty) {
+  margin-left: 4px;
+}
+
 /* Disabled state when provider went home */
 .break-lunch-controls.disabled {
   opacity: 0.45;
@@ -954,6 +964,21 @@ input[type="date"],
 
   .break-lunch-controls button .btn-icon {
     font-size: 1.35rem;
+  }
+
+  .break-lunch-controls button .btn-timer {
+    display: none;
+  }
+
+  .break-lunch-controls button.btn-ob.active {
+    min-width: 82px;
+  }
+
+  .break-lunch-controls button.btn-ob.active .btn-timer {
+    display: inline-block;
+    font-size: 0.72rem;
+    margin-left: 4px;
+    font-weight: 700;
   }
 
   /* Mobile responsiveness for text header labels */

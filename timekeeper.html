@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v130)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v131)</span>
       </div>
     </div>
 
@@ -310,6 +310,15 @@
         btn.classList.remove('is-loading');
         if (res && res.success) {
           btn.classList.toggle('active', isChecked);
+          if (type === 'ob') {
+            const obVal = (res.state && res.state.ob) || (isChecked ? new Date().toISOString() : false);
+            if (isChecked && typeof obVal === 'string') {
+              btn.dataset.obStart = obVal;
+            } else {
+              delete btn.dataset.obStart;
+            }
+            updateObTimers();
+          }
           showToast("Status updated successfully!", "success");
           if (cachedDaysList) {
             const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
@@ -317,9 +326,9 @@
               if (!day.breakLunchStates) day.breakLunchStates = {};
               const blKey = `${name}|${role}`;
               if (!day.breakLunchStates[blKey]) {
-                day.breakLunchStates[blKey] = { break: false, lunch: false };
+                day.breakLunchStates[blKey] = { break: false, lunch: false, ob: false };
               }
-              day.breakLunchStates[blKey][type] = isChecked;
+              day.breakLunchStates[blKey][type] = (type === 'ob' && isChecked) ? (res.state && res.state.ob) || new Date().toISOString() : isChecked;
             }
             cachedData = cachedDaysList.filter(d => d !== null);
           }
@@ -331,6 +340,34 @@
         showToast("Action failed: " + err.message);
       }
     }
+
+    function updateObTimers() {
+      document.querySelectorAll('.btn-ob').forEach(btn => {
+        const startStr = btn.dataset.obStart;
+        const timerSpan = btn.querySelector('.btn-timer');
+        if (!timerSpan) return;
+
+        if (startStr && btn.classList.contains('active')) {
+          const start = new Date(startStr);
+          const diffMs = new Date() - start;
+          const diffMins = Math.floor(diffMs / 60000);
+          if (diffMins < 0) {
+            timerSpan.textContent = '(0m)';
+          } else if (diffMins < 60) {
+            timerSpan.textContent = `(${diffMins}m)`;
+          } else {
+            const hrs = Math.floor(diffMins / 60);
+            const mins = diffMins % 60;
+            timerSpan.textContent = `(${hrs}h ${mins}m)`;
+          }
+        } else {
+          timerSpan.textContent = '';
+        }
+      });
+    }
+
+    // Run dynamic timer updater every 30 seconds
+    setInterval(updateObTimers, 30000);
 
     window.onload = () => {
       const picker = document.getElementById('entry-date-picker');
@@ -348,7 +385,23 @@
     };
 
     // Poll for updates every 30 seconds
-    setInterval(pollSignOffs, 30000);
+    setInterval(async () => {
+      await pollSignOffs();
+      updateObTimers();
+    }, 30000);
+
+    // Auto-sync instantly when PWA is reopened/refocused or phone is unlocked
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        pollSignOffs();
+        updateObTimers();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      pollSignOffs();
+      updateObTimers();
+    });
 
     async function pollSignOffs() {
       try {
@@ -438,7 +491,15 @@
             if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
 
             const btnOb = blControls.querySelector('.btn-ob');
-            if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
+            if (btnOb) {
+              const isActive = !!bl.ob;
+              btnOb.classList.toggle('active', isActive);
+              if (isActive && typeof bl.ob === 'string') {
+                btnOb.dataset.obStart = bl.ob;
+              } else {
+                delete btnOb.dataset.obStart;
+              }
+            }
           }
           if (data && data.time) {
             content.classList.add('strikethrough');
@@ -553,7 +614,15 @@
             if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
 
             const btnOb = blControls.querySelector('.btn-ob');
-            if (btnOb) btnOb.classList.toggle('active', !!bl.ob);
+            if (btnOb) {
+              const isActive = !!bl.ob;
+              btnOb.classList.toggle('active', isActive);
+              if (isActive && typeof bl.ob === 'string') {
+                btnOb.dataset.obStart = bl.ob;
+              } else {
+                delete btnOb.dataset.obStart;
+              }
+            }
           }
         }
 
@@ -666,11 +735,12 @@
 
         await Promise.all(fetchPromises);
         cachedData = cachedDaysList.filter(d => d !== null);
+        updateObTimers();
 
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v130 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v131 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1168,7 +1238,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v130 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v131 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -1216,9 +1286,16 @@
                 </div>
                 ${isToday ? `
                 <div class="break-lunch-controls">
-                  <button class="btn-ob ${blState[`${day.docs.ac}|MD Call`]?.ob ? 'active' : ''}" onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
-                    <span class="btn-icon">👶</span> <span class="btn-text">OB</span>
-                  </button>
+                  ${(() => {
+                    const obVal = blState[`${day.docs.ac}|MD Call`]?.ob;
+                    const isActive = !!obVal;
+                    const obStartAttr = (isActive && typeof obVal === 'string') ? `data-ob-start="${obVal}"` : '';
+                    return `
+                    <button class="btn-ob ${isActive ? 'active' : ''}" ${obStartAttr} onclick="toggleBreakLunch(this, '${day.docs.ac}', 'MD Call', '${day.dateStr}', 'ob')">
+                      <span class="btn-icon">👶</span> <span class="btn-text">OB</span><span class="btn-timer"></span>
+                    </button>
+                    `;
+                  })()}
                 </div>` : ''}
               </div>
               ${!isWeekend ? `
