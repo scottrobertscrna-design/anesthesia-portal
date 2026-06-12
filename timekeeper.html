@@ -692,39 +692,42 @@
         const picker = document.getElementById('entry-date-picker');
         const activeDate = customDate || (picker ? picker.value : '');
 
-        const dates = await callApi("getPortalActiveDates", { customDateStr: activeDate });
-        renderSkeletonLayout(dates);
+        // Render skeleton instantly based on local date calculations
+        const localDates = getLocalActiveDates(activeDate);
+        renderSkeletonLayout(localDates);
 
+        // Fetch all data in a single batch request
+        const initData = await callApi("getPortalInitData", { customDateStr: activeDate, forceRefresh: forceRefresh });
+        const dates = initData.dates;
+        const daysData = initData.daysData;
+
+        // Extract and combine sign-offs for hours calculation
+        allSignOffsList = [];
+        daysData.forEach(d => {
+          if (d && d.signOffs) {
+            allSignOffsList.push(...d.signOffs);
+          }
+        });
+
+        // Render the actual data
         cachedDaysList = new Array(dates.length).fill(null);
-
-        const updatePromise = callApi("getSnapshotPollUpdate", { dateStr: activeDate })
-          .then(update => { allSignOffsList = update.signOffs || []; });
-
-        const fetchPromises = dates.map(async (d, idx) => {
-          try {
-            const dayData = await callApi("getDailySnapshotDataForDate", {
-              isoDateStr: d.isoDateStr,
-              viewTitle: d.viewTitle,
-              viewType: d.viewType,
-              isEditable: d.isEditable,
-              forceRefresh: forceRefresh
-            });
-
+        dates.forEach((d, idx) => {
+          const dayData = daysData[idx];
+          if (dayData && !dayData.error) {
             cachedDaysList[idx] = dayData;
-            await updatePromise;
-
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = renderDay(dayData, idx);
             }
-          } catch (dayErr) {
-            console.error(`Failed to load date ${d.dateStr}:`, dayErr);
+          } else {
+            const errorMsg = (dayData && dayData.error) || "Unknown backend error";
+            console.error(`Failed to load date ${d.dateStr}:`, errorMsg);
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = `
                 <div class="notification is-danger" style="margin-bottom: 0;">
                   <strong>Failed to load ${d.viewTitle}</strong>
-                  <div style="font-size: 0.8rem; margin-top: 5px;">${dayErr.message}</div>
+                  <div style="font-size: 0.8rem; margin-top: 5px;">${errorMsg}</div>
                 </div>`;
             }
           }
@@ -733,7 +736,6 @@
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-        await Promise.all(fetchPromises);
         cachedData = cachedDaysList.filter(d => d !== null);
         updateObTimers();
 

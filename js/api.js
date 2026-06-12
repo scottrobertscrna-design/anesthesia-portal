@@ -83,3 +83,70 @@ function showToast(message, type = 'danger') {
   }, 4000);
 }
 
+/**
+ * Computes active dates locally on the client to render skeleton layout instantly.
+ */
+function getLocalActiveDates(customDateStr) {
+  let today = new Date();
+  if (customDateStr) {
+    const parts = customDateStr.split('-');
+    today = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  }
+  today.setHours(0, 0, 0, 0);
+
+  const realToday = new Date();
+  realToday.setHours(0, 0, 0, 0);
+  const isRealTodaySelected = (today.getTime() === realToday.getTime());
+
+  const dayOfWeek = today.getDay();
+  const dates = [];
+
+  const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const makeDateObj = (date, label, type, isEditable) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    
+    return {
+      dateStr: `${weekdays[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`,
+      isoDateStr: `${yyyy}-${mm}-${dd}`,
+      viewTitle: label,
+      viewType: type,
+      isEditable: !!isEditable
+    };
+  };
+
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+    // Mon-Thu: Today + Tomorrow
+    dates.push(makeDateObj(today, isRealTodaySelected ? "TODAY" : "SELECTED DATE", "FULL", true));
+    const next = new Date(today);
+    next.setDate(today.getDate() + 1);
+    dates.push(makeDateObj(next, "NEXT WORKDAY", "FULL", false));
+  } else if (dayOfWeek === 5) {
+    // Fri: Today (Fri), Sat, Sun, Mon
+    dates.push(makeDateObj(today, isRealTodaySelected ? "TODAY" : "SELECTED DATE", "FULL", true));
+    const sat = new Date(today); sat.setDate(today.getDate() + 1);
+    dates.push(makeDateObj(sat, "SATURDAY", "WEEKEND", false));
+    const sun = new Date(today); sun.setDate(today.getDate() + 2);
+    dates.push(makeDateObj(sun, "SUNDAY", "WEEKEND", false));
+    const mon = new Date(today); mon.setDate(today.getDate() + 3);
+    dates.push(makeDateObj(mon, "MONDAY", "FULL", false));
+  } else if (dayOfWeek === 6) {
+    // Sat: Sat, Sun, Mon
+    dates.push(makeDateObj(today, isRealTodaySelected ? "SATURDAY" : "SELECTED DATE", "WEEKEND", true));
+    const sun = new Date(today); sun.setDate(today.getDate() + 1);
+    dates.push(makeDateObj(sun, "SUNDAY", "WEEKEND", false));
+    const mon = new Date(today); mon.setDate(today.getDate() + 2);
+    dates.push(makeDateObj(mon, "MONDAY", "FULL", false));
+  } else if (dayOfWeek === 0) {
+    // Sun: Sun, Mon
+    dates.push(makeDateObj(today, isRealTodaySelected ? "SUNDAY" : "SELECTED DATE", "WEEKEND", true));
+    const mon = new Date(today); mon.setDate(today.getDate() + 1);
+    dates.push(makeDateObj(mon, "MONDAY", "FULL", false));
+  }
+
+  return dates;
+}
+

@@ -59,6 +59,11 @@
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
         🕰️ My Timecard
       </button>
+      <button class="button is-small is-info" id="btn-open-requests" onclick="openRequests()"
+        title="Submit or View Future Schedule Requests"
+        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
+        📅 Future Requests
+      </button>
     </div>
 
     <!-- Main Content Area -->
@@ -297,6 +302,77 @@
     </div>
   </div>
 
+  <!-- Future Requests Modal -->
+  <div id="requests-modal" class="modal">
+    <div class="modal-background" onclick="closeRequestsModal()"></div>
+    <div class="modal-card"
+      style="max-width: 500px; width: 92%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+        <p id="req-dash-title" class="modal-card-title has-text-weight-bold"
+          style="font-size: 1.25rem; color: var(--text-main) !important;">📅 FUTURE REQUESTS</p>
+        <button class="delete" aria-label="close" onclick="closeRequestsModal()"></button>
+      </header>
+      <section class="modal-card-body"
+        style="background: var(--bg-gradient); padding: 24px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; color: var(--text-main);">
+        
+        <!-- Submit Form -->
+        <div class="box p-4 mb-5"
+          style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none;">
+          <div class="is-size-7 has-text-grey-light uppercase mb-3" style="letter-spacing: 0.05em; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+            🆕 Submit New Request
+          </div>
+          
+          <div class="field mb-3">
+            <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Select Date</label>
+            <div class="control">
+              <input class="input is-small" type="date" id="req-date-input" style="background-color: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+            </div>
+          </div>
+
+          <div class="field mb-3">
+            <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Request Type</label>
+            <div class="control select is-fullwidth is-small">
+              <select id="req-type-select" style="background-color: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+                <option value="dayoff">Day Off (Roster Code)</option>
+                <option value="vacation" id="req-opt-vacation">Single Vacation Day (Roster Code + V)</option>
+                <option value="earlyout">Early Out (Roster Code + PM)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field mb-4">
+            <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Note / Reason (Optional)</label>
+            <div class="control">
+              <textarea class="textarea is-small" id="req-note-input" rows="2" placeholder="e.g., Doctor appointment, family event..." style="background-color: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1);"></textarea>
+            </div>
+          </div>
+
+          <button class="button is-small is-link is-fullwidth" id="req-submit-btn" onclick="submitFutureRequestForm()" style="font-weight: 700; border-radius: 8px;">
+            Submit Request
+          </button>
+        </div>
+
+        <!-- Request History List -->
+        <div class="box p-4"
+          style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none;">
+          <div class="is-size-7 has-text-grey-light uppercase mb-3" style="letter-spacing: 0.05em; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+            📋 Your Upcoming Requests
+          </div>
+          
+          <div id="req-list-container" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            <p class="is-size-7 has-text-centered has-text-grey" style="font-style: italic;">Loading requests...</p>
+          </div>
+        </div>
+
+        <div class="has-text-centered mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
+          <button class="button is-small is-light" onclick="logoutTimecard()" style="font-size:0.75rem;">
+            Logout / Disconnect
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <!-- Load Configuration & API Helper first -->
   <script src="config.js"></script>
   <script src="js/api.js"></script>
@@ -304,6 +380,7 @@
   <script>
     const currentPage = "snapshot";
     const IS_READ_ONLY = false;
+    let loginDestination = "timecard";
     // Tracks row IDs that are mid-flight (awaiting API response) so the
     // background poll does not reset their visual state prematurely.
     const pendingRows = new Set();
@@ -576,35 +653,34 @@
         const picker = document.getElementById('entry-date-picker');
         const activeDate = customDate || (picker ? picker.value : '');
 
-        const dates = await callApi("getPortalActiveDates", { customDateStr: activeDate });
-        renderSkeletonLayout(dates);
+        // Render skeleton instantly based on local date calculations
+        const localDates = getLocalActiveDates(activeDate);
+        renderSkeletonLayout(localDates);
 
+        // Fetch all data in a single batch request
+        const initData = await callApi("getPortalInitData", { customDateStr: activeDate, forceRefresh: forceRefresh });
+        const dates = initData.dates;
+        const daysData = initData.daysData;
+
+        // Render the actual data
         cachedDaysList = new Array(dates.length).fill(null);
-
-        const fetchPromises = dates.map(async (d, idx) => {
-          try {
-            const dayData = await callApi("getDailySnapshotDataForDate", {
-              isoDateStr: d.isoDateStr,
-              viewTitle: d.viewTitle,
-              viewType: d.viewType,
-              isEditable: d.isEditable,
-              forceRefresh: forceRefresh
-            });
-
+        dates.forEach((d, idx) => {
+          const dayData = daysData[idx];
+          if (dayData && !dayData.error) {
             cachedDaysList[idx] = dayData;
-
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = renderDay(dayData, idx);
             }
-          } catch (dayErr) {
-            console.error(`Failed to load date ${d.dateStr}:`, dayErr);
+          } else {
+            const errorMsg = (dayData && dayData.error) || "Unknown backend error";
+            console.error(`Failed to load date ${d.dateStr}:`, errorMsg);
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = `
                 <div class="notification is-danger" style="margin-bottom: 0;">
                   <strong>Failed to load ${d.viewTitle}</strong>
-                  <div style="font-size: 0.8rem; margin-top: 5px;">${dayErr.message}</div>
+                  <div style="font-size: 0.8rem; margin-top: 5px;">${errorMsg}</div>
                 </div>`;
             }
           }
@@ -613,7 +689,6 @@
         const now = new Date();
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-        await Promise.all(fetchPromises);
         cachedData = cachedDaysList.filter(d => d !== null);
         updateObTimers();
 
@@ -1324,11 +1399,24 @@
        ============================================================================ */
 
     function openTimecard() {
+      loginDestination = "timecard";
       const storedName = localStorage.getItem("tc_name");
       const storedPin = localStorage.getItem("tc_pin");
 
       if (storedName && storedPin) {
         showTimecardDashboard(storedName, storedPin);
+      } else {
+        showTimecardAuth();
+      }
+    }
+
+    function openRequests() {
+      loginDestination = "requests";
+      const storedName = localStorage.getItem("tc_name");
+      const storedPin = localStorage.getItem("tc_pin");
+
+      if (storedName && storedPin) {
+        showRequestsDashboard(storedName, storedPin);
       } else {
         showTimecardAuth();
       }
@@ -1386,7 +1474,11 @@
         btn.classList.remove("is-loading");
         document.getElementById("tc-pin-input").value = "";
 
-        showTimecardDashboard(name, pin, res);
+        if (loginDestination === "requests") {
+          showRequestsDashboard(name, pin, res);
+        } else {
+          showTimecardDashboard(name, pin, res);
+        }
       } catch (e) {
         btn.classList.remove("is-loading");
         err.innerText = e.message;
@@ -2671,6 +2763,179 @@
     document.getElementById('schedule-modal').addEventListener('click', function (e) {
       if (e.target === this) closeScheduleModal();
     });
+
+    /* ============================================================================
+       FUTURE REQUESTS FRONTEND PORTAL
+       ============================================================================ */
+
+    function closeRequestsModal() {
+      document.getElementById("requests-modal").classList.remove("is-active");
+    }
+
+    async function showRequestsDashboard(name, pin, preloadedRes = null) {
+      const modal = document.getElementById("requests-modal");
+      modal.classList.add("is-active");
+
+      document.getElementById("req-dash-title").innerText = `📅 REQUESTS: ${name.toUpperCase()}`;
+
+      // Reset form
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      document.getElementById("req-date-input").value = `${yyyy}-${mm}-${dd}`;
+      document.getElementById("req-date-input").min = `${yyyy}-${mm}-${dd}`;
+      document.getElementById("req-note-input").value = "";
+      document.getElementById("req-type-select").value = "dayoff";
+
+      // Hide or show single vacation day based on is5Day flag
+      let is5Day = false;
+      if (preloadedRes && preloadedRes.is5Day !== undefined) {
+        is5Day = preloadedRes.is5Day;
+      } else {
+        try {
+          const res = await callApi("timecardLogin", { name, pin });
+          is5Day = !!res.is5Day;
+        } catch (e) {
+          console.error("Error checking employee type:", e);
+        }
+      }
+
+      const vacOpt = document.getElementById("req-opt-vacation");
+      if (vacOpt) {
+        vacOpt.style.display = is5Day ? "" : "none";
+      }
+
+      await refreshRequestsList(name, pin);
+    }
+
+    async function refreshRequestsList(name, pin) {
+      const container = document.getElementById("req-list-container");
+      container.innerHTML = '<p class="is-size-7 has-text-centered has-text-grey" style="font-style: italic;">Loading requests...</p>';
+
+      try {
+        const list = await callApi("getFutureRequests", { name, pin });
+        if (list.length === 0) {
+          container.innerHTML = '<p class="is-size-7 has-text-centered has-text-grey-light py-3" style="font-style: italic;">No upcoming requests.</p>';
+          return;
+        }
+
+        container.innerHTML = list.map(req => {
+          let label = "Day Off";
+          let tagColor = "is-info";
+          if (req.requestType === "vacation") {
+            label = "Vacation Day";
+            tagColor = "is-success";
+          } else if (req.requestType === "earlyout") {
+            label = "Early Out";
+            tagColor = "is-warning";
+          }
+
+          const escapedDateStr = req.targetDate; // yyyy-mm-dd
+          const noteText = req.note ? `<div class="is-size-7 has-text-grey-light mt-1" style="font-style: italic;">Note: "${req.note}"</div>` : '';
+
+          return `
+            <div class="box p-3 mb-0 is-flex is-justify-content-between is-align-items-center" 
+                 style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: none;">
+              <div style="min-width: 0; flex-grow: 1; padding-right: 10px;">
+                <div class="is-flex is-align-items-center" style="gap: 6px; flex-wrap: wrap;">
+                  <span class="has-text-weight-bold is-size-6" style="color: var(--text-main); font-size: 0.9rem !important;">${req.targetDateFormatted}</span>
+                  <span class="tag ${tagColor} is-light is-small" style="font-weight: 700; border-radius: 4px;">${label}</span>
+                </div>
+                ${noteText}
+                <div class="is-size-7 has-text-grey-light mt-1" style="opacity: 0.6; font-size: 0.7rem;">Code: ${req.code}</div>
+              </div>
+              <button class="button is-small is-danger is-outlined" 
+                      style="border-radius: 6px; padding: 0 8px; font-weight: 600;" 
+                      onclick="submitCancelRequest('${escapedDateStr}')">
+                🗑️ Cancel
+              </button>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = `<p class="is-size-7 has-text-danger has-text-centered py-3">Error loading requests: ${err.message}</p>';`;
+      }
+    }
+
+    async function submitFutureRequestForm() {
+      const name = localStorage.getItem("tc_name");
+      const pin = localStorage.getItem("tc_pin");
+      if (!name || !pin) {
+        alert("Session lost. Please log in again.");
+        closeRequestsModal();
+        return;
+      }
+
+      const dateStr = document.getElementById("req-date-input").value;
+      const type = document.getElementById("req-type-select").value;
+      const note = document.getElementById("req-note-input").value;
+      const btn = document.getElementById("req-submit-btn");
+
+      if (!dateStr) {
+        alert("Please select a target date.");
+        return;
+      }
+
+      btn.classList.add("is-loading");
+      try {
+        const res = await callApi("submitFutureRequest", {
+          name,
+          pin,
+          targetDateStr: dateStr,
+          requestType: type,
+          note
+        });
+
+        if (res && res.success) {
+          showToast("Request submitted successfully!", "success");
+          document.getElementById("req-note-input").value = "";
+          await refreshRequestsList(name, pin);
+          const picker = document.getElementById('entry-date-picker');
+          if (picker) {
+            fetchFreshData(picker.value);
+          }
+        } else {
+          alert("Error: " + (res.error || "Failed to submit request."));
+        }
+      } catch (err) {
+        alert("Failed to submit request: " + err.message);
+      } finally {
+        btn.classList.remove("is-loading");
+      }
+    }
+
+    async function submitCancelRequest(targetDateStr) {
+      const name = localStorage.getItem("tc_name");
+      const pin = localStorage.getItem("tc_pin");
+      if (!name || !pin) return;
+
+      const dateObj = new Date(targetDateStr + "T00:00:00");
+      const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      if (!confirm(`Are you sure you want to cancel your request for ${formattedDate}?`)) {
+        return;
+      }
+
+      try {
+        const res = await callApi("cancelFutureRequest", { name, pin, targetDateStr });
+        if (res && res.success) {
+          showToast("Request cancelled successfully.", "success");
+          await refreshRequestsList(name, pin);
+          
+          // Force active schedule fetch to refresh current views if the cancelled date is currently displayed
+          const picker = document.getElementById('entry-date-picker');
+          if (picker) {
+            fetchFreshData(picker.value);
+          }
+        } else {
+          alert("Error: " + (res.error || "Failed to cancel request."));
+        }
+      } catch (err) {
+        alert("Failed to cancel request: " + err.message);
+      }
+    }
   </script>
 
   <input type="file" id="schedule-file-uploader" style="display:none;" accept="application/pdf"
