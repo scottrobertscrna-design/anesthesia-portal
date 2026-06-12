@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v135)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v137)</span>
       </div>
     </div>
 
@@ -333,9 +333,9 @@
             <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Request Type</label>
             <div class="control select is-fullwidth is-small">
               <select id="req-type-select" style="background-color: #ffffff !important; color: #0f172a !important; font-weight: 600;">
-                <option value="dayoff">Day Off (Roster Code)</option>
-                <option value="vacation" id="req-opt-vacation">Single Vacation Day (Roster Code + V)</option>
-                <option value="earlyout">Early Out (Roster Code + PM)</option>
+                <option value="dayoff">Day Off (Today's Date)</option>
+                <option value="earlyout">Early Out (Today's Date + PM)</option>
+                <option value="vacation" id="req-opt-vacation">Single Vacation Day (Today's Date + V)</option>
               </select>
             </div>
           </div>
@@ -695,7 +695,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v135 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v137 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -871,7 +871,7 @@
 
           if (res.arrivalTime) {
             const arrivalCb = row.querySelector('.arrival-checkbox');
-            const arrivalTimeWrapper = row.querySelector('.arrival-time-wrapper');
+            const arrivalTimeWrapper = row.querySelector('.arrival-wrapper');
             if (arrivalCb && !arrivalCb.checked) {
               arrivalCb.checked = true;
               if (arrivalTimeWrapper) arrivalTimeWrapper.style.display = 'none';
@@ -997,7 +997,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v135 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v137 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
