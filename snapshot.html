@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v137)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v138)</span>
       </div>
     </div>
 
@@ -695,7 +695,8 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v137 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
+          debugFooter.textContent = `v138 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -997,7 +998,8 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v137 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
+          debugFooter.textContent = `v138 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2868,6 +2870,7 @@
 
           const escapedDateStr = req.targetDate; // yyyy-mm-dd
           const noteText = req.note ? `<div class="is-size-7 has-text-grey-light mt-1" style="font-style: italic;">Note: "${req.note}"</div>` : '';
+          const codeSuffix = req.vCountStr ? ` (${req.vCountStr})` : '';
 
           return `
             <div class="box p-3 mb-0 is-flex is-justify-content-between is-align-items-center" 
@@ -2878,7 +2881,7 @@
                   <span class="tag ${tagColor} is-light is-small" style="font-weight: 700; border-radius: 4px;">${label}</span>
                 </div>
                 ${noteText}
-                <div class="is-size-7 has-text-grey-light mt-1" style="opacity: 0.6; font-size: 0.7rem;">Code: ${req.code}</div>
+                <div class="is-size-7 has-text-grey-light mt-1" style="opacity: 0.6; font-size: 0.7rem;">Code: ${req.code}${codeSuffix}</div>
               </div>
               <button class="button is-small is-danger is-outlined" 
                       style="border-radius: 6px; padding: 0 8px; font-weight: 600;" 
