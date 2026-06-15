@@ -33,6 +33,8 @@
   --shadow-card-hover: 0 15px 35px rgba(0, 0, 0, 0.35);
   --skeleton-bg: rgba(255, 255, 255, 0.03);
   --skeleton-shimmer: rgba(255, 255, 255, 0.08);
+  --bg-dark: #0f172a;
+  --modal-header-bg: #1e293b;
 }
 
 /* =============================================
@@ -67,6 +69,8 @@
     --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.15);
     --skeleton-bg: rgba(15, 23, 42, 0.05);
     --skeleton-shimmer: rgba(15, 23, 42, 0.12);
+    --bg-dark: #ffffff;
+    --modal-header-bg: #f1f5f9;
   }
 }
 
