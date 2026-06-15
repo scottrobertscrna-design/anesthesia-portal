@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v144)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v145)</span>
       </div>
     </div>
 
@@ -701,7 +701,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v144 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v145 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1017,7 +1017,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v144 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v145 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2460,7 +2460,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=144')
+          navigator.serviceWorker.register('./sw.js?v=145')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
