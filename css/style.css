@@ -35,6 +35,10 @@
   --skeleton-shimmer: rgba(255, 255, 255, 0.08);
   --bg-dark: #0f172a;
   --modal-header-bg: #1e293b;
+  --date-row-bg: rgba(99, 102, 241, 0.16);
+  --date-row-text: #c7d2fe;
+  --backup-row-bg: rgba(245, 158, 11, 0.1);
+  --backup-row-text: #fde68a;
 }
 
 /* =============================================
@@ -71,6 +75,10 @@
     --skeleton-shimmer: rgba(15, 23, 42, 0.12);
     --bg-dark: #ffffff;
     --modal-header-bg: #f1f5f9;
+    --date-row-bg: rgba(79, 70, 229, 0.08);
+    --date-row-text: #312e81;
+    --backup-row-bg: rgba(217, 119, 6, 0.08);
+    --backup-row-text: #78350f;
   }
 }
 
@@ -1376,3 +1384,21 @@ input[type="date"],
     background-color: rgba(15, 23, 42, 0.03) !important;
   }
 }
+
+/* Date row and Backup row highlighting */
+.sheet-viewer-table tr.date-row {
+  background-color: var(--date-row-bg) !important;
+}
+.sheet-viewer-table tr.date-row td,
+.sheet-viewer-table tr.date-row th {
+  color: var(--date-row-text) !important;
+  font-weight: 700 !important;
+}
+
+.sheet-viewer-table tr.backup-row {
+  background-color: var(--backup-row-bg) !important;
+}
+.sheet-viewer-table tr.backup-row td {
+  color: var(--backup-row-text) !important;
+  font-weight: 600 !important;
+}
