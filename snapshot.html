@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v139)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v140)</span>
       </div>
     </div>
 
@@ -696,7 +696,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v139 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v140 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -935,6 +935,19 @@
     function getContactBadgeHtml(name, day, dayIdx) {
       if (!day || !day.activePhones || !name) return `<span class="has-text-weight-bold">${name}</span>`;
 
+      if (name.includes('/')) {
+        const parts = name.split('/');
+        const htmlParts = parts.map(part => {
+          const trimmedPart = part.trim();
+          return getContactBadgeHtmlSingle_(trimmedPart, day, dayIdx);
+        });
+        return htmlParts.join(' / ');
+      }
+
+      return getContactBadgeHtmlSingle_(name, day, dayIdx);
+    }
+
+    function getContactBadgeHtmlSingle_(name, day, dayIdx) {
       const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
       if (cleanTarget === 'none assigned' || cleanTarget === 'not found' || cleanTarget === 'none' || cleanTarget === '') {
         return `<span class="has-text-weight-bold">${name}</span>`;
@@ -999,7 +1012,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v139 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v140 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2364,7 +2377,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=136')
+          navigator.serviceWorker.register('./sw.js?v=140')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -2394,7 +2407,28 @@
         return;
       }
 
-      const filteredPhones = day.activePhones.filter(ap => ap.group === groupType);
+      const currentHour = new Date().getHours();
+      const isAfter4pm = currentHour >= 16;
+
+      const filteredPhones = day.activePhones.filter(ap => {
+        if (ap.group !== groupType) return false;
+
+        // Handle MD Call/Doc split based on 4pm changeover
+        const lowerName = ap.name.toLowerCase();
+        if (lowerName.includes("md call") || lowerName.includes("lsc doc")) {
+          const hasDay = lowerName.includes("day");
+          const has4pm = lowerName.includes("4pm") || lowerName.includes("after 4pm");
+          
+          if (hasDay && isAfter4pm) {
+            return false; // Exclude day-shift MD after 4pm
+          }
+          if (has4pm && !isAfter4pm) {
+            return false; // Exclude call-shift MD before 4pm
+          }
+        }
+        return true;
+      });
+
       if (filteredPhones.length === 0) {
         alert("No active phone contacts found in this group for " + dateStr + ".");
         return;
@@ -2407,12 +2441,16 @@
       dayRows.forEach(row => {
         const contentEl = row.querySelector('.entry-content');
         if (contentEl && contentEl.classList.contains('strikethrough')) {
-          const nameEl = row.querySelector('.has-text-weight-bold');
-          if (nameEl) {
-            const cleanName = nameEl.textContent.trim().toLowerCase().split('(')[0].trim();
-            if (cleanName) {
-              goneHomeNames.add(cleanName);
+          let rawName = row.dataset.name;
+          if (!rawName) {
+            const nameEl = row.querySelector('.has-text-weight-bold');
+            if (nameEl) {
+              rawName = nameEl.textContent.replace(/📱/g, '').trim();
             }
+          }
+          if (rawName) {
+            const cleanName = rawName.split('(')[0].trim().toLowerCase();
+            goneHomeNames.add(cleanName);
           }
         }
       });
