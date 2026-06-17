@@ -337,11 +337,19 @@
           <div class="field mb-3">
             <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Request Type</label>
             <div class="control select is-fullwidth is-small">
-              <select id="req-type-select" style="background-color: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+              <select id="req-type-select" onchange="toggleCustomTextField()" style="background-color: #ffffff !important; color: #0f172a !important; font-weight: 600;">
                 <option value="dayoff">Day Off (Today's Date)</option>
                 <option value="earlyout">Early Out (Today's Date + PM)</option>
                 <option value="vacation" id="req-opt-vacation">Single Vacation Day (Today's Date + V)</option>
+                <option value="custom">Custom Text</option>
               </select>
+            </div>
+          </div>
+
+          <div class="field mb-3" id="req-custom-text-field" style="display: none;">
+            <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Custom Text / Code</label>
+            <div class="control">
+              <input class="input is-small" type="text" id="req-custom-text-input" placeholder="e.g. CLINIC, MEET, OFF..." style="background-color: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
             </div>
           </div>
 
@@ -2929,6 +2937,20 @@
       document.getElementById("requests-modal").classList.remove("is-active");
     }
 
+    function toggleCustomTextField() {
+      const selectVal = document.getElementById("req-type-select").value;
+      const customField = document.getElementById("req-custom-text-field");
+      if (customField) {
+        if (selectVal === "custom") {
+          customField.style.display = "";
+          document.getElementById("req-custom-text-input").focus();
+        } else {
+          customField.style.display = "none";
+          document.getElementById("req-custom-text-input").value = "";
+        }
+      }
+    }
+
     async function showRequestsDashboard(name, pin, preloadedRes = null) {
       const modal = document.getElementById("requests-modal");
       modal.classList.add("is-active");
@@ -2945,6 +2967,10 @@
       document.getElementById("req-date-input").min = `${yyyy}-${mm}-${dd}`;
       document.getElementById("req-note-input").value = "";
       document.getElementById("req-type-select").value = "dayoff";
+      if (document.getElementById("req-custom-text-field")) {
+        document.getElementById("req-custom-text-field").style.display = "none";
+        document.getElementById("req-custom-text-input").value = "";
+      }
 
       // Hide or show single vacation day based on is5Day flag
       let is5Day = false;
@@ -2987,6 +3013,9 @@
           } else if (req.requestType === "earlyout") {
             label = "Early Out";
             tagColor = "is-warning";
+          } else if (req.requestType !== "dayoff") {
+            label = req.requestType;
+            tagColor = "is-link";
           }
 
           const escapedDateStr = req.targetDate; // yyyy-mm-dd
@@ -3036,19 +3065,34 @@
         return;
       }
 
+      let requestType = type;
+      if (type === "custom") {
+        const customText = document.getElementById("req-custom-text-input").value.trim();
+        if (!customText) {
+          alert("Please enter the custom text.");
+          return;
+        }
+        requestType = customText;
+      }
+
       btn.classList.add("is-loading");
       try {
         const res = await callApi("submitFutureRequest", {
           name,
           pin,
           targetDateStr: dateStr,
-          requestType: type,
+          requestType: requestType,
           note
         });
 
         if (res && res.success) {
           showToast("Request submitted successfully!", "success");
           document.getElementById("req-note-input").value = "";
+          if (document.getElementById("req-custom-text-input")) {
+            document.getElementById("req-custom-text-input").value = "";
+          }
+          document.getElementById("req-type-select").value = "dayoff";
+          toggleCustomTextField();
           await refreshRequestsList(name, pin);
           const picker = document.getElementById('entry-date-picker');
           if (picker) {
