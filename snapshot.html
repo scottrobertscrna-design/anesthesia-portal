@@ -211,14 +211,13 @@
               style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: none; text-align: left; max-width: 320px; margin: 15px auto 0 auto;">
               <div class="is-flex is-justify-content-between is-align-items-center mb-2">
                 <span
-                  style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Punch
-                  Time Override</span>
-                <label class="checkbox is-size-7 mb-0"
-                  style="color: var(--accent-light); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" id="tc-backtime-checkbox" onchange="toggleBacktimeView()"> Use Custom Time
-                </label>
+                  style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Punch Time</span>
+                <button id="tc-reset-time-btn" class="button is-ghost is-small p-0"
+                  style="height: auto; font-size: 0.75rem; color: var(--accent-light); display: none; font-weight: 700;"
+                  onclick="resetToLiveTime()">Reset to Live</button>
               </div>
-              <input class="input is-small" type="datetime-local" id="tc-custom-time-input" disabled
+              <input class="input is-small" type="datetime-local" id="tc-custom-time-input"
+                oninput="handleTimecardInputChange()"
                 style="border-radius: 6px; background: rgba(0, 0, 0, 0.25); color: var(--text-muted); border-color: rgba(255,255,255,0.1);">
             </div>
 
@@ -427,6 +426,10 @@
     }, { passive: true });
     // Transfer edit mode: when false, transfer buttons are hidden
     let transferEditMode = false;
+
+    // Timecard Custom Override State
+    let customTimeActive = false;
+    let liveTimeInterval = null;
 
     function setTransferEditMode(on) {
       transferEditMode = !!on;
@@ -1475,6 +1478,7 @@
 
     function closeTimecardDashboardModal() {
       document.getElementById("timecard-dashboard-modal").classList.remove("is-active");
+      stopLiveTimeClock();
     }
 
     async function submitTimecardLogin() {
@@ -1545,12 +1549,7 @@
           sheetLink.style.display = "flex";
         }
 
-        const customTimeInput = document.getElementById("tc-custom-time-input");
-        if (customTimeInput) {
-          const now = new Date();
-          const offset = now.getTimezoneOffset() * 60000;
-          customTimeInput.value = (new Date(now - offset)).toISOString().slice(0, 16);
-        }
+        startLiveTimeClock();
 
         refreshClockStatus(res.sheetId);
       } else {
@@ -1860,28 +1859,56 @@
       updatePullButtonLabel();
     }
 
-    function toggleBacktimeView() {
-      const isChecked = document.getElementById("tc-backtime-checkbox").checked;
+    function updateLiveTime() {
+      if (customTimeActive) return;
       const input = document.getElementById("tc-custom-time-input");
-
-      if (isChecked) {
-        input.removeAttribute("disabled");
-        input.style.background = "rgba(255, 255, 255, 0.05)";
-        input.style.color = "var(--text-main)";
-        input.style.borderColor = "var(--accent-light)";
-
+      if (input) {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
         input.value = (new Date(now - offset)).toISOString().slice(0, 16);
-      } else {
-        input.setAttribute("disabled", "true");
+      }
+    }
+
+    function startLiveTimeClock() {
+      stopLiveTimeClock();
+      customTimeActive = false;
+      updateLiveTime();
+      liveTimeInterval = setInterval(updateLiveTime, 10000); // update every 10 seconds
+      
+      const resetBtn = document.getElementById("tc-reset-time-btn");
+      if (resetBtn) resetBtn.style.display = "none";
+      
+      const input = document.getElementById("tc-custom-time-input");
+      if (input) {
         input.style.background = "rgba(0, 0, 0, 0.25)";
         input.style.color = "var(--text-muted)";
         input.style.borderColor = "rgba(255, 255, 255, 0.1)";
+      }
+    }
 
-        const now = new Date();
-        const offset = now.getTimezoneOffset() * 60000;
-        input.value = (new Date(now - offset)).toISOString().slice(0, 16);
+    function stopLiveTimeClock() {
+      if (liveTimeInterval) {
+        clearInterval(liveTimeInterval);
+        liveTimeInterval = null;
+      }
+    }
+
+    function resetToLiveTime() {
+      startLiveTimeClock();
+    }
+
+    function handleTimecardInputChange() {
+      customTimeActive = true;
+      stopLiveTimeClock();
+      
+      const resetBtn = document.getElementById("tc-reset-time-btn");
+      if (resetBtn) resetBtn.style.display = "inline-block";
+      
+      const input = document.getElementById("tc-custom-time-input");
+      if (input) {
+        input.style.background = "rgba(255, 255, 255, 0.05)";
+        input.style.color = "var(--text-main)";
+        input.style.borderColor = "var(--accent-light)";
       }
     }
 
@@ -1891,7 +1918,7 @@
       const callbackFlag = document.getElementById("tc-callback-checkbox").checked;
 
       let customTime = null;
-      if (document.getElementById("tc-backtime-checkbox").checked) {
+      if (customTimeActive) {
         customTime = document.getElementById("tc-custom-time-input").value;
         if (!customTime) {
           alert("Please select a date and time for back-timing.");
@@ -1911,8 +1938,7 @@
 
         document.getElementById("tc-prn-checkbox").checked = false;
         document.getElementById("tc-callback-checkbox").checked = false;
-        document.getElementById("tc-backtime-checkbox").checked = false;
-        toggleBacktimeView();
+        startLiveTimeClock();
 
         if (res.clockStatus) {
           updateClockStatusUI(res.clockStatus);
