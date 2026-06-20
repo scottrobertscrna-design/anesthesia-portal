@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v151)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v152)</span>
       </div>
     </div>
 
@@ -573,6 +573,14 @@
                   </div>
                 </div>
               </div>
+              <div class="column is-12 mb-0 py-1" id="form-pref-provider-container">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Submitted By <span style="color:var(--accent-rose);">*</span></label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-provider" placeholder="Your name" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div id="form-pref-error" class="notification is-danger is-light p-2 mb-2 is-size-7" style="display: none; border-radius: 8px;"></div>
@@ -923,7 +931,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v151 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v152 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1239,7 +1247,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v151 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v152 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -3466,6 +3474,14 @@
       document.getElementById("pref-search-input").value = "";
       document.getElementById("pref-detail-card").style.display = "none";
 
+      // Pre-fill and disable provider field for authenticated CRNAs
+      const providerInput = document.getElementById("form-pref-provider");
+      if (providerInput) {
+        providerInput.value = localStorage.getItem("tc_name") || name || "";
+        providerInput.readOnly = true;
+        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+      }
+
       // Load database from API
       await loadPreferences(name, pin);
       await loadClinicalDocuments(name, pin);
@@ -3638,6 +3654,13 @@
       document.getElementById("form-pref-bp").value = item["BP Parameters"] || "";
       document.getElementById("form-pref-notes").value = item.Notes || "";
 
+      const providerInput = document.getElementById("form-pref-provider");
+      if (providerInput) {
+        providerInput.value = item["Updated By"] || localStorage.getItem("tc_name") || "";
+        providerInput.readOnly = true;
+        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+      }
+
       document.getElementById("pref-form-title").innerText = "✏️ Edit Surgeon Preference";
       
       // Hide notifications
@@ -3656,6 +3679,13 @@
       document.getElementById("form-pref-bp").value = "";
       document.getElementById("form-pref-notes").value = "";
       
+      const providerInput = document.getElementById("form-pref-provider");
+      if (providerInput) {
+        providerInput.value = localStorage.getItem("tc_name") || "";
+        providerInput.readOnly = true;
+        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+      }
+
       document.getElementById("form-pref-error").style.display = "none";
       document.getElementById("form-pref-success").style.display = "none";
     }
@@ -3674,12 +3704,19 @@
       const arterialLine = document.getElementById("form-pref-aline").value.trim();
       const bpParameters = document.getElementById("form-pref-bp").value.trim();
       const notes = document.getElementById("form-pref-notes").value.trim();
+      const submittedBy = document.getElementById("form-pref-provider") ? document.getElementById("form-pref-provider").value.trim() : "";
 
       errorDiv.style.display = "none";
       successDiv.style.display = "none";
 
       if (!surgeon) {
         errorDiv.innerText = "Surgeon Name is required.";
+        errorDiv.style.display = "block";
+        return;
+      }
+
+      if (!submittedBy) {
+        errorDiv.innerText = "Submitted By is required.";
         errorDiv.style.display = "block";
         return;
       }
@@ -3693,7 +3730,8 @@
         regionalBlocks,
         arterialLine,
         bpParameters,
-        notes
+        notes,
+        submittedBy
       };
 
       try {
