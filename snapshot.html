@@ -312,7 +312,7 @@
       style="max-width: 500px; width: 92%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
       <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
         <p id="req-dash-title" class="modal-card-title has-text-weight-bold"
-          style="font-size: 1.25rem; color: var(--text-main) !important;">📅 FUTURE REQUESTS</p>
+          style="font-size: 1.25rem; color: var(--text-main) !important;">📅 SCHEDULE & REQUESTS</p>
         <button class="delete" aria-label="close" onclick="closeRequestsModal()"></button>
       </header>
       <section class="modal-card-body"
@@ -384,6 +384,19 @@
           <div class="box p-3 mb-0"
             style="background: var(--card-bg); border: 1px solid var(--border-color); width: 100%; border-radius: 10px; box-shadow: none;">
             <p class="is-size-7 mb-3" style="color: var(--text-muted); line-height: 1.4;">Subscribe to your schedule so it updates automatically on your iPhone, Google Calendar, or Outlook.</p>
+            
+            <!-- Checkboxes for Options -->
+            <div class="field mb-3" style="text-align: left; padding-left: 5px;">
+              <label class="checkbox is-size-7 has-text-grey-light mb-1" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="req-cal-allday" onchange="updateICalUrlWithOptions()"> 
+                Show as All-Day Events <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(Default is 7 AM – 5 PM)</span>
+              </label>
+              <label class="checkbox is-size-7 has-text-grey-light" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="req-cal-emojis" checked onchange="updateICalUrlWithOptions()"> 
+                Include Emojis <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(e.g. 🏖️ OFF vs OFF)</span>
+              </label>
+            </div>
+
             <div class="field has-addons">
               <div class="control is-expanded">
                 <input class="input is-small" type="text" id="req-ical-url" readonly 
@@ -413,6 +426,7 @@
     const currentPage = "snapshot";
     const IS_READ_ONLY = false;
     let loginDestination = "timecard";
+    let baseCalendarUrl = "";
     // Tracks row IDs that are mid-flight (awaiting API response) so the
     // background poll does not reset their visual state prematurely.
     const pendingRows = new Set();
@@ -2058,6 +2072,21 @@
       }
     }
 
+    function updateICalUrlWithOptions() {
+      if (!baseCalendarUrl) return;
+      const allDay = document.getElementById("req-cal-allday").checked;
+      const emojis = document.getElementById("req-cal-emojis").checked;
+      
+      let url = baseCalendarUrl;
+      if (allDay) {
+        url += "&allDay=true";
+      }
+      if (!emojis) {
+        url += "&emojis=false";
+      }
+      document.getElementById("req-ical-url").value = url;
+    }
+
     // Register change listeners to dynamically update button ranges when user changes the pickers
     document.getElementById("tc-overtime-date-picker").addEventListener("change", updateFillButtonLabel);
     document.getElementById("tc-prn-start-date").addEventListener("change", updatePullButtonLabel);
@@ -3017,7 +3046,7 @@
       const modal = document.getElementById("requests-modal");
       modal.classList.add("is-active");
 
-      document.getElementById("req-dash-title").innerText = `📅 REQUESTS: ${name.toUpperCase()}`;
+      document.getElementById("req-dash-title").innerText = `📅 SCHEDULE & REQUESTS: ${name.toUpperCase()}`;
 
       // Reset form
       const tomorrow = new Date();
@@ -3056,9 +3085,11 @@
       }
 
       if (calendarUrl) {
-        document.getElementById("req-ical-url").value = calendarUrl;
+        baseCalendarUrl = calendarUrl;
+        updateICalUrlWithOptions();
         document.getElementById("req-calendar-section").style.display = "block";
       } else {
+        baseCalendarUrl = "";
         document.getElementById("req-calendar-section").style.display = "none";
       }
 
