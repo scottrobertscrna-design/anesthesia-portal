@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v148)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v149)</span>
       </div>
     </div>
 
@@ -68,6 +68,11 @@
         title="View Full Monthly Sheets (A-L)"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
         📊 Sheets
+      </button>
+      <button class="button is-small is-link" id="btn-open-preferences" onclick="openPreferences()"
+        title="Surgeon Preferences & Clinical Docs"
+        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
+        🔍 Preferences
       </button>
     </div>
 
@@ -418,6 +423,178 @@
     </div>
   </div>
 
+  <!-- Preferences & Clinical Docs Modal -->
+  <div id="preferences-modal" class="modal">
+    <div class="modal-background" onclick="closePreferencesModal()"></div>
+    <div class="modal-card"
+      style="max-width: 650px; width: 92%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
+        <p class="modal-card-title has-text-weight-bold"
+          style="font-size: 1.25rem; color: var(--text-main) !important;">🔍 Practice Database & Policies</p>
+        <button class="delete" aria-label="close" onclick="closePreferencesModal()"></button>
+      </header>
+      <section class="modal-card-body"
+        style="background: var(--bg-gradient); padding: 20px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; color: var(--text-main); display: flex; flex-direction: column; min-height: 480px;">
+        
+        <!-- Tab Navigation -->
+        <div class="tabs is-centered is-toggle is-toggle-rounded is-small mb-4" id="pref-tabs" style="width: 100%;">
+          <ul style="border: none;">
+            <li class="is-active" id="tab-li-search">
+              <a onclick="switchPrefTab('search')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>🔍 Search</span>
+              </a>
+            </li>
+            <li id="tab-li-docs">
+              <a onclick="switchPrefTab('docs')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>📁 Documents</span>
+              </a>
+            </li>
+            <li id="tab-li-form">
+              <a onclick="switchPrefTab('form')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>📝 Add/Update</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- SEARCH TAB -->
+        <div id="pref-tab-search" style="display: block; width: 100%;">
+          <div class="field mb-3">
+            <div class="control">
+              <input class="input is-small" type="text" id="pref-search-input" 
+                placeholder="Type Surgeon or Procedure..." 
+                oninput="filterPreferences()"
+                style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+            </div>
+          </div>
+          
+          <div id="pref-search-loading" class="has-text-centered py-4" style="display: none;">
+            <button class="button is-loading is-text" style="background:transparent; border:none; color: var(--text-muted);"></button>
+            <p class="is-size-7" style="color: var(--text-muted);">Loading preferences...</p>
+          </div>
+
+          <div id="pref-list" class="mb-3" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.15); display: none;">
+            <!-- list of surgeons -->
+          </div>
+
+          <div id="pref-search-empty" class="has-text-centered py-4" style="color: var(--text-muted); font-size: 0.85rem;">
+            No preferences found. Enter a surgeon above or use the "Add/Update" tab.
+          </div>
+
+          <!-- Detail Card -->
+          <div id="pref-detail-card" class="box p-3 mt-3" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: none;">
+            <!-- filled by js -->
+          </div>
+        </div>
+
+        <!-- DOCUMENTS TAB -->
+        <div id="pref-tab-docs" style="display: none; width: 100%;">
+          <a href="https://drive.google.com/drive/folders/1QXFuIK4lIlAtE-1e27FmN-_sX3MDcL2K" target="_blank" 
+            class="button is-small is-link is-fullwidth mb-4" 
+            style="font-weight: 700; border-radius: 8px; height: 32px; background: linear-gradient(135deg, #3273dc, #818cf8);">
+            📂 Open Google Drive Folder
+          </a>
+
+          <div id="pref-docs-loading" class="has-text-centered py-4" style="display: none;">
+            <button class="button is-loading is-text" style="background:transparent; border:none; color: var(--text-muted);"></button>
+            <p class="is-size-7" style="color: var(--text-muted);">Fetching files from Drive...</p>
+          </div>
+
+          <div id="pref-docs-list" style="max-height: 320px; overflow-y: auto; padding-right: 5px;">
+            <!-- grouped list of files -->
+          </div>
+
+          <div id="pref-docs-empty" class="has-text-centered py-4" style="color: var(--text-muted); font-size: 0.85rem; display: none;">
+            No documents found in the Google Drive folder.
+          </div>
+        </div>
+
+        <!-- FORM TAB -->
+        <div id="pref-tab-form" style="display: none; width: 100%;">
+          <div class="box p-4" style="background: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none;">
+            <h4 id="pref-form-title" class="is-size-7 uppercase mb-3" style="letter-spacing: 0.05em; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; color: var(--accent-indigo);">
+              🆕 Add New Surgeon Preference
+            </h4>
+            
+            <div class="columns is-multiline is-mobile mb-2">
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Surgeon Name <span style="color:var(--accent-rose);">*</span></label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-surgeon" placeholder="e.g. Dr. Smith" style="background: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Procedure <span style="color:var(--accent-rose);">*</span></label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-procedure" placeholder="e.g. Total Hip" style="background: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Preop Meds</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-preop" placeholder="e.g. Celebrex, Gabapentin" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Regional Blocks</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-blocks" placeholder="e.g. FNB, Adductor canal" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Arterial Line</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-aline" placeholder="e.g. PRN, Left Radial" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">BP Parameters</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" id="form-pref-bp" placeholder="e.g. MAP > 65, SBP < 140" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-12 mb-0 py-1">
+                <div class="field">
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Other Preferences / Details</label>
+                  <div class="control">
+                    <textarea class="textarea is-small" id="form-pref-notes" rows="3" placeholder="Glove size, speed, special equipment, positioning details..." style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600;"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="form-pref-error" class="notification is-danger is-light p-2 mb-2 is-size-7" style="display: none; border-radius: 8px;"></div>
+            <div id="form-pref-success" class="notification is-success is-light p-2 mb-2 is-size-7" style="display: none; border-radius: 8px;"></div>
+
+            <div class="field mt-3">
+              <button class="button is-small is-success is-fullwidth" id="btn-save-pref" onclick="savePreference()" style="font-weight: 700; border-radius: 8px; height: 32px;">
+                💾 Save Preference Data
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="has-text-centered mt-auto pt-3" style="border-top: 1px solid var(--border-color);">
+          <button class="button is-small is-light" onclick="logoutTimecard()" style="font-size:0.75rem;">
+            Logout / Disconnect
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <!-- Load Configuration & API Helper first -->
   <script src="config.js"></script>
   <script src="js/api.js"></script>
@@ -746,7 +923,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v148 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v149 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1062,7 +1239,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v148 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v149 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -1542,6 +1719,8 @@
 
         if (loginDestination === "requests") {
           showRequestsDashboard(name, pin, res);
+        } else if (loginDestination === "preferences") {
+          showPreferencesDashboard(name, pin);
         } else {
           showTimecardDashboard(name, pin, res);
         }
@@ -2054,6 +2233,15 @@
       localStorage.removeItem("tc_pin");
       localStorage.removeItem("tc_sheet_id");
       closeTimecardDashboardModal();
+      closeRequestsModal();
+      if (document.getElementById("preferences-modal")) {
+        closePreferencesModal();
+      }
+      // Reset preferences state
+      cachedPreferences = [];
+      cachedDocuments = [];
+      isPrefLoaded = false;
+      isDocsLoaded = false;
     }
 
     function copyICalUrl() {
@@ -3239,6 +3427,386 @@
         }
       } catch (err) {
         alert("Failed to cancel request: " + err.message);
+      }
+    }
+
+    /* ============================================================================
+       PREFERENCES & CLINICAL DOCUMENTS FRONTEND SYSTEM
+       ============================================================================ */
+
+    let cachedPreferences = []; // Global cache for surgeon preferences
+    let cachedDocuments = [];   // Global cache for clinical documents
+    let isPrefLoaded = false;
+    let isDocsLoaded = false;
+
+    function openPreferences() {
+      loginDestination = "preferences";
+      const storedName = localStorage.getItem("tc_name");
+      const storedPin = localStorage.getItem("tc_pin");
+
+      if (storedName && storedPin) {
+        showPreferencesDashboard(storedName, storedPin);
+      } else {
+        showTimecardAuth();
+      }
+    }
+
+    function closePreferencesModal() {
+      document.getElementById("preferences-modal").classList.remove("is-active");
+    }
+
+    async function showPreferencesDashboard(name, pin) {
+      const modal = document.getElementById("preferences-modal");
+      modal.classList.add("is-active");
+
+      // Switch to the first tab by default
+      switchPrefTab('search');
+
+      // Clear search inputs and details
+      document.getElementById("pref-search-input").value = "";
+      document.getElementById("pref-detail-card").style.display = "none";
+
+      // Load database from API
+      await loadPreferences(name, pin);
+      await loadClinicalDocuments(name, pin);
+    }
+
+    function switchPrefTab(tabName) {
+      const tabs = ['search', 'docs', 'form'];
+      tabs.forEach(t => {
+        const li = document.getElementById(`tab-li-${t}`);
+        const content = document.getElementById(`pref-tab-${t}`);
+        if (t === tabName) {
+          li.classList.add('is-active');
+          content.style.display = 'block';
+        } else {
+          li.classList.remove('is-active');
+          content.style.display = 'none';
+        }
+      });
+
+      // If switching back to form tab, but not from "Edit", reset form title
+      if (tabName === 'form' && !document.getElementById("form-pref-surgeon").value) {
+        document.getElementById("pref-form-title").innerText = "🆕 Add New Surgeon Preference";
+        resetPrefForm();
+      }
+    }
+
+    async function loadPreferences(name, pin, force = false) {
+      if (isPrefLoaded && !force) {
+        filterPreferences();
+        return;
+      }
+      
+      const loading = document.getElementById("pref-search-loading");
+      const listDiv = document.getElementById("pref-list");
+      const emptyDiv = document.getElementById("pref-search-empty");
+      
+      loading.style.display = "block";
+      listDiv.style.display = "none";
+      emptyDiv.style.display = "none";
+
+      try {
+        const res = await callApi("getSurgeonPreferences", { name, pin });
+        cachedPreferences = res || [];
+        isPrefLoaded = true;
+        filterPreferences();
+      } catch (err) {
+        console.error("Error loading preferences:", err);
+        emptyDiv.innerText = "Error loading preferences: " + err.message;
+        emptyDiv.style.display = "block";
+      } finally {
+        loading.style.display = "none";
+      }
+    }
+
+    function filterPreferences() {
+      const query = document.getElementById("pref-search-input").value.toLowerCase().trim();
+      const listDiv = document.getElementById("pref-list");
+      const emptyDiv = document.getElementById("pref-search-empty");
+
+      if (cachedPreferences.length === 0) {
+        listDiv.style.display = "none";
+        emptyDiv.style.display = "block";
+        emptyDiv.innerText = "No preferences found in the database. Use 'Add/Update' tab to create one.";
+        return;
+      }
+
+      const filtered = cachedPreferences.filter(item => {
+        const surgeon = (item.Surgeon || "").toLowerCase();
+        const proc = (item.Procedure || "").toLowerCase();
+        const notes = (item.Notes || "").toLowerCase();
+        const preop = (item["Preop Medications"] || "").toLowerCase();
+        const blocks = (item["Regional Blocks"] || "").toLowerCase();
+        
+        return surgeon.includes(query) || 
+               proc.includes(query) || 
+               notes.includes(query) || 
+               preop.includes(query) || 
+               blocks.includes(query);
+      });
+
+      if (filtered.length === 0) {
+        listDiv.style.display = "none";
+        emptyDiv.style.display = "block";
+        emptyDiv.innerText = `No matches found for "${query}"`;
+        return;
+      }
+
+      emptyDiv.style.display = "none";
+      listDiv.style.display = "block";
+
+      listDiv.innerHTML = filtered.map((item, idx) => {
+        // Find index in original cachedPreferences array
+        const origIdx = cachedPreferences.indexOf(item);
+        return `
+          <div class="pref-item py-2 px-3" 
+               style="cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.2s;" 
+               onclick="showPrefDetail(${origIdx})"
+               onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+               onmouseout="this.style.background='transparent'">
+            <div class="is-flex is-justify-content-between is-align-items-center">
+              <div>
+                <strong style="color: var(--text-main); font-size: 0.85rem;">${escapeHtml(item.Surgeon)}</strong>
+                <span class="has-text-grey-light" style="font-size: 0.75rem; margin-left: 5px;">— ${escapeHtml(item.Procedure)}</span>
+              </div>
+              <span class="tag is-indigo is-light is-size-7" style="height: 18px; font-size:0.65rem; border-radius: 4px;">View</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showPrefDetail(index) {
+      const item = cachedPreferences[index];
+      const card = document.getElementById("pref-detail-card");
+      card.style.display = "block";
+
+      card.innerHTML = `
+        <div class="is-flex is-justify-content-between is-align-items-center mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+          <div>
+            <h4 class="title is-6 mb-0" style="color: var(--accent-indigo) !important;">${escapeHtml(item.Surgeon)}</h4>
+            <p class="is-size-7 has-text-grey-light mb-0" style="font-weight: 600;">${escapeHtml(item.Procedure)}</p>
+          </div>
+          <button class="button is-small is-link is-light" style="height: 22px; font-size: 0.7rem; font-weight: 700; border-radius: 4px;" onclick="loadPrefIntoForm(${index})">
+            ✏️ Edit
+          </button>
+        </div>
+        
+        <div class="columns is-multiline is-mobile is-gapless mb-1">
+          <div class="column is-6 mb-1">
+            <span class="has-text-grey-light is-size-7" style="display:block; font-weight:600; font-size:0.65rem !important;">PREOP MEDS</span>
+            <span class="is-size-7" style="color: var(--text-main);">${escapeHtml(item["Preop Medications"] || "None")}</span>
+          </div>
+          <div class="column is-6 mb-1">
+            <span class="has-text-grey-light is-size-7" style="display:block; font-weight:600; font-size:0.65rem !important;">REGIONAL BLOCKS</span>
+            <span class="is-size-7" style="color: var(--text-main);">${escapeHtml(item["Regional Blocks"] || "None")}</span>
+          </div>
+          <div class="column is-6 mb-1">
+            <span class="has-text-grey-light is-size-7" style="display:block; font-weight:600; font-size:0.65rem !important;">ARTERIAL LINE</span>
+            <span class="is-size-7" style="color: var(--text-main);">${escapeHtml(item["Arterial Line"] || "None")}</span>
+          </div>
+          <div class="column is-6 mb-1">
+            <span class="has-text-grey-light is-size-7" style="display:block; font-weight:600; font-size:0.65rem !important;">BP PARAMETERS</span>
+            <span class="is-size-7" style="color: var(--text-main);">${escapeHtml(item["BP Parameters"] || "None")}</span>
+          </div>
+          <div class="column is-12 mb-1">
+            <span class="has-text-grey-light is-size-7" style="display:block; font-weight:600; font-size:0.65rem !important;">OTHER / DETAILS</span>
+            <span class="is-size-7" style="color: var(--text-main); white-space: pre-wrap; display: block; line-height: 1.35;">${escapeHtml(item.Notes || "None")}</span>
+          </div>
+        </div>
+
+        <div class="is-size-7 mt-2 pt-2 has-text-grey-light" style="border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.65rem !important; display: flex; justify-content: space-between;">
+          <span>By: ${escapeHtml(item["Updated By"] || "System")}</span>
+          <span>Last Sync: ${escapeHtml(item["Last Updated"] || "N/A")}</span>
+        </div>
+      `;
+    }
+
+    function loadPrefIntoForm(index) {
+      const item = cachedPreferences[index];
+      
+      document.getElementById("form-pref-surgeon").value = item.Surgeon || "";
+      document.getElementById("form-pref-procedure").value = item.Procedure || "";
+      document.getElementById("form-pref-preop").value = item["Preop Medications"] || "";
+      document.getElementById("form-pref-blocks").value = item["Regional Blocks"] || "";
+      document.getElementById("form-pref-aline").value = item["Arterial Line"] || "";
+      document.getElementById("form-pref-bp").value = item["BP Parameters"] || "";
+      document.getElementById("form-pref-notes").value = item.Notes || "";
+
+      document.getElementById("pref-form-title").innerText = "✏️ Edit Surgeon Preference";
+      
+      // Hide notifications
+      document.getElementById("form-pref-error").style.display = "none";
+      document.getElementById("form-pref-success").style.display = "none";
+
+      switchPrefTab('form');
+    }
+
+    function resetPrefForm() {
+      document.getElementById("form-pref-surgeon").value = "";
+      document.getElementById("form-pref-procedure").value = "";
+      document.getElementById("form-pref-preop").value = "";
+      document.getElementById("form-pref-blocks").value = "";
+      document.getElementById("form-pref-aline").value = "";
+      document.getElementById("form-pref-bp").value = "";
+      document.getElementById("form-pref-notes").value = "";
+      
+      document.getElementById("form-pref-error").style.display = "none";
+      document.getElementById("form-pref-success").style.display = "none";
+    }
+
+    async function savePreference() {
+      const name = localStorage.getItem("tc_name");
+      const pin = localStorage.getItem("tc_pin");
+      const saveBtn = document.getElementById("btn-save-pref");
+      const errorDiv = document.getElementById("form-pref-error");
+      const successDiv = document.getElementById("form-pref-success");
+
+      const surgeon = document.getElementById("form-pref-surgeon").value.trim();
+      const procedure = document.getElementById("form-pref-procedure").value.trim();
+      const preopMedications = document.getElementById("form-pref-preop").value.trim();
+      const regionalBlocks = document.getElementById("form-pref-blocks").value.trim();
+      const arterialLine = document.getElementById("form-pref-aline").value.trim();
+      const bpParameters = document.getElementById("form-pref-bp").value.trim();
+      const notes = document.getElementById("form-pref-notes").value.trim();
+
+      errorDiv.style.display = "none";
+      successDiv.style.display = "none";
+
+      if (!surgeon || !procedure) {
+        errorDiv.innerText = "Surgeon Name and Procedure are required.";
+        errorDiv.style.display = "block";
+        return;
+      }
+
+      saveBtn.classList.add("is-loading");
+
+      const preferenceData = {
+        surgeon,
+        procedure,
+        preopMedications,
+        regionalBlocks,
+        arterialLine,
+        bpParameters,
+        notes
+      };
+
+      try {
+        await callApi("saveSurgeonPreference", { name, pin, preferenceData });
+        successDiv.innerText = `Preference for ${surgeon} successfully saved!`;
+        successDiv.style.display = "block";
+        
+        // Reset form completely
+        resetPrefForm();
+        
+        // Force reload preferences in search tab
+        await loadPreferences(name, pin, true);
+        
+        // Wait 1.5s, then switch to search tab to see it
+        setTimeout(() => {
+          switchPrefTab('search');
+        }, 1500);
+
+      } catch (err) {
+        console.error("Save preference error:", err);
+        errorDiv.innerText = "Error saving preference: " + err.message;
+        errorDiv.style.display = "block";
+      } finally {
+        saveBtn.classList.remove("is-loading");
+      }
+    }
+
+    async function loadClinicalDocuments(name, pin, force = false) {
+      if (isDocsLoaded && !force) return;
+
+      const loading = document.getElementById("pref-docs-loading");
+      const listDiv = document.getElementById("pref-docs-list");
+      const emptyDiv = document.getElementById("pref-docs-empty");
+
+      loading.style.display = "block";
+      listDiv.style.display = "none";
+      emptyDiv.style.display = "none";
+
+      try {
+        const res = await callApi("getClinicalDocuments", { name, pin });
+        cachedDocuments = res || [];
+        isDocsLoaded = true;
+        renderClinicalDocuments();
+      } catch (err) {
+        console.error("Error loading clinical documents:", err);
+        emptyDiv.innerText = "Error loading files: " + err.message;
+        emptyDiv.style.display = "block";
+      } finally {
+        loading.style.display = "none";
+      }
+    }
+
+    function renderClinicalDocuments() {
+      const listDiv = document.getElementById("pref-docs-list");
+      const emptyDiv = document.getElementById("pref-docs-empty");
+
+      if (cachedDocuments.length === 0) {
+        listDiv.style.display = "none";
+        emptyDiv.style.display = "block";
+        return;
+      }
+
+      emptyDiv.style.display = "none";
+      listDiv.style.display = "block";
+
+      // Group documents by category
+      const groups = {};
+      cachedDocuments.forEach(doc => {
+        const cat = doc.category || "General";
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(doc);
+      });
+
+      // Render grouped docs
+      let html = "";
+      for (const cat in groups) {
+        const docs = groups[cat];
+        html += `
+          <div class="category-block mb-4" style="border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <div class="has-text-weight-bold is-size-7 mb-2 uppercase" style="color: var(--accent-emerald); letter-spacing: 0.05em;">
+              📂 ${escapeHtml(cat.toUpperCase())}
+            </div>
+            <div class="docs-list ml-2">
+              ${docs.map(doc => {
+                const dateStr = doc.lastUpdated ? new Date(doc.lastUpdated).toLocaleDateString() : '';
+                return `
+                  <a href="${doc.url}" target="_blank" class="is-flex is-align-items-center py-1 mb-1" 
+                     style="color: var(--text-main); font-size: 0.8rem; text-decoration: underline dotted; text-underline-offset: 3px; gap: 6px; transition: color 0.2s;"
+                     onmouseover="this.style.color='var(--accent-indigo)'"
+                     onmouseout="this.style.color='var(--text-main)'">
+                    📄 ${escapeHtml(doc.name)}
+                    ${dateStr ? `<span class="has-text-grey-light" style="font-size: 0.65rem; margin-left: auto;">${escapeHtml(dateStr)}</span>` : ''}
+                  </a>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      listDiv.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Modal background click to close
+    document.getElementById('preferences-modal').addEventListener('click', function (e) {
+      if (e.target === this) closePreferencesModal();
+    });
       }
     }
   </script>
