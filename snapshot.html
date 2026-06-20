@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v150)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v151)</span>
       </div>
     </div>
 
@@ -923,7 +923,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v150 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v151 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1239,7 +1239,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v150 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v151 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -3434,10 +3434,10 @@
        PREFERENCES & CLINICAL DOCUMENTS FRONTEND SYSTEM
        ============================================================================ */
 
-    let cachedPreferences = []; // Global cache for surgeon preferences
-    let cachedDocuments = [];   // Global cache for clinical documents
-    let isPrefLoaded = false;
-    let isDocsLoaded = false;
+    var cachedPreferences = []; // Global cache for surgeon preferences
+    var cachedDocuments = [];   // Global cache for clinical documents
+    var isPrefLoaded = false;
+    var isDocsLoaded = false;
 
     function openPreferences() {
       loginDestination = "preferences";
@@ -3568,7 +3568,9 @@
             <div class="is-flex is-justify-content-between is-align-items-center">
               <div>
                 <strong style="color: var(--text-main); font-size: 0.85rem;">${escapeHtml(item.Surgeon)}</strong>
-                <span class="has-text-grey-light" style="font-size: 0.75rem; margin-left: 5px;">— ${escapeHtml(item.Procedure)}</span>
+                ${(item.Procedure && item.Procedure !== "Global Preferences") 
+                  ? `<span class="has-text-grey-light" style="font-size: 0.75rem; margin-left: 5px;">— ${escapeHtml(item.Procedure)}</span>` 
+                  : ''}
               </div>
               <span class="tag is-indigo is-light is-size-7" style="height: 18px; font-size:0.65rem; border-radius: 4px;">View</span>
             </div>
@@ -3586,7 +3588,9 @@
         <div class="is-flex is-justify-content-between is-align-items-center mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
           <div>
             <h4 class="title is-6 mb-0" style="color: var(--accent-indigo) !important;">${escapeHtml(item.Surgeon)}</h4>
-            <p class="is-size-7 has-text-grey-light mb-0" style="font-weight: 600;">${escapeHtml(item.Procedure)}</p>
+            <p class="is-size-7 has-text-grey-light mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"};">
+              ${escapeHtml(item.Procedure)}
+            </p>
           </div>
           <button class="button is-small is-link is-light" style="height: 22px; font-size: 0.7rem; font-weight: 700; border-radius: 4px;" onclick="loadPrefIntoForm(${index})">
             ✏️ Edit
