@@ -527,7 +527,7 @@
               </div>
               <div class="column is-6 mb-0 py-1">
                 <div class="field">
-                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Procedure <span style="color:var(--accent-rose);">*</span></label>
+                  <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Procedure <span class="has-text-grey" style="font-size: 0.65rem; font-weight: 400; font-style: italic;">(Optional)</span></label>
                   <div class="control">
                     <input class="input is-small" type="text" id="form-pref-procedure" placeholder="e.g. Total Hip" style="background: #ffffff !important; color: #0f172a !important; font-weight: 600;">
                   </div>
@@ -3674,8 +3674,8 @@
       errorDiv.style.display = "none";
       successDiv.style.display = "none";
 
-      if (!surgeon || !procedure) {
-        errorDiv.innerText = "Surgeon Name and Procedure are required.";
+      if (!surgeon) {
+        errorDiv.innerText = "Surgeon Name is required.";
         errorDiv.style.display = "block";
         return;
       }
