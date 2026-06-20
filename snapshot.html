@@ -302,6 +302,25 @@
           </div>
         </div>
 
+        <!-- Calendar Sync Section (Always Visible when logged in) -->
+        <div id="tc-calendar-section" style="display:none; margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+          <div class="section-title"
+            style="font-size: 0.95rem; margin-bottom: 12px; border-bottom: none; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Calendar Subscription</div>
+          <div class="box p-3 mb-0"
+            style="background: var(--card-bg); border: 1px solid var(--border-color); width: 100%; border-radius: 10px; box-shadow: none;">
+            <p class="is-size-7 mb-3" style="color: var(--text-muted); line-height: 1.4;">Subscribe to your schedule so it updates automatically on your iPhone, Google Calendar, or Outlook.</p>
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input class="input is-small" type="text" id="tc-ical-url" readonly 
+                  style="border-radius: 6px 0 0 6px; background: rgba(0, 0, 0, 0.25); color: var(--text-muted); border-color: rgba(255,255,255,0.1); font-family: monospace;">
+              </div>
+              <div class="control">
+                <button class="button is-small is-link" onclick="copyICalUrl()" style="border-radius: 0 6px 6px 0; font-weight: 700;">Copy Link</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </section>
     </div>
   </div>
@@ -1556,6 +1575,13 @@
         document.getElementById("tc-link-section").style.display = "block";
         document.getElementById("tc-main-section").style.display = "none";
       }
+
+      if (res && res.calendarUrl) {
+        document.getElementById("tc-ical-url").value = res.calendarUrl;
+        document.getElementById("tc-calendar-section").style.display = "block";
+      } else {
+        document.getElementById("tc-calendar-section").style.display = "none";
+      }
     }
 
     async function submitTimecardCreate() {
@@ -2021,6 +2047,22 @@
       localStorage.removeItem("tc_pin");
       localStorage.removeItem("tc_sheet_id");
       closeTimecardDashboardModal();
+    }
+
+    function copyICalUrl() {
+      const input = document.getElementById("tc-ical-url");
+      if (!input || !input.value) return;
+      input.select();
+      input.setSelectionRange(0, 99999); // For mobile devices
+      
+      try {
+        navigator.clipboard.writeText(input.value);
+        showToast("Calendar link copied to clipboard!", "success");
+      } catch (err) {
+        // Fallback
+        document.execCommand("copy");
+        showToast("Calendar link copied to clipboard!", "success");
+      }
     }
 
     // Register change listeners to dynamically update button ranges when user changes the pickers
