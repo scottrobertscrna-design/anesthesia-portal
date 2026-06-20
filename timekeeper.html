@@ -36,13 +36,13 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v152)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v153)</span>
       </div>
     </div>
 
     <!-- Date selector for entry page -->
     <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center"
-      style="display: flex; gap: 10px;">
+      style="display: flex; gap: 10px; flex-wrap: wrap;">
       <label class="label mb-0" for="entry-date-picker"
         style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Select Date:</label>
       <div class="control">
@@ -53,11 +53,6 @@
         title="Force refresh schedule from Google Sheets"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
         🔄 Refresh
-      </button>
-      <button class="button is-small is-link" id="btn-open-sheet-viewer" onclick="openSheetViewer()"
-        title="View Full Monthly Sheets (A-L)"
-        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
-        📊 Sheets
       </button>
       <button class="button is-small is-link" id="btn-open-preferences" onclick="openPreferences()"
         title="Surgeon Preferences & Clinical Docs"
@@ -754,7 +749,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v152 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v153 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1265,7 +1260,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v152 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v153 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2795,7 +2790,6 @@
                   ? `<span class="has-text-grey-light" style="font-size: 0.75rem; margin-left: 5px;">— ${escapeHtml(item.Procedure)}</span>` 
                   : ''}
               </div>
-              <span class="tag is-indigo is-light is-size-7" style="height: 18px; font-size:0.65rem; border-radius: 4px;">View</span>
             </div>
           </div>
         `;
@@ -2811,7 +2805,7 @@
         <div class="is-flex is-justify-content-between is-align-items-center mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
           <div>
             <h4 class="title is-6 mb-0" style="color: var(--accent-indigo) !important;">${escapeHtml(item.Surgeon)}</h4>
-            <p class="is-size-7 has-text-grey-light mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"};">
+            <p class="is-size-7 mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"}; color: #3b82f6 !important; text-decoration: underline;">
               ${escapeHtml(item.Procedure)}
             </p>
           </div>

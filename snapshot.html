@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px;">(v152)</span>
+          style="opacity: 0.65; margin-left: 5px;">(v153)</span>
       </div>
     </div>
 
@@ -931,7 +931,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v152 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v153 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1247,7 +1247,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v152 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v153 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -1649,6 +1649,11 @@
        ============================================================================ */
 
     function openTimecard() {
+      const isLocum = localStorage.getItem("tc_is_locum") === "true";
+      if (isLocum) {
+        alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+        return;
+      }
       loginDestination = "timecard";
       const storedName = localStorage.getItem("tc_name");
       const storedPin = localStorage.getItem("tc_pin");
@@ -1661,6 +1666,11 @@
     }
 
     function openRequests() {
+      const isLocum = localStorage.getItem("tc_is_locum") === "true";
+      if (isLocum) {
+        alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+        return;
+      }
       loginDestination = "requests";
       const storedName = localStorage.getItem("tc_name");
       const storedPin = localStorage.getItem("tc_pin");
@@ -1720,10 +1730,23 @@
         if (res.sheetId) {
           localStorage.setItem("tc_sheet_id", res.sheetId);
         }
+        if (res.isLocum) {
+          localStorage.setItem("tc_is_locum", "true");
+        } else {
+          localStorage.removeItem("tc_is_locum");
+        }
 
         closeTimecardAuthModal();
         btn.classList.remove("is-loading");
         document.getElementById("tc-pin-input").value = "";
+
+        if (res.isLocum) {
+          if (loginDestination !== "preferences") {
+            alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+          }
+          showPreferencesDashboard(name, pin);
+          return;
+        }
 
         if (loginDestination === "requests") {
           showRequestsDashboard(name, pin, res);
@@ -1757,6 +1780,12 @@
           alert("Session expired. Please log in again. Error: " + e.message);
           return;
         }
+      }
+
+      if (res && res.isLocum) {
+        logoutTimecard();
+        alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+        return;
       }
 
       if (res.hasSheetLinked) {
@@ -2240,6 +2269,7 @@
       localStorage.removeItem("tc_name");
       localStorage.removeItem("tc_pin");
       localStorage.removeItem("tc_sheet_id");
+      localStorage.removeItem("tc_is_locum");
       closeTimecardDashboardModal();
       closeRequestsModal();
       if (document.getElementById("preferences-modal")) {
@@ -3268,6 +3298,11 @@
       } else {
         try {
           const res = await callApi("timecardLogin", { name, pin });
+          if (res.isLocum) {
+            logoutTimecard();
+            alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+            return;
+          }
           is5Day = !!res.is5Day;
           calendarUrl = res.calendarUrl || "";
         } catch (e) {
@@ -3588,7 +3623,6 @@
                   ? `<span class="has-text-grey-light" style="font-size: 0.75rem; margin-left: 5px;">— ${escapeHtml(item.Procedure)}</span>` 
                   : ''}
               </div>
-              <span class="tag is-indigo is-light is-size-7" style="height: 18px; font-size:0.65rem; border-radius: 4px;">View</span>
             </div>
           </div>
         `;
@@ -3604,7 +3638,7 @@
         <div class="is-flex is-justify-content-between is-align-items-center mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
           <div>
             <h4 class="title is-6 mb-0" style="color: var(--accent-indigo) !important;">${escapeHtml(item.Surgeon)}</h4>
-            <p class="is-size-7 has-text-grey-light mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"};">
+            <p class="is-size-7 mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"}; color: #3b82f6 !important; text-decoration: underline;">
               ${escapeHtml(item.Procedure)}
             </p>
           </div>
