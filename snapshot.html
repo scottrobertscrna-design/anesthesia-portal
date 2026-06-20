@@ -388,8 +388,8 @@
             <!-- Checkboxes for Options -->
             <div class="field mb-3" style="text-align: left; padding-left: 5px;">
               <label class="checkbox is-size-7 has-text-grey-light mb-1" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
-                <input type="checkbox" id="req-cal-allday" onchange="updateICalUrlWithOptions()"> 
-                Show as All-Day Events <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(Default is 7 AM – 5 PM)</span>
+                <input type="checkbox" id="req-cal-allday" checked onchange="updateICalUrlWithOptions()"> 
+                Show as All-Day Events <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(Uncheck for 7 AM – 5 PM timed shifts)</span>
               </label>
               <label class="checkbox is-size-7 has-text-grey-light" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
                 <input type="checkbox" id="req-cal-emojis" checked onchange="updateICalUrlWithOptions()"> 
@@ -2078,8 +2078,8 @@
       const emojis = document.getElementById("req-cal-emojis").checked;
       
       let url = baseCalendarUrl;
-      if (allDay) {
-        url += "&allDay=true";
+      if (!allDay) {
+        url += "&allDay=false";
       }
       if (!emojis) {
         url += "&emojis=false";
