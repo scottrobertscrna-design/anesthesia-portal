@@ -1196,13 +1196,14 @@
     }
 
     function getContactBadgeHtmlSingle_(name, day, dayIdx) {
-      const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
+      const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*|Pain\s*Doc\s*/gi, '').trim().toLowerCase();
       if (cleanTarget === 'none assigned' || cleanTarget === 'not found' || cleanTarget === 'none' || cleanTarget === '') {
         return `<span class="has-text-weight-bold">${name}</span>`;
       }
 
       const phoneEntry = day.activePhones.find(ap => {
-        const cleanAp = ap.name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
+        const cleanAp = ap.name.replace(/[\(\)]/g, '').replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*|Pain\s*Doc\s*/gi, '').trim().toLowerCase();
+        if (!cleanAp || !cleanTarget) return false;
         return cleanAp.includes(cleanTarget) || cleanTarget.includes(cleanAp);
       });
 
@@ -1219,9 +1220,10 @@
       const day = cachedDaysList[dayIdx];
       if (!day || !day.activePhones) return;
 
-      const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
+      const cleanTarget = name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*|Pain\s*Doc\s*/gi, '').trim().toLowerCase();
       const phoneEntry = day.activePhones.find(ap => {
-        const cleanAp = ap.name.split('(')[0].replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*/gi, '').trim().toLowerCase();
+        const cleanAp = ap.name.replace(/[\(\)]/g, '').replace(/Attending\s*|MD\s*|Dr\.\s*|LSC\s*Doc\s*|MD\s*Call\s*|Pain\s*Doc\s*/gi, '').trim().toLowerCase();
+        if (!cleanAp || !cleanTarget) return false;
         return cleanAp.includes(cleanTarget) || cleanTarget.includes(cleanAp);
       });
 
