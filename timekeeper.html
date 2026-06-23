@@ -1242,6 +1242,9 @@
       return `<span class="has-text-weight-bold">${name}</span>`;
     }
 
+    let currentCbName = "";
+    let currentCbDateStr = "";
+
     function openContactModal(name, dayIdx) {
       if (isScrolling) return;
       const day = cachedDaysList[dayIdx];
@@ -1268,11 +1271,155 @@
       document.getElementById('contact-link-text').href = `sms:${cleanPhone}`;
       document.getElementById('contact-link-call').href = `tel:${cleanPhone}`;
 
+      // Callback Hour Tracker Setup for CRNA Backup
+      currentCbName = name;
+      currentCbDateStr = day.dateStr;
+      
+      const cleanBackup = (day.backupCRNA || "").toLowerCase().split('(')[0].trim();
+      const cleanTargetName = name.toLowerCase().split('(')[0].trim();
+      const isBackup = (cleanBackup && cleanTargetName && cleanBackup === cleanTargetName);
+
+      // Hide manual form on open
+      document.getElementById("cb-manual-form").style.display = "none";
+      document.getElementById("cb-manual-trigger").style.display = "block";
+
+      if (isBackup) {
+        document.getElementById('contact-callback-section').style.display = 'block';
+        loadCallbackStatus();
+      } else {
+        document.getElementById('contact-callback-section').style.display = 'none';
+      }
+
       document.getElementById('contact-modal').classList.add('is-active');
     }
 
     function closeContactModal() {
       document.getElementById('contact-modal').classList.remove('is-active');
+    }
+
+    function toggleManualCallbackForm() {
+      const form = document.getElementById("cb-manual-form");
+      const link = document.getElementById("cb-manual-trigger");
+      if (form.style.display === "none") {
+        form.style.display = "block";
+        link.style.display = "none";
+      } else {
+        form.style.display = "none";
+        link.style.display = "block";
+      }
+    }
+
+    async function loadCallbackStatus() {
+      const listContainer = document.getElementById("cb-today-list");
+      listContainer.innerHTML = '<p class="has-text-grey py-1 italic" style="font-size:0.7rem;">Loading logs...</p>';
+      
+      const startBtn = document.getElementById("btn-cb-start");
+      const activeStatus = document.getElementById("cb-active-status");
+      
+      startBtn.style.display = "block";
+      activeStatus.style.display = "none";
+
+      try {
+        const res = await callApi("getCallbackLogsForDate", { name: currentCbName, dateStr: currentCbDateStr });
+        
+        if (res.activeCallback) {
+          startBtn.style.display = "none";
+          activeStatus.style.display = "block";
+          document.getElementById("cb-active-start-time").innerText = res.activeCallback.startTime;
+          document.getElementById("cb-stop-notes").value = "";
+        }
+
+        renderCompletedCallbacks(res.completedCallbacks);
+      } catch (err) {
+        console.error("Error loading callback status:", err);
+        listContainer.innerHTML = '<p class="has-text-danger py-1" style="font-size:0.7rem;">Error loading logs.</p>';
+      }
+    }
+
+    function renderCompletedCallbacks(list) {
+      const container = document.getElementById("cb-today-list");
+      if (!list || list.length === 0) {
+        container.innerHTML = '<p class="has-text-grey py-1" style="font-size:0.7rem; font-style: italic;">No callbacks logged today.</p>';
+        return;
+      }
+
+      container.innerHTML = list.map(cb => {
+        const notesStr = cb.notes ? ` <span class="has-text-grey-light">(${cb.notes})</span>` : '';
+        return `
+          <div style="background: rgba(255,255,255,0.04); border-radius: 4px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.02);">
+            <span style="color: var(--text-main); font-weight: 500;">${cb.startTime} – ${cb.endTime}${notesStr}</span>
+            <span class="tag is-small is-light" style="font-weight: 700; height: 18px; font-size: 0.65rem;">${cb.duration} hrs</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function startRealtimeCallback() {
+      const btn = document.getElementById("btn-cb-start");
+      btn.classList.add("is-loading");
+
+      try {
+        await callApi("startCallback", { name: currentCbName, dateStr: currentCbDateStr });
+        showToast("Callback session started!", "success");
+        await loadCallbackStatus();
+      } catch (err) {
+        alert("Failed to start callback: " + err.message);
+      } finally {
+        btn.classList.remove("is-loading");
+      }
+    }
+
+    async function stopRealtimeCallback() {
+      const btn = document.getElementById("btn-cb-stop");
+      btn.classList.add("is-loading");
+      const notes = document.getElementById("cb-stop-notes").value.trim();
+
+      try {
+        await callApi("stopCallback", { name: currentCbName, dateStr: currentCbDateStr, notes: notes });
+        showToast("Callback session stopped and logged!", "success");
+        await loadCallbackStatus();
+      } catch (err) {
+        alert("Failed to stop callback: " + err.message);
+      } finally {
+        btn.classList.remove("is-loading");
+      }
+    }
+
+    async function submitManualCallback() {
+      const startVal = document.getElementById("cb-manual-start").value;
+      const endVal = document.getElementById("cb-manual-end").value;
+      const notes = document.getElementById("cb-manual-notes").value.trim();
+
+      if (!startVal || !endVal) {
+        alert("Please select both Start and End times.");
+        return;
+      }
+
+      const submitBtn = document.querySelector("#cb-manual-form .button");
+      submitBtn.classList.add("is-loading");
+
+      try {
+        await callApi("logManualCallback", {
+          name: currentCbName,
+          dateStr: currentCbDateStr,
+          startTime: startVal,
+          endTime: endVal,
+          notes: notes
+        });
+
+        showToast("Manual callback logged successfully!", "success");
+        
+        document.getElementById("cb-manual-start").value = "";
+        document.getElementById("cb-manual-end").value = "";
+        document.getElementById("cb-manual-notes").value = "";
+        toggleManualCallbackForm();
+        
+        await loadCallbackStatus();
+      } catch (err) {
+        alert("Failed to log manual callback: " + err.message);
+      } finally {
+        submitBtn.classList.remove("is-loading");
+      }
     }
 
     function render(data) {
@@ -3205,6 +3352,62 @@
             style="height: 40px; font-weight: 600; border-radius: 8px; margin-top: 4px;">
             Cancel
           </button>
+        </div>
+
+        <!-- Callback section for CRNA Backup -->
+        <div id="contact-callback-section" style="display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 10px; text-align: left; width: 100%;">
+          <h4 class="title is-6 mb-2" style="color: var(--accent-indigo) !important; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">⏱️ Callback Tracker</h4>
+          
+          <!-- Real-time Controls -->
+          <div id="cb-realtime-controls" class="mb-3">
+            <button id="btn-cb-start" class="button is-small is-success is-fullwidth" onclick="startRealtimeCallback()" style="font-weight: 700; border-radius: 6px; height: 32px;">
+              ⏱️ Start Callback
+            </button>
+            <div id="cb-active-status" style="display: none; background: rgba(239,68,68,0.15); border: 1px solid #ef4444; border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 8px;">
+              <p class="is-size-7 mb-1" style="color: #f87171; font-weight: 700; letter-spacing: 0.02em;">🔴 ACTIVE CALLBACK</p>
+              <p class="is-size-7 mb-2" style="color: var(--text-muted);">Started at: <span id="cb-active-start-time" class="has-text-weight-bold" style="color: var(--text-main);">N/A</span></p>
+              
+              <!-- Optional Notes for Stop Callback -->
+              <input class="input is-small mb-2" type="text" id="cb-stop-notes" placeholder="Optional notes" style="background: rgba(255,255,255,0.1); color: var(--text-main); border-color: rgba(255,255,255,0.15);">
+              
+              <button id="btn-cb-stop" class="button is-small is-danger is-fullwidth" onclick="stopRealtimeCallback()" style="font-weight: 700; border-radius: 6px; height: 32px; background-color: #ef4444;">
+                🛑 Stop Callback
+              </button>
+            </div>
+          </div>
+          
+          <!-- Back-timing Toggle Link -->
+          <div id="cb-manual-trigger" class="has-text-centered mb-2">
+            <a class="is-size-7" style="color: var(--text-muted); text-decoration: underline; cursor: pointer;" onclick="toggleManualCallbackForm()">
+              Or log past callback (Back-time)
+            </a>
+          </div>
+
+          <!-- Manual Entry Form -->
+          <div id="cb-manual-form" style="display: none; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+            <div class="columns is-mobile is-gapless mb-2">
+              <div class="column is-6 pr-1">
+                <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Start Time</label>
+                <input class="input is-small" type="time" id="cb-manual-start" style="background: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+              </div>
+              <div class="column is-6 pl-1">
+                <label class="label is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">End Time</label>
+                <input class="input is-small" type="time" id="cb-manual-end" style="background: #ffffff !important; color: #0f172a !important; font-weight: 600;">
+              </div>
+            </div>
+            <input class="input is-small mb-2" type="text" id="cb-manual-notes" placeholder="Optional notes" style="background: rgba(255,255,255,0.1); color: var(--text-main); border-color: rgba(255,255,255,0.15);">
+            <button class="button is-small is-link is-fullwidth" onclick="submitManualCallback()" style="font-weight: 700; border-radius: 6px;">
+              ➕ Log Callback
+            </button>
+          </div>
+
+          <!-- Completed Logs List -->
+          <div id="cb-today-list-container" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+            <p class="is-size-7 mb-1" style="color: var(--text-muted); font-weight: 600;">Today's Logs:</p>
+            <div id="cb-today-list" style="max-height: 90px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+              <!-- Dynamic entries go here -->
+            </div>
+          </div>
         </div>
       </section>
     </div>
