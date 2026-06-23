@@ -67,13 +67,14 @@
         </div>
       </div>
 
-      <div id="my-schedule"></div>
-
       <!-- Calendar Sync Section -->
-      <div id="req-calendar-section" style="display:none; margin-top: 30px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px;">
-        <h3 class="title is-5 mb-3" style="color: var(--text-main);">📅 Calendar Subscription</h3>
+      <div id="req-calendar-section" style="display:none; margin-bottom: 25px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 20px;">
+        <h3 class="title is-5 mb-2" style="color: var(--text-main);">📅 Calendar Subscription</h3>
         <div class="box p-3 mb-0" style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: none;">
-          <p class="is-size-7 mb-3" style="color: #7a7a7a; line-height: 1.4;">Subscribe to your confirmed shifts so they update automatically on your iPhone, Google Calendar, or Outlook. All-day events are recommended for locum providers.</p>
+          <p class="is-size-7 mb-3" style="color: #7a7a7a; line-height: 1.4;">
+            Subscribe to your confirmed shifts so they update automatically on your iPhone, Google Calendar, or Outlook.<br>
+            <strong>Note:</strong> This calendar feed only syncs shifts from the finalized staff schedule (released ~6 weeks prior to the start of each month). Long-range planner dates shown below are tentative and will not sync until finalized.
+          </p>
           
           <!-- Checkboxes for Options -->
           <div class="field mb-3" style="text-align: left; padding-left: 5px;">
@@ -98,6 +99,8 @@
           </div>
         </div>
       </div>
+
+      <div id="my-schedule"></div>
 
       <div class="mt-6 has-text-centered">
         <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
