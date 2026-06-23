@@ -3624,9 +3624,7 @@
             <div class="is-flex is-justify-content-between is-align-items-center">
               <div>
                 <strong style="color: var(--text-main); font-size: 0.85rem;">${escapeHtml(item.Surgeon)}</strong>
-                ${(item.Procedure && item.Procedure !== "Global Preferences" && item.Procedure !== "Surgeon 411") 
-                  ? `<span style="font-size: 0.75rem; margin-left: 5px; color: #3b82f6 !important; text-decoration: underline;">— ${escapeHtml(item.Procedure)}</span>` 
-                  : ''}
+                <span style="font-size: 0.75rem; margin-left: 5px; color: #3b82f6 !important; text-decoration: underline;">— ${(item.Procedure === "Global Preferences" || item.Procedure === "Surgeon 411" || !item.Procedure) ? "Surgeon 411" : escapeHtml(item.Procedure)}</span>
               </div>
             </div>
           </div>
