@@ -1375,7 +1375,8 @@
       const notes = document.getElementById("cb-stop-notes").value.trim();
 
       try {
-        await callApi("stopCallback", { name: currentCbName, dateStr: currentCbDateStr, notes: notes });
+        const doctorName = localStorage.getItem("tc_name") || "";
+        await callApi("stopCallback", { name: currentCbName, dateStr: currentCbDateStr, notes: notes, doctorName: doctorName });
         showToast("Callback session stopped and logged!", "success");
         await loadCallbackStatus();
       } catch (err) {
@@ -1399,12 +1400,14 @@
       submitBtn.classList.add("is-loading");
 
       try {
+        const doctorName = localStorage.getItem("tc_name") || "";
         await callApi("logManualCallback", {
           name: currentCbName,
           dateStr: currentCbDateStr,
           startTime: startVal,
           endTime: endVal,
-          notes: notes
+          notes: notes,
+          doctorName: doctorName
         });
 
         showToast("Manual callback logged successfully!", "success");
