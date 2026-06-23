@@ -69,6 +69,36 @@
 
       <div id="my-schedule"></div>
 
+      <!-- Calendar Sync Section -->
+      <div id="req-calendar-section" style="display:none; margin-top: 30px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px;">
+        <h3 class="title is-5 mb-3" style="color: var(--text-main);">📅 Calendar Subscription</h3>
+        <div class="box p-3 mb-0" style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: none;">
+          <p class="is-size-7 mb-3" style="color: #7a7a7a; line-height: 1.4;">Subscribe to your confirmed shifts so they update automatically on your iPhone, Google Calendar, or Outlook. All-day events are recommended for locum providers.</p>
+          
+          <!-- Checkboxes for Options -->
+          <div class="field mb-3" style="text-align: left; padding-left: 5px;">
+            <label class="checkbox is-size-7 mb-1" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; color: #4a4a4a;">
+              <input type="checkbox" id="req-cal-allday" checked onchange="updateICalUrlWithOptions()"> 
+              Show as All-Day Events <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(Uncheck for 7 AM – 5 PM timed shifts)</span>
+            </label>
+            <label class="checkbox is-size-7" style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; color: #4a4a4a;">
+              <input type="checkbox" id="req-cal-emojis" checked onchange="updateICalUrlWithOptions()"> 
+              Include Emojis <span class="has-text-grey" style="font-size: 0.7rem; font-style: italic; font-weight: 400;">(e.g. 🏥 LSC 1500 vs LSC 1500)</span>
+            </label>
+          </div>
+
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input class="input is-small" type="text" id="req-ical-url" readonly 
+                style="border-radius: 6px 0 0 6px; background: #f5f5f5; color: #4a4a4a; border-color: #dcdcdc; font-family: monospace;">
+            </div>
+            <div class="control">
+              <button class="button is-small is-link" onclick="copyICalUrl()" style="border-radius: 0 6px 6px 0; font-weight: 700;">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="mt-6 has-text-centered">
         <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
       </div>
@@ -147,6 +177,15 @@
           document.getElementById('pin-status-tag').style.display = 'inline-flex';
         }
 
+        if (result.calendarUrl) {
+          baseCalendarUrl = result.calendarUrl;
+          updateICalUrlWithOptions();
+          document.getElementById("req-calendar-section").style.display = "block";
+        } else {
+          baseCalendarUrl = "";
+          document.getElementById("req-calendar-section").style.display = "none";
+        }
+
         if (result.schedule.length === 0) {
           schedDiv.innerHTML = '<p class="has-text-centered has-text-grey py-5 italic-grey">No upcoming shifts.</p>';
           return;
@@ -210,6 +249,38 @@
         err.innerText = error.message;
         err.style.display = 'block';
       }
+    }
+
+    let baseCalendarUrl = "";
+
+    function copyICalUrl() {
+      const input = document.getElementById("req-ical-url");
+      if (!input || !input.value) return;
+      input.select();
+      input.setSelectionRange(0, 99999);
+      
+      try {
+        navigator.clipboard.writeText(input.value);
+        alert("Calendar link copied to clipboard!");
+      } catch (err) {
+        document.execCommand("copy");
+        alert("Calendar link copied to clipboard!");
+      }
+    }
+
+    function updateICalUrlWithOptions() {
+      if (!baseCalendarUrl) return;
+      const allDay = document.getElementById("req-cal-allday").checked;
+      const emojis = document.getElementById("req-cal-emojis").checked;
+      
+      let url = baseCalendarUrl;
+      if (!allDay) {
+        url += "&allDay=false";
+      }
+      if (!emojis) {
+        url += "&emojis=false";
+      }
+      document.getElementById("req-ical-url").value = url;
     }
   </script>
 
