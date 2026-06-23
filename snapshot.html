@@ -142,7 +142,7 @@
           </div>
         </div>
 
-        <div class="field mb-5">
+        <div class="field mb-5" id="tc-pin-field">
           <label class="label" id="tc-pin-label">Enter PIN</label>
           <div class="control">
             <input class="input" type="password" id="tc-pin-input" placeholder="####" pattern="\d*">
@@ -1691,6 +1691,15 @@
       const select = document.getElementById("tc-name-select");
       select.innerHTML = "<option>Loading employees...</option>";
 
+      const isPref = (loginDestination === "preferences");
+      const pinField = document.getElementById("tc-pin-field");
+      if (pinField) {
+        pinField.style.display = isPref ? "none" : "block";
+      }
+      document.getElementById("tc-pin-input").value = "";
+      document.getElementById("tc-login-btn").innerText = isPref ? "Enter Preferences" : "Access Timecard";
+      modal.querySelector(".modal-card-title").innerText = isPref ? "🔍 Preferences Access" : "🕰️ Timecard Portal";
+
       try {
         const list = await callApi("getEmployeeNames");
         select.innerHTML = list.map(emp =>
@@ -1717,13 +1726,30 @@
       const btn = document.getElementById("tc-login-btn");
       const err = document.getElementById("tc-login-error");
 
-      if (!pin) {
+      const isPref = (loginDestination === "preferences");
+
+      if (!isPref && !pin) {
         alert("Please enter your PIN");
         return;
       }
 
       btn.classList.add("is-loading");
       err.style.display = "none";
+
+      if (isPref) {
+        try {
+          localStorage.setItem("tc_name", name);
+          closeTimecardAuthModal();
+          btn.classList.remove("is-loading");
+          document.getElementById("tc-pin-input").value = "";
+          showPreferencesDashboard(name, "");
+        } catch (e) {
+          btn.classList.remove("is-loading");
+          err.innerText = e.message;
+          err.style.display = "block";
+        }
+        return;
+      }
 
       try {
         const res = await callApi("timecardLogin", { name, pin });
@@ -3487,10 +3513,9 @@
     function openPreferences() {
       loginDestination = "preferences";
       const storedName = localStorage.getItem("tc_name");
-      const storedPin = localStorage.getItem("tc_pin");
 
-      if (storedName && storedPin) {
-        showPreferencesDashboard(storedName, storedPin);
+      if (storedName) {
+        showPreferencesDashboard(storedName, "");
       } else {
         showTimecardAuth();
       }
@@ -3560,7 +3585,7 @@
       emptyDiv.style.display = "none";
 
       try {
-        const res = await callApi("getSurgeonPreferences", { name, pin });
+        const res = await callApi("getSurgeonPreferences", { bypassAuth: true });
         cachedPreferences = res || [];
         isPrefLoaded = true;
         filterPreferences();
@@ -3774,7 +3799,7 @@
       };
 
       try {
-        await callApi("saveSurgeonPreference", { name, pin, preferenceData });
+        await callApi("saveSurgeonPreference", { bypassAuth: true, preferenceData });
         successDiv.innerText = `Preference for ${surgeon} successfully saved!`;
         successDiv.style.display = "block";
         
