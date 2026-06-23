@@ -1244,6 +1244,7 @@
 
     let currentCbName = "";
     let currentCbDateStr = "";
+    let currentCbCallMD = "";
 
     function openContactModal(name, dayIdx) {
       if (isScrolling) return;
@@ -1274,6 +1275,7 @@
       // Callback Hour Tracker Setup for CRNA Backup
       currentCbName = name;
       currentCbDateStr = day.dateStr;
+      currentCbCallMD = (day.docs && day.docs.ac) ? day.docs.ac : "";
       
       const cleanBackup = (day.backupCRNA || "").toLowerCase().split('(')[0].trim();
       const cleanTargetName = name.toLowerCase().split('(')[0].trim();
@@ -1375,7 +1377,7 @@
       const notes = document.getElementById("cb-stop-notes").value.trim();
 
       try {
-        const doctorName = localStorage.getItem("tc_name") || "";
+        const doctorName = currentCbCallMD || "";
         await callApi("stopCallback", { name: currentCbName, dateStr: currentCbDateStr, notes: notes, doctorName: doctorName });
         showToast("Callback session stopped and logged!", "success");
         await loadCallbackStatus();
@@ -1400,7 +1402,7 @@
       submitBtn.classList.add("is-loading");
 
       try {
-        const doctorName = localStorage.getItem("tc_name") || "";
+        const doctorName = currentCbCallMD || "";
         await callApi("logManualCallback", {
           name: currentCbName,
           dateStr: currentCbDateStr,
