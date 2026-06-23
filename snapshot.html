@@ -60,9 +60,9 @@
         🕰️ Timecard
       </button>
       <button class="button is-small is-link" id="btn-open-requests" onclick="openRequests()"
-        title="Submit or View Future Schedule Requests"
+        title="Personal Schedule & Requests"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
-        📅 Requests
+        📅 Schedules
       </button>
       <button class="button is-small is-link" id="btn-open-sheet-viewer" onclick="openSheetViewer()"
         title="View Full Monthly Sheets (A-L)"
@@ -317,7 +317,7 @@
       style="max-width: 500px; width: 92%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
       <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
         <p id="req-dash-title" class="modal-card-title has-text-weight-bold"
-          style="font-size: 1.25rem; color: var(--text-main) !important;">📅 SCHEDULE & REQUESTS</p>
+          style="font-size: 1.25rem; color: var(--text-main) !important;">📅 SCHEDULES & REQUESTS</p>
         <button class="delete" aria-label="close" onclick="closeRequestsModal()"></button>
       </header>
       <section class="modal-card-body"
@@ -1697,7 +1697,7 @@
     function openRequests() {
       const isLocum = localStorage.getItem("tc_is_locum") === "true";
       if (isLocum) {
-        alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
+        window.location.href = "portal.html";
         return;
       }
       loginDestination = "requests";
@@ -1770,6 +1770,10 @@
         document.getElementById("tc-pin-input").value = "";
 
         if (res.isLocum) {
+          if (loginDestination === "requests") {
+            window.location.href = "portal.html";
+            return;
+          }
           if (loginDestination !== "preferences") {
             alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
           }
