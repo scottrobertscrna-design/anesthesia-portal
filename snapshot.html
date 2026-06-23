@@ -3587,7 +3587,10 @@
 
       const filtered = cachedPreferences.filter(item => {
         const surgeon = (item.Surgeon || "").toLowerCase();
-        const proc = (item.Procedure || "").toLowerCase();
+        let proc = (item.Procedure || "").toLowerCase();
+        if (proc === "global preferences") {
+          proc = "global preferences surgeon 411";
+        }
         const notes = (item.Notes || "").toLowerCase();
         const preop = (item["Preop Medications"] || "").toLowerCase();
         const blocks = (item["Regional Blocks"] || "").toLowerCase();
@@ -3621,7 +3624,7 @@
             <div class="is-flex is-justify-content-between is-align-items-center">
               <div>
                 <strong style="color: var(--text-main); font-size: 0.85rem;">${escapeHtml(item.Surgeon)}</strong>
-                ${(item.Procedure && item.Procedure !== "Global Preferences") 
+                ${(item.Procedure && item.Procedure !== "Global Preferences" && item.Procedure !== "Surgeon 411") 
                   ? `<span style="font-size: 0.75rem; margin-left: 5px; color: #3b82f6 !important; text-decoration: underline;">— ${escapeHtml(item.Procedure)}</span>` 
                   : ''}
               </div>
@@ -3640,8 +3643,8 @@
         <div class="is-flex is-justify-content-between is-align-items-center mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
           <div>
             <h4 class="title is-6 mb-0" style="color: var(--accent-indigo) !important;">${escapeHtml(item.Surgeon)}</h4>
-            <p class="is-size-7 mb-0" style="font-weight: 600; font-style: ${item.Procedure === "Global Preferences" ? "italic" : "normal"}; color: #3b82f6 !important; text-decoration: underline;">
-              ${escapeHtml(item.Procedure)}
+            <p class="is-size-7 mb-0" style="font-weight: 600; font-style: ${(item.Procedure === "Global Preferences" || item.Procedure === "Surgeon 411") ? "italic" : "normal"}; color: #3b82f6 !important; text-decoration: underline;">
+              ${(item.Procedure === "Global Preferences" || item.Procedure === "Surgeon 411") ? "Surgeon 411" : escapeHtml(item.Procedure)}
             </p>
           </div>
           <button class="button is-small is-link is-light" style="height: 22px; font-size: 0.7rem; font-weight: 700; border-radius: 4px;" onclick="loadPrefIntoForm(${index})">
@@ -3683,7 +3686,9 @@
       const item = cachedPreferences[index];
       
       document.getElementById("form-pref-surgeon").value = item.Surgeon || "";
-      document.getElementById("form-pref-procedure").value = item.Procedure || "";
+      let procVal = item.Procedure || "";
+      if (procVal === "Global Preferences") procVal = "Surgeon 411";
+      document.getElementById("form-pref-procedure").value = procVal;
       document.getElementById("form-pref-preop").value = item["Preop Medications"] || "";
       document.getElementById("form-pref-blocks").value = item["Regional Blocks"] || "";
       document.getElementById("form-pref-aline").value = item["Arterial Line"] || "";
