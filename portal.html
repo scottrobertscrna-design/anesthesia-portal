@@ -103,7 +103,7 @@
       <div id="my-schedule"></div>
 
       <div class="mt-6 has-text-centered">
-        <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
+        <button class="button is-small is-light" onclick="logoutLocum()">Logout / Disconnect</button>
       </div>
     </div>
 
@@ -118,6 +118,16 @@
 
   <script>
     window.onload = async () => {
+      const storedName = localStorage.getItem("tc_name");
+      const storedPin = localStorage.getItem("tc_pin");
+      const isLocum = localStorage.getItem("tc_is_locum") === "true";
+
+      if (storedName && storedPin && isLocum) {
+        // Auto-login using the shared session
+        refreshData(storedName, storedPin, false);
+        return;
+      }
+
       try {
         const items = await callApi("getLocumNames");
         const select = document.getElementById('name-select');
@@ -179,6 +189,11 @@
 
       try {
         const result = await callApi("getLocumSchedule", { name, pin });
+
+        // Save session credentials
+        localStorage.setItem("tc_name", name);
+        localStorage.setItem("tc_pin", pin);
+        localStorage.setItem("tc_is_locum", "true");
 
         if (result.isNewPin) {
           document.getElementById('pin-status-tag').style.display = 'inline-flex';
@@ -246,6 +261,11 @@
         html += '</div>';
         schedDiv.innerHTML = html;
       } catch (error) {
+        // Clear saved session on error
+        localStorage.removeItem("tc_name");
+        localStorage.removeItem("tc_pin");
+        localStorage.removeItem("tc_is_locum");
+
         document.getElementById('login-section').style.display = 'block';
         document.getElementById('portal-content').style.display = 'none';
 
@@ -256,6 +276,13 @@
         err.innerText = error.message;
         err.style.display = 'block';
       }
+    }
+
+    function logoutLocum() {
+      localStorage.removeItem("tc_name");
+      localStorage.removeItem("tc_pin");
+      localStorage.removeItem("tc_is_locum");
+      location.reload();
     }
 
     let baseCalendarUrl = "";
