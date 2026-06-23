@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v155)</span>
+          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v156)</span>
       </div>
     </div>
 
@@ -128,7 +128,7 @@
       style="max-width: 400px; width: 90%; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
       <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color);">
         <p class="modal-card-title has-text-weight-bold"
-          style="font-size: 1.25rem; color: var(--text-main) !important;">🕰️ Timecard Portal</p>
+          style="font-size: 1.25rem; color: var(--text-main) !important;">🔐 Secure Access</p>
         <button class="delete" aria-label="close" onclick="closeTimecardAuthModal()"></button>
       </header>
       <section class="modal-card-body"
@@ -149,8 +149,7 @@
           </div>
         </div>
 
-        <button class="button is-link is-fullwidth" id="tc-login-btn" onclick="submitTimecardLogin()">Access
-          Timecard</button>
+        <button class="button is-link is-fullwidth" id="tc-login-btn" onclick="submitTimecardLogin()">Access Portal</button>
         <p id="tc-login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
       </section>
     </div>
@@ -931,7 +930,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v155 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v156 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1276,7 +1275,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v155 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v156 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
