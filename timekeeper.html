@@ -1246,6 +1246,19 @@
     let currentCbDateStr = "";
     let currentCbCallMD = "";
 
+    function getCallDoctorName(acString) {
+      if (!acString) return "";
+      let target = acString;
+      if (acString.includes('/')) {
+        const parts = acString.split('/');
+        if (parts.length > 1) {
+          target = parts[1];
+        }
+      }
+      // Remove text inside parentheses (e.g. "(after 4pm)") and trim
+      return target.replace(/\([^)]*\)/g, '').trim();
+    }
+
     function openContactModal(name, dayIdx) {
       if (isScrolling) return;
       const day = cachedDaysList[dayIdx];
@@ -1275,7 +1288,7 @@
       // Callback Hour Tracker Setup for CRNA Backup
       currentCbName = name;
       currentCbDateStr = day.dateStr;
-      currentCbCallMD = (day.docs && day.docs.ac) ? day.docs.ac : "";
+      currentCbCallMD = getCallDoctorName((day.docs && day.docs.ac) ? day.docs.ac : "");
       
       const cleanBackup = (day.backupCRNA || "").toLowerCase().split('(')[0].trim();
       const cleanTargetName = name.toLowerCase().split('(')[0].trim();
