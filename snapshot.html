@@ -1691,15 +1691,6 @@
       const select = document.getElementById("tc-name-select");
       select.innerHTML = "<option>Loading employees...</option>";
 
-      const isPref = (loginDestination === "preferences");
-      const pinField = document.getElementById("tc-pin-field");
-      if (pinField) {
-        pinField.style.display = isPref ? "none" : "block";
-      }
-      document.getElementById("tc-pin-input").value = "";
-      document.getElementById("tc-login-btn").innerText = isPref ? "Enter Preferences" : "Access Timecard";
-      modal.querySelector(".modal-card-title").innerText = isPref ? "🔍 Preferences Access" : "🕰️ Timecard Portal";
-
       try {
         const list = await callApi("getEmployeeNames");
         select.innerHTML = list.map(emp =>
@@ -1726,30 +1717,13 @@
       const btn = document.getElementById("tc-login-btn");
       const err = document.getElementById("tc-login-error");
 
-      const isPref = (loginDestination === "preferences");
-
-      if (!isPref && !pin) {
+      if (!pin) {
         alert("Please enter your PIN");
         return;
       }
 
       btn.classList.add("is-loading");
       err.style.display = "none";
-
-      if (isPref) {
-        try {
-          localStorage.setItem("tc_name", name);
-          closeTimecardAuthModal();
-          btn.classList.remove("is-loading");
-          document.getElementById("tc-pin-input").value = "";
-          showPreferencesDashboard(name, "");
-        } catch (e) {
-          btn.classList.remove("is-loading");
-          err.innerText = e.message;
-          err.style.display = "block";
-        }
-        return;
-      }
 
       try {
         const res = await callApi("timecardLogin", { name, pin });
@@ -3512,13 +3486,8 @@
 
     function openPreferences() {
       loginDestination = "preferences";
-      const storedName = localStorage.getItem("tc_name");
-
-      if (storedName) {
-        showPreferencesDashboard(storedName, "");
-      } else {
-        showTimecardAuth();
-      }
+      const storedName = localStorage.getItem("tc_name") || "";
+      showPreferencesDashboard(storedName, "");
     }
 
     function closePreferencesModal() {
@@ -3536,12 +3505,19 @@
       document.getElementById("pref-search-input").value = "";
       document.getElementById("pref-detail-card").style.display = "none";
 
-      // Pre-fill and disable provider field for authenticated CRNAs
+      // Pre-fill and handle provider field for authenticated CRNAs
       const providerInput = document.getElementById("form-pref-provider");
       if (providerInput) {
-        providerInput.value = localStorage.getItem("tc_name") || name || "";
-        providerInput.readOnly = true;
-        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        const storedName = localStorage.getItem("tc_name") || name || "";
+        if (storedName) {
+          providerInput.value = storedName;
+          providerInput.readOnly = true;
+          providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        } else {
+          providerInput.value = "";
+          providerInput.readOnly = false;
+          providerInput.style.backgroundColor = "#ffffff";
+        }
       }
 
       // Load database from API
@@ -3720,9 +3696,16 @@
 
       const providerInput = document.getElementById("form-pref-provider");
       if (providerInput) {
-        providerInput.value = item["Updated By"] || localStorage.getItem("tc_name") || "";
-        providerInput.readOnly = true;
-        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        const storedName = localStorage.getItem("tc_name") || "";
+        if (storedName) {
+          providerInput.value = storedName;
+          providerInput.readOnly = true;
+          providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        } else {
+          providerInput.value = item["Updated By"] || "";
+          providerInput.readOnly = false;
+          providerInput.style.backgroundColor = "#ffffff";
+        }
       }
 
       document.getElementById("pref-form-title").innerText = "✏️ Edit Surgeon Preference";
@@ -3745,9 +3728,16 @@
       
       const providerInput = document.getElementById("form-pref-provider");
       if (providerInput) {
-        providerInput.value = localStorage.getItem("tc_name") || "";
-        providerInput.readOnly = true;
-        providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        const storedName = localStorage.getItem("tc_name") || "";
+        if (storedName) {
+          providerInput.value = storedName;
+          providerInput.readOnly = true;
+          providerInput.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
+        } else {
+          providerInput.value = "";
+          providerInput.readOnly = false;
+          providerInput.style.backgroundColor = "#ffffff";
+        }
       }
 
       document.getElementById("form-pref-error").style.display = "none";
