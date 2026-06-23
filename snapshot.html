@@ -74,6 +74,11 @@
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700;">
         🔍 Preferences
       </button>
+      <button class="button is-small is-light" id="btn-share-portal" onclick="sharePortalLink()"
+        title="Share Portal Link"
+        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700; color: #4b5563;">
+        📤 Share
+      </button>
     </div>
 
     <!-- Main Content Area -->
@@ -952,6 +957,33 @@
         showToast("Error refreshing data: " + err.message);
       } finally {
         if (btn) btn.classList.remove('is-loading');
+      }
+    }
+
+    function sharePortalLink() {
+      const shareUrl = window.location.origin + window.location.pathname;
+      const shareData = {
+        title: 'LAPA CRNA Portal',
+        text: 'Access the LAPA Schedule, Timecard, Requests, and Preferences portal:',
+        url: shareUrl
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData)
+          .catch(err => console.log('Error sharing:', err));
+      } else {
+        try {
+          navigator.clipboard.writeText(shareUrl);
+          showToast("Portal link copied to clipboard!", "success");
+        } catch (err) {
+          const tempInput = document.createElement("input");
+          tempInput.value = shareUrl;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand("copy");
+          document.body.removeChild(tempInput);
+          showToast("Portal link copied to clipboard!", "success");
+        }
       }
     }
 

@@ -53,6 +53,11 @@
 
       <button class="button is-link is-fullwidth" id="login-btn" onclick="loadPortal()">Access Portal</button>
       <p id="login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
+      <div class="has-text-centered mt-4 pt-3" style="border-top: 1px solid rgba(0,0,0,0.05);">
+        <button class="button is-small is-light is-fullwidth" onclick="sharePortalLink()" style="border-radius: 6px; font-weight: 700;">
+          📤 Share Portal Link
+        </button>
+      </div>
     </div>
 
     <!-- Schedule Display Content -->
@@ -102,8 +107,9 @@
 
       <div id="my-schedule"></div>
 
-      <div class="mt-6 has-text-centered">
-        <button class="button is-small is-light" onclick="location.reload()">Logout / Refresh</button>
+      <div class="mt-6 has-text-centered" style="display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 250px; margin: 0 auto;">
+        <button class="button is-small is-link is-light is-fullwidth" onclick="sharePortalLink()" style="font-weight: 700; border-radius: 6px;">📤 Share Portal Link</button>
+        <button class="button is-small is-light is-fullwidth" onclick="location.reload()" style="border-radius: 6px;">Logout / Refresh</button>
       </div>
     </div>
   </div>
@@ -284,6 +290,33 @@
         url += "&emojis=false";
       }
       document.getElementById("req-ical-url").value = url;
+    }
+
+    function sharePortalLink() {
+      const shareUrl = window.location.origin + window.location.pathname;
+      const shareData = {
+        title: 'LAPA Locum Portal',
+        text: 'Access the LAPA Locum Provider Portal:',
+        url: shareUrl
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData)
+          .catch(err => console.log('Error sharing:', err));
+      } else {
+        try {
+          navigator.clipboard.writeText(shareUrl);
+          alert("Portal link copied to clipboard!");
+        } catch (err) {
+          const tempInput = document.createElement("input");
+          tempInput.value = shareUrl;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand("copy");
+          document.body.removeChild(tempInput);
+          alert("Portal link copied to clipboard!");
+        }
+      }
     }
   </script>
 
