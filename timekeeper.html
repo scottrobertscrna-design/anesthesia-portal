@@ -2885,23 +2885,209 @@
     }
 
     function switchPrefTab(tabName) {
-      const tabs = ['search', 'docs', 'form'];
+      const tabs = ['search', 'docs', 'form', 'ai'];
       tabs.forEach(t => {
         const li = document.getElementById(`tab-li-${t}`);
         const content = document.getElementById(`pref-tab-${t}`);
+        if (!li || !content) return;
         if (t === tabName) {
           li.classList.add('is-active');
-          content.style.display = 'block';
+          if (t === 'ai') {
+            content.style.display = 'flex'; // Use flex for chat layout vertical sizing
+          } else {
+            content.style.display = 'block';
+          }
         } else {
           li.classList.remove('is-active');
           content.style.display = 'none';
         }
       });
 
+      // Focus the AI input field when tab is opened
+      if (tabName === 'ai') {
+        setTimeout(() => {
+          const input = document.getElementById("pref-ai-input");
+          if (input) input.focus();
+        }, 50);
+      }
+
       // If switching back to form tab, but not from "Edit", reset form title
       if (tabName === 'form' && !document.getElementById("form-pref-surgeon").value) {
         document.getElementById("pref-form-title").innerText = "🆕 Add New Surgeon Preference";
         resetPrefForm();
+      }
+    }
+
+    function handleAiKeyPress(e) {
+      if (e.key === 'Enter') {
+        sendAiMessage();
+      }
+    }
+
+    async function sendAiMessage() {
+      const input = document.getElementById("pref-ai-input");
+      const question = input.value.trim();
+      if (!question) return;
+
+      const sendBtn = document.getElementById("pref-ai-send-btn");
+      
+      // Disable input & button
+      input.value = "";
+      input.disabled = true;
+      sendBtn.classList.add("is-loading");
+      sendBtn.disabled = true;
+
+      // Add user message to chat history
+      appendChatMessage("user", question);
+
+      // Add thinking bubble
+      const thinkingId = appendChatPlaceholder("Thinking...");
+
+      try {
+        const res = await callApi("askClinicalGemini", { question: question });
+        removeChatPlaceholder(thinkingId);
+        appendChatMessage("ai", res);
+      } catch (err) {
+        console.error("AI Error:", err);
+        removeChatPlaceholder(thinkingId);
+        appendChatMessage("system", "Error: " + err.message);
+      } finally {
+        input.disabled = false;
+        sendBtn.classList.remove("is-loading");
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    function appendChatMessage(sender, text) {
+      const historyDiv = document.getElementById("pref-ai-chat-history");
+      if (!historyDiv) return;
+      
+      const msgDiv = document.createElement("div");
+      
+      // Clean up the initial helper message if it is present
+      const firstMsg = historyDiv.querySelector(".system-msg");
+      if (firstMsg && firstMsg.innerText.includes("Ask a question")) {
+        firstMsg.remove();
+      }
+
+      msgDiv.className = `ai-message ${sender}-msg mb-2 p-2`;
+      msgDiv.style.borderRadius = "8px";
+      msgDiv.style.fontSize = "0.8rem";
+      msgDiv.style.maxWidth = "85%";
+      
+      if (sender === "user") {
+        msgDiv.style.background = "rgba(50, 115, 220, 0.25)";
+        msgDiv.style.border = "1px solid rgba(50, 115, 220, 0.4)";
+        msgDiv.style.alignSelf = "flex-end";
+        msgDiv.style.marginLeft = "auto";
+        msgDiv.style.color = "var(--text-main)";
+        msgDiv.innerText = text;
+      } else if (sender === "ai") {
+        msgDiv.style.background = "rgba(255, 255, 255, 0.05)";
+        msgDiv.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+        msgDiv.style.alignSelf = "flex-start";
+        msgDiv.style.color = "var(--text-main)";
+        msgDiv.innerHTML = formatAiMarkdown(text);
+      } else {
+        // System / Error
+        msgDiv.style.background = "rgba(241, 70, 104, 0.15)";
+        msgDiv.style.border = "1px solid rgba(241, 70, 104, 0.3)";
+        msgDiv.style.alignSelf = "center";
+        msgDiv.style.margin = "8px auto";
+        msgDiv.style.color = "var(--accent-rose)";
+        msgDiv.style.textAlign = "center";
+        msgDiv.innerText = text;
+      }
+
+      historyDiv.appendChild(msgDiv);
+      historyDiv.scrollTop = historyDiv.scrollHeight;
+    }
+
+    function appendChatPlaceholder(text) {
+      const historyDiv = document.getElementById("pref-ai-chat-history");
+      if (!historyDiv) return "";
+      
+      const id = "placeholder_" + new Date().getTime();
+      const msgDiv = document.createElement("div");
+      msgDiv.id = id;
+      msgDiv.className = "ai-message ai-msg mb-2 p-2";
+      msgDiv.style.borderRadius = "8px";
+      msgDiv.style.fontSize = "0.8rem";
+      msgDiv.style.maxWidth = "85%";
+      msgDiv.style.background = "rgba(255, 255, 255, 0.03)";
+      msgDiv.style.border = "1px solid rgba(255, 255, 255, 0.05)";
+      msgDiv.style.alignSelf = "flex-start";
+      msgDiv.style.color = "var(--text-muted)";
+      msgDiv.style.fontStyle = "italic";
+      msgDiv.innerText = text;
+      
+      historyDiv.appendChild(msgDiv);
+      historyDiv.scrollTop = historyDiv.scrollHeight;
+      return id;
+    }
+
+    function removeChatPlaceholder(id) {
+      const element = document.getElementById(id);
+      if (element) element.remove();
+    }
+
+    // A lightweight Markdown-like formatter for AI responses
+    function formatAiMarkdown(text) {
+      if (!text) return "";
+      
+      // Escape HTML entities to prevent XSS
+      let escaped = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+        
+      // Bold: **text**
+      escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      
+      // Bullets: * text or - text
+      escaped = escaped.replace(/^(?:\*|-)\s+(.*)$/gm, "<li style='margin-left: 12px; list-style-type: disc;'>$1</li>");
+      
+      // Wrap lists
+      escaped = escaped.replace(/(<li.*?>.*?<\/li>)/gs, "<ul style='margin-bottom: 8px;'>$1</ul>");
+      // Fix duplicate wrapping caused by line-by-line regex:
+      escaped = escaped.replace(/<\/ul>\s*<ul.*?>/g, "");
+
+      // Paragraphs (double newlines)
+      escaped = escaped.replace(/\n\n/g, "</p><p class='mb-2'>");
+      
+      // Single line breaks (convert to <br>)
+      escaped = escaped.replace(/\n/g, "<br>");
+      
+      return "<p class='mb-2'>" + escaped + "</p>";
+    }
+
+    async function syncAiDocumentsCache() {
+      const syncBtn = document.getElementById("pref-ai-sync-btn");
+      const statusSpan = document.getElementById("pref-ai-sync-status");
+      if (!syncBtn || !statusSpan) return;
+      
+      syncBtn.classList.add("is-loading");
+      syncBtn.disabled = true;
+      statusSpan.innerText = "Indexing files...";
+      
+      try {
+        const res = await callApi("syncClinicalDocsCache");
+        if (res.success || res.filesIndexed) {
+          const filesCount = res.filesIndexed ? res.filesIndexed.length : 0;
+          statusSpan.innerText = `Synced: ${filesCount} files`;
+          showToast("AI document cache updated successfully!", "success");
+        } else {
+          statusSpan.innerText = "Sync failed";
+          showToast("Failed to sync documents: " + (res.error || "Unknown error"), "danger");
+        }
+      } catch (err) {
+        console.error("Sync Error:", err);
+        statusSpan.innerText = "Sync error";
+        showToast("Sync Error: " + err.message, "danger");
+      } finally {
+        syncBtn.classList.remove("is-loading");
+        syncBtn.disabled = false;
       }
     }
 
@@ -3469,6 +3655,11 @@
                 <span>📝 Add/Update</span>
               </a>
             </li>
+            <li id="tab-li-ai">
+              <a onclick="switchPrefTab('ai')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>🤖 Clinical AI</span>
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -3525,6 +3716,42 @@
 
           <div id="pref-docs-empty" class="has-text-centered py-4" style="color: var(--text-muted); font-size: 0.85rem; display: none;">
             No documents found in the Google Drive folder.
+          </div>
+        </div>
+
+        <!-- AI ASSISTANT TAB -->
+        <div id="pref-tab-ai" style="display: none; width: 100%; flex-direction: column; flex-grow: 1;">
+          <div class="notification is-dark p-2 mb-3 is-size-7" style="border-radius: 8px; line-height: 1.3; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: var(--text-main);">
+            🤖 <strong>LAPA Clinical AI:</strong> Ask questions about policies, emergency manuals, or clinical preferences. Answers are strictly grounded in your Google Drive documents.
+          </div>
+
+          <!-- Chat Messages Container -->
+          <div id="pref-ai-chat-history" style="height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.15); padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div class="ai-message system-msg" style="color: var(--text-muted); font-size: 0.75rem; text-align: center; font-style: italic;">
+              Ask a question to get started.
+            </div>
+          </div>
+
+          <!-- Input Area -->
+          <div class="field has-addons mb-3">
+            <div class="control is-expanded">
+              <input class="input is-small" type="text" id="pref-ai-input" placeholder="Ask about malignant hyperthermia, policies..." onkeypress="handleAiKeyPress(event)" style="background: rgba(0, 0, 0, 0.25); color: var(--text-main) !important; border-color: rgba(255,255,255,0.1); font-weight: 600; border-radius: 6px 0 0 6px;">
+            </div>
+            <div class="control">
+              <button class="button is-small is-link" id="pref-ai-send-btn" onclick="sendAiMessage()" style="font-weight: 700; border-radius: 0 6px 6px 0;">Send</button>
+            </div>
+          </div>
+
+          <!-- Actions & Sync Status -->
+          <div class="level is-mobile mt-2 mb-0" style="font-size: 0.7rem; color: var(--text-muted);">
+            <div class="level-left">
+              <span id="pref-ai-sync-status">Index: Auto-loaded</span>
+            </div>
+            <div class="level-right">
+              <button class="button is-ghost is-small p-0" id="pref-ai-sync-btn" onclick="syncAiDocumentsCache()" style="font-size: 0.7rem; color: var(--accent-emerald); text-decoration: none; height: auto;">
+                🔄 Sync Files Cache
+              </button>
+            </div>
           </div>
         </div>
 
