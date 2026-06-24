@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v156)</span>
+          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v157)</span>
       </div>
     </div>
 
@@ -749,7 +749,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
-          debugFooter.textContent = `v156 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v157 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1454,7 +1454,7 @@
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && data[0]) {
           const d = data[0];
-          debugFooter.textContent = `v156 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v157 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
