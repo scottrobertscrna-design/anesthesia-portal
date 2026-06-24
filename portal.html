@@ -108,7 +108,7 @@
     </div>
 
     <div class="has-text-centered mt-6" style="opacity: 0.3; font-size: 0.65rem; color: #7a7a7a; padding-bottom: 20px;">
-      <span style="cursor: pointer;" onclick="sharePortalLink()">v148</span>
+      <span style="cursor: pointer;" onclick="sharePortalLink()">v149</span>
     </div>
   </div>
 
@@ -370,7 +370,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=148')
+          navigator.serviceWorker.register('./sw.js?v=149')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {

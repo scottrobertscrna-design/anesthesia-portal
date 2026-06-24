@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v158)</span>
+          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v159)</span>
       </div>
     </div>
 
@@ -489,10 +489,14 @@
         <!-- DOCUMENTS TAB -->
         <div id="pref-tab-docs" style="display: none; width: 100%;">
           <a href="https://drive.google.com/drive/folders/1QXFuIK4lIlAtE-1e27FmN-_sX3MDcL2K" target="_blank" 
-            class="button is-small is-link is-fullwidth mb-4" 
+            class="button is-small is-link is-fullwidth mb-3" 
             style="font-weight: 700; border-radius: 8px; height: 32px; background: linear-gradient(135deg, #3273dc, #818cf8);">
             📂 Open Google Drive Folder
           </a>
+
+          <div class="notification is-info is-light p-2 mb-3 is-size-7" style="border-radius: 8px; line-height: 1.3; border: 1px solid rgba(50, 115, 220, 0.2);">
+            ⚠️ <strong>Hospital Network Note:</strong> Google Drive folders may be blocked by hospital rules. If the button above fails, please use the direct file links below. They are safely tunneled and will open normally.
+          </div>
 
           <div id="pref-docs-loading" class="has-text-centered py-4" style="display: none;">
             <button class="button is-loading is-text" style="background:transparent; border:none; color: var(--text-muted);"></button>
@@ -930,7 +934,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v158 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v159 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1275,7 +1279,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v158 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v159 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2821,7 +2825,7 @@
           return Promise.resolve(false);
         });
         Promise.all(promises).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=148')
+          navigator.serviceWorker.register('./sw.js?v=149')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
               if (unregisteredOld) {
@@ -3905,8 +3909,9 @@
             <div class="docs-list ml-2">
               ${docs.map(doc => {
                 const dateStr = doc.lastUpdated ? new Date(doc.lastUpdated).toLocaleDateString() : '';
+                const fileUrl = doc.id ? `${CONFIG.API_URL}/doc?id=${encodeURIComponent(doc.id)}` : doc.url;
                 return `
-                  <a href="${doc.url}" target="_blank" class="is-flex is-align-items-center py-1 mb-1" 
+                  <a href="${fileUrl}" target="_blank" class="is-flex is-align-items-center py-1 mb-1" 
                      style="color: var(--text-main); font-size: 0.8rem; text-decoration: underline dotted; text-underline-offset: 3px; gap: 6px; transition: color 0.2s;"
                      onmouseover="this.style.color='var(--accent-indigo)'"
                      onmouseout="this.style.color='var(--text-main)'">
