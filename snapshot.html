@@ -36,7 +36,7 @@
     <div class="mb-4 is-flex is-justify-content-center">
       <div class="is-size-7 has-text-grey-light">
         Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v157)</span>
+          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v158)</span>
       </div>
     </div>
 
@@ -930,7 +930,7 @@
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v157 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v158 | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
         document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
@@ -1275,7 +1275,7 @@
         if (debugFooter && data[0]) {
           const d = data[0];
           const codeSuffix = (d.debugSheetRows || 0) > 0 ? `| ${d.debugSheetRows}r` : '';
-          debugFooter.textContent = `v157 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
+          debugFooter.textContent = `v158 | Days: ${data.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       }
     }
@@ -2288,9 +2288,13 @@
 
       btn.classList.add("is-loading");
       try {
-        await callApi("timecardEmail", { sheetId });
+        const res = await callApi("timecardEmail", { sheetId });
         btn.classList.remove("is-loading");
-        showToast("Timesheet emailed successfully!", "success");
+        if (res.ccSent) {
+          showToast("Timesheet emailed successfully! (Copy sent to your inbox)", "success");
+        } else {
+          showToast("Timesheet emailed successfully! (No CC sent - email not found)", "warning");
+        }
       } catch (err) {
         btn.classList.remove("is-loading");
         alert("Failed to email timesheet: " + err.message);

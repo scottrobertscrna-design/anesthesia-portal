@@ -72,7 +72,13 @@ function showToast(message, type = 'danger') {
     toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease, bottom 0.3s ease';
     document.body.appendChild(toast);
   }
-  toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
+  if (type === 'success') {
+    toast.style.backgroundColor = '#10b981';
+  } else if (type === 'warning') {
+    toast.style.backgroundColor = '#f59e0b';
+  } else {
+    toast.style.backgroundColor = '#ef4444';
+  }
   toast.innerText = message;
   toast.style.opacity = '1';
   toast.style.bottom = '30px';
