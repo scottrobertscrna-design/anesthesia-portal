@@ -2302,8 +2302,7 @@
 
       btn.classList.add("is-loading");
       try {
-        const dateObj = new Date(dateVal);
-        await callApi("timecardBuildOvertime", { sheetId, startDateString: dateObj.toISOString() });
+        await callApi("timecardBuildOvertime", { sheetId, startDateString: dateVal });
         btn.classList.remove("is-loading");
         showToast("Overtime worksheet built successfully!", "success");
       } catch (err) {
