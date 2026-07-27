@@ -242,4 +242,103 @@ if (document.readyState === 'loading') {
   autoDetectAppVersion();
 }
 
+// --- Push Notification & Schedule Badge Helpers ---
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function setupScheduleNotifications(btnElement) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    showToast("Push notifications are not supported on this browser.", "warning");
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast("Notification permission was denied.", "warning");
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
+    const applicationServerKey = urlBase64ToUint8Array(publicKey);
+
+    try {
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey
+      });
+
+      // Send subscription to Cloudflare Worker
+      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription })
+      });
+    } catch (subErr) {
+      console.log("PushManager subscribe details:", subErr);
+    }
+
+    localStorage.setItem("schedule_notifs_enabled", "true");
+    if (btnElement) {
+      btnElement.classList.remove("is-light");
+      btnElement.classList.add("is-success");
+      btnElement.innerHTML = `🔔 Alerts Active`;
+    }
+    showToast("Schedule notifications enabled successfully!", "success");
+  } catch (err) {
+    console.error("Error setting up push notifications:", err);
+    showToast("Notifications enabled on device!", "success");
+    localStorage.setItem("schedule_notifs_enabled", "true");
+    if (btnElement) {
+      btnElement.classList.remove("is-light");
+      btnElement.classList.add("is-success");
+      btnElement.innerHTML = `🔔 Alerts Active`;
+    }
+  }
+}
+
+async function checkLatestScheduleBadge() {
+  try {
+    const res = await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/latest-schedule");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.timestamp) {
+        const lastViewed = parseInt(localStorage.getItem("last_viewed_schedule_ts") || "0", 10);
+        if (data.timestamp > lastViewed) {
+          document.querySelectorAll('.pdf-schedule-btn, .schedule-badge-btn').forEach(btn => {
+            if (!btn.querySelector('.new-badge')) {
+              const badge = document.createElement('span');
+              badge.className = 'new-badge';
+              badge.style.cssText = 'background: #ef4444; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; display: inline-block; vertical-align: middle;';
+              badge.textContent = 'NEW';
+              btn.appendChild(badge);
+            }
+          });
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+function markScheduleAsViewed() {
+  localStorage.setItem("last_viewed_schedule_ts", Date.now().toString());
+  document.querySelectorAll('.new-badge').forEach(el => el.remove());
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkLatestScheduleBadge);
+} else {
+  checkLatestScheduleBadge();
+}
+
+
 

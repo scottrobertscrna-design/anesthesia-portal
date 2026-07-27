@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v167';
+const CACHE_NAME = 'lawrence-anaesthesia-v168';
 
 const APP_SHELL = [
   './portal.html',
@@ -143,3 +143,49 @@ async function staleWhileRevalidate(request) {
   }).catch(() => cached);
   return cached || fetchPromise;
 }
+
+// ── Web Push Notification Listeners ───────────────────────────────────────────
+self.addEventListener('push', event => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || '📄 New Schedule Available!';
+  const options = {
+    body: data.body || 'A new schedule PDF has been posted for tomorrow.',
+    icon: './snoozle.png',
+    badge: './snoozle_maskable.png',
+    vibrate: [100, 50, 100],
+    tag: 'schedule-notification',
+    renotify: true,
+    data: {
+      url: data.url || './snapshot.html',
+      dateStr: data.dateStr || ''
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : './snapshot.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('snapshot.html') || client.url.includes('portal.html')) {
+          if ('focus' in client) client.focus();
+          return;
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
+
