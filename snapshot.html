@@ -1942,6 +1942,15 @@
       return d;
     }
 
+    function getTrueMonday(d) {
+      if (!d || isNaN(d.getTime())) return null;
+      const res = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+      const day = res.getDay(); // 0 = Sun, 1 = Mon, ...
+      const diff = day === 0 ? 1 : 1 - day; // If Sunday, move +1 day to Monday.
+      res.setDate(res.getDate() + diff);
+      return res;
+    }
+
     function getNextMonday(dateStr) {
       if (!dateStr) return null;
       let parseStr = dateStr;
@@ -1957,47 +1966,39 @@
       const startMonth = parseInt(startParts[0], 10) - 1;
       const startDay = parseInt(startParts[1], 10);
       const startYear = startParts[2] ? parseInt(startParts[2], 10) : new Date().getFullYear();
-      const startMonday = new Date(startYear, startMonth, startDay);
-      if (isNaN(startMonday.getTime())) return null;
+      const rawStart = new Date(startYear, startMonth, startDay);
+      if (isNaN(rawStart.getTime())) return null;
+
+      // Always guarantee startMonday is aligned to Monday (e.g. 6/28 Sunday becomes 6/29 Monday)
+      const startMonday = getTrueMonday(rawStart);
 
       const parts = parseStr.split("/");
-      if (parts.length < 2) return null;
+      if (parts.length < 2) return startMonday;
       const month = parseInt(parts[0], 10) - 1;
       const day = parseInt(parts[1], 10);
       const year = parts[2] ? parseInt(parts[2], 10) : new Date().getFullYear();
       const lastEnd = new Date(year, month, day);
-      if (isNaN(lastEnd.getTime())) return null;
+      if (isNaN(lastEnd.getTime())) return startMonday;
 
       const today = new Date();
       const mostRecentFriday = getMostRecentFridayBefore(today);
 
-      // Find the Monday of the week containing lastEnd
-      const lastEndDay = lastEnd.getDay();
-      const lastEndMonday = new Date(lastEnd);
-      const diffToMonday = lastEndDay === 0 ? -6 : 1 - lastEndDay;
-      lastEndMonday.setDate(lastEnd.getDate() + diffToMonday);
-
-      // Find the Monday of the week containing today
-      const todayDay = today.getDay();
-      const todayMonday = new Date(today);
-      const diffTodayMonday = todayDay === 0 ? -6 : 1 - todayDay;
-      todayMonday.setDate(today.getDate() + diffTodayMonday);
+      const lastEndMonday = getTrueMonday(lastEnd);
+      const todayMonday = getTrueMonday(today);
 
       if (lastEndMonday.getTime() < todayMonday.getTime()) {
-        // Last run ended in a previous week. Move to the next Monday after the end date.
         const dayOfWeek = lastEnd.getDay();
         const diff = (8 - dayOfWeek) % 7 || 7;
-        const nextMon = new Date(lastEnd);
-        nextMon.setDate(nextMon.getDate() + diff);
+        const candidateMon = new Date(lastEnd);
+        candidateMon.setDate(candidateMon.getDate() + diff);
+        const nextMon = getTrueMonday(candidateMon);
 
-        // ONLY return nextMon if it's less than or equal to the most recent Friday!
         if (nextMon.getTime() <= mostRecentFriday.getTime()) {
           return nextMon;
         } else {
           return startMonday;
         }
       } else {
-        // We are in the same week. Keep the same starting Monday.
         return startMonday;
       }
     }
