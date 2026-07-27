@@ -156,3 +156,90 @@ function getLocalActiveDates(customDateStr) {
   return dates;
 }
 
+// --- Shared Version Detection & Portal Link Sharing ---
+let detectedAppVersion = "v165";
+
+/**
+ * Shares or copies portal URL to clipboard
+ */
+function sharePortalLink() {
+  const shareUrl = window.location.origin + window.location.pathname;
+  const shareData = {
+    title: 'LAPA CRNA Portal',
+    text: 'Access the LAPA Schedule, Timecard, Requests, and Preferences portal:',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    navigator.share(shareData)
+      .catch(err => console.log('Error sharing:', err));
+  } else {
+    try {
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Portal link copied to clipboard!", "success");
+    } catch (err) {
+      const tempInput = document.createElement("input");
+      tempInput.value = shareUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+      showToast("Portal link copied to clipboard!", "success");
+    }
+  }
+}
+
+/**
+ * Auto-detects the active version from sw.js and updates version display elements
+ */
+async function autoDetectAppVersion() {
+  try {
+    const res = await fetch('./sw.js', { cache: 'no-cache' });
+    if (res.ok) {
+      const text = await res.text();
+      const match = text.match(/CACHE_NAME\s*=\s*['"]lawrence-anaesthesia-(v\d+)['"]/);
+      if (match && match[1]) {
+        detectedAppVersion = match[1];
+      }
+    }
+  } catch (e) {
+    console.log("Auto-detect version from sw.js skipped:", e);
+  }
+
+  // Update all version display elements across the document
+  document.querySelectorAll('#version-display, .version-display').forEach(el => {
+    el.textContent = el.dataset.raw === "true" ? detectedAppVersion : `(${detectedAppVersion})`;
+    el.style.userSelect = "none";
+    el.style.webkitUserSelect = "none";
+    
+    // Attach long-press support if not already bound
+    if (!el.dataset.boundShare) {
+      el.dataset.boundShare = "true";
+      let pressTimer = null;
+
+      el.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => {
+          if (navigator.vibrate) navigator.vibrate(50);
+          sharePortalLink();
+        }, 500);
+      }, { passive: true });
+
+      el.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+      });
+
+      el.addEventListener('touchmove', () => {
+        clearTimeout(pressTimer);
+      });
+    }
+  });
+}
+
+// Auto-run version detection on DOM load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', autoDetectAppVersion);
+} else {
+  autoDetectAppVersion();
+}
+
+
