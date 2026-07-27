@@ -6,6 +6,7 @@ async function callApi(action, params = {}) {
     const response = await fetch(CONFIG.API_URL, {
       method: "POST",
       mode: "cors",
+      keepalive: true, // Prevents iOS Safari from canceling background fetch on lock/app switch
       headers: {
         "Content-Type": "text/plain;charset=utf-8" // Bypasses CORS OPTIONS preflight
       },

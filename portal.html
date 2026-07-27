@@ -374,6 +374,7 @@
           navigator.serviceWorker.register('./sw.js')
             .then(reg => {
               console.log('SW registered with scope:', reg.scope);
+              reg.update();
               if (unregisteredOld) {
                 // Reload to let the new scoped service worker take control immediately
                 window.location.reload();
