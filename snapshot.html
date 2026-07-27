@@ -2103,6 +2103,14 @@
       }
     }
 
+    function formatDateLocalYYYYMMDD(d) {
+      if (!d || isNaN(d.getTime())) return "";
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     function updateClockStatusUI(res) {
       const statusText = document.getElementById("tc-clock-status-text");
       const punchText = document.getElementById("tc-last-punch-text");
@@ -2133,7 +2141,7 @@
       if (res.lastFillDate) {
         const nextMon = getNextMonday(res.lastFillDate);
         if (nextMon) {
-          otPicker.value = nextMon.toISOString().split('T')[0];
+          otPicker.value = formatDateLocalYYYYMMDD(nextMon);
         }
       } else if (!otPicker.value) {
         // Default to current week's Monday
@@ -2141,7 +2149,7 @@
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         const mon = new Date(d.setDate(diff));
-        otPicker.value = mon.toISOString().split('T')[0];
+        otPicker.value = formatDateLocalYYYYMMDD(mon);
       }
 
       // 2. Fill PRN pull dates based on lastPullRange from spreadsheet
