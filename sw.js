@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v183';
+const CACHE_NAME = 'lawrence-anaesthesia-v184';
 
 const APP_SHELL = [
   './portal.html',
@@ -187,5 +187,26 @@ self.addEventListener('notificationclick', event => {
       if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
+});
+
+// ── Message listener for background delayed system notifications ─────────────
+self.addEventListener('message', event => {
+  if (event.data && event.data.action === 'scheduleDelayedNotification') {
+    const delayMs = event.data.delayMs || 5000;
+    const title = event.data.title || '📄 Test Schedule Alert';
+    const options = {
+      body: event.data.body || 'Test notification delivered to system notification bar!',
+      icon: './snoozle.png',
+      badge: './snoozle_maskable.png',
+      vibrate: [100, 50, 100],
+      tag: 'test-schedule-notification',
+      renotify: true,
+      data: { url: './snapshot.html' }
+    };
+
+    setTimeout(() => {
+      self.registration.showNotification(title, options);
+    }, delayMs);
+  }
 });
 

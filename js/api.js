@@ -299,13 +299,40 @@ async function setupScheduleNotifications(btnElement) {
     // User clicked button while alerts are active -> present prompt choices
     const choice = prompt(
       "Schedule alerts are currently ACTIVE on this device.\n\n" +
-      "1. Send a Test Notification now\n" +
-      "2. Turn OFF notifications\n\n" +
-      "Enter 1 or 2 and tap OK (or Cancel to close):",
+      "1. Test Notification (5s Delay - Lock screen / go to Home Screen NOW!)\n" +
+      "2. Instant Test Notification\n" +
+      "3. Turn OFF notifications\n\n" +
+      "Enter 1, 2, or 3 and tap OK:",
       "1"
     );
 
     if (choice === "1") {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg.active) {
+          reg.active.postMessage({
+            action: 'scheduleDelayedNotification',
+            delayMs: 5000,
+            title: '📄 Test Schedule Alert',
+            body: 'Notification system active! Delivery confirmed to notification bar.'
+          });
+        } else if (reg.showNotification) {
+          setTimeout(() => {
+            reg.showNotification("📄 Test Schedule Alert", {
+              body: "Notification system active! Delivery confirmed to notification bar.",
+              icon: "./snoozle.png",
+              badge: "./snoozle_maskable.png",
+              tag: "test-schedule-notification",
+              renotify: true
+            });
+          }, 5000);
+        }
+        showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
+      } catch (err) {
+        showToast("Error triggering delayed notification: " + err.message, "danger");
+      }
+      return;
+    } else if (choice === "2") {
       try {
         const reg = await navigator.serviceWorker.ready;
         if (reg.showNotification) {
@@ -317,18 +344,12 @@ async function setupScheduleNotifications(btnElement) {
             renotify: true
           }).catch(e => console.log("Test notification trigger error:", e));
         }
-        const sub = await reg.pushManager.getSubscription();
-        fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subscription: sub || {} })
-        }).catch(() => {});
-        showToast("Test notification sent to your device screen!", "success");
+        showToast("Instant test notification triggered!", "success");
       } catch (err) {
         showToast("Error triggering test notification: " + err.message, "danger");
       }
       return;
-    } else if (choice === "2") {
+    } else if (choice === "3") {
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
