@@ -88,7 +88,10 @@ body {
   background-attachment: fixed;
   color: var(--text-main);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  padding: 20px 10px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: max(10px, env(safe-area-inset-right));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(10px, env(safe-area-inset-left));
   min-height: 100vh;
 }
 
@@ -730,7 +733,10 @@ input[type="date"],
 /* Mobile Responsiveness for Sign-offs Row */
 @media screen and (max-width: 768px) {
   body {
-    padding: 10px 5px;
+    padding-top: max(16px, calc(env(safe-area-inset-top) + 10px));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
   }
 
   .day-section,

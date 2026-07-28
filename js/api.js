@@ -255,16 +255,51 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+async function syncNotificationButtonState() {
+  const isPermissionGranted = ('Notification' in window) && (Notification.permission === 'granted');
+  const isLocalStorageEnabled = localStorage.getItem("schedule_notifs_enabled") === "true";
+  
+  let isSubscribed = false;
+  if ('serviceWorker' in navigator && isPermissionGranted) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        isSubscribed = true;
+      }
+    } catch (e) {
+      console.log("Error checking SW push subscription:", e);
+    }
+  }
+
+  const isActive = isPermissionGranted && (isSubscribed || isLocalStorageEnabled);
+
+  document.querySelectorAll('.notif-bell-btn, [onclick*="setupScheduleNotifications"]').forEach(btn => {
+    if (isActive) {
+      btn.classList.remove("is-light");
+      btn.classList.add("is-success");
+      btn.innerHTML = `🔔 Alerts Active`;
+    } else {
+      btn.classList.remove("is-success");
+      btn.classList.add("is-light");
+      btn.innerHTML = `🔔 Enable Alerts`;
+    }
+  });
+}
+
 async function setupScheduleNotifications(btnElement) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     showToast("Push notifications are not supported on this browser.", "warning");
     return;
   }
 
+  const isAlreadyActive = btnElement && btnElement.classList.contains("is-success");
+
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       showToast("Notification permission was denied.", "warning");
+      syncNotificationButtonState();
       return;
     }
 
@@ -272,38 +307,46 @@ async function setupScheduleNotifications(btnElement) {
     const publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
     const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
-    try {
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey
-      });
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      try {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+      } catch (subErr) {
+        console.log("PushManager subscribe details:", subErr);
+      }
+    }
 
+    if (subscription) {
       // Send subscription to Cloudflare Worker
       await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription })
-      });
-    } catch (subErr) {
-      console.log("PushManager subscribe details:", subErr);
+      }).catch(e => console.log("Cloudflare subscribe send error:", e));
     }
 
     localStorage.setItem("schedule_notifs_enabled", "true");
-    if (btnElement) {
-      btnElement.classList.remove("is-light");
-      btnElement.classList.add("is-success");
-      btnElement.innerHTML = `🔔 Alerts Active`;
+    syncNotificationButtonState();
+
+    if (isAlreadyActive) {
+      // User tapped active button -> trigger a test push notification
+      fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: subscription || {} })
+      }).catch(() => {});
+      showToast("Alerts are active! Test notification sent.", "success");
+    } else {
+      showToast("Schedule notifications enabled successfully!", "success");
     }
-    showToast("Schedule notifications enabled successfully!", "success");
   } catch (err) {
     console.error("Error setting up push notifications:", err);
-    showToast("Notifications enabled on device!", "success");
     localStorage.setItem("schedule_notifs_enabled", "true");
-    if (btnElement) {
-      btnElement.classList.remove("is-light");
-      btnElement.classList.add("is-success");
-      btnElement.innerHTML = `🔔 Alerts Active`;
-    }
+    syncNotificationButtonState();
+    showToast("Notifications enabled on device!", "success");
   }
 }
 
@@ -335,11 +378,24 @@ function markScheduleAsViewed() {
   document.querySelectorAll('.new-badge').forEach(el => el.remove());
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', checkLatestScheduleBadge);
-} else {
+// Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
+const initPageHelpers = () => {
   checkLatestScheduleBadge();
+  syncNotificationButtonState();
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPageHelpers);
+} else {
+  initPageHelpers();
 }
+
+window.addEventListener('pageshow', initPageHelpers);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    initPageHelpers();
+  }
+});
 
 
 
