@@ -287,6 +287,119 @@ async function syncNotificationButtonState() {
   });
 }
 
+function openNotificationManagerModal() {
+  let modal = document.getElementById('notif-manager-modal');
+  if (!modal) {
+    const modalDiv = document.createElement('div');
+    modalDiv.id = 'notif-manager-modal';
+    modalDiv.className = 'modal';
+    modalDiv.innerHTML = `
+      <div class="modal-background" onclick="closeNotificationManagerModal()"></div>
+      <div class="modal-card" style="max-width: 420px; width: 92%; margin: 0 auto; border-radius: 14px; overflow: hidden; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);">
+        <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 16px 20px;">
+          <p class="modal-card-title has-text-weight-bold" style="font-size: 1.15rem; color: var(--text-main) !important;">🔔 Schedule Alerts</p>
+          <button class="delete" aria-label="close" onclick="closeNotificationManagerModal()"></button>
+        </header>
+        <section class="modal-card-body" style="background: var(--bg-gradient); padding: 20px; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
+          <p class="is-size-7 mb-4" style="color: var(--text-muted); line-height: 1.4;">
+            Schedule notifications are currently <strong style="color: var(--accent-emerald);">ACTIVE</strong> on this device.
+          </p>
+          <div class="field mb-3">
+            <button class="button is-link is-fullwidth" onclick="triggerTestNotification(false)" style="font-weight: 700; height: 38px;">
+              ⚡ Send Instant Test Notification
+            </button>
+          </div>
+          <div class="field mb-4">
+            <button class="button is-info is-light is-fullwidth" onclick="triggerTestNotification(true)" style="font-weight: 600; height: 38px;">
+              ⏱️ Test 5s Delay (Lock Screen)
+            </button>
+          </div>
+          <div class="field mt-4" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <button class="button is-danger is-light is-fullwidth" onclick="unsubscribeNotifications()" style="font-weight: 600; height: 36px;">
+              🔕 Turn OFF Schedule Alerts
+            </button>
+          </div>
+        </section>
+      </div>
+    `;
+    document.body.appendChild(modalDiv);
+    modal = modalDiv;
+  }
+  modal.classList.add('is-active');
+}
+
+function closeNotificationManagerModal() {
+  const modal = document.getElementById('notif-manager-modal');
+  if (modal) modal.classList.remove('is-active');
+}
+
+async function triggerTestNotification(isDelayed = false) {
+  closeNotificationManagerModal();
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const action = isDelayed ? 'scheduleDelayedNotification' : 'triggerTestNotification';
+    const delayMs = isDelayed ? 5000 : 0;
+    const bodyMsg = isDelayed 
+      ? 'Notification system active! Delivery confirmed to notification bar.'
+      : 'Test notification successful! Your device is receiving schedule alerts.';
+
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        action,
+        delayMs,
+        title: '📄 Test Schedule Alert',
+        body: bodyMsg
+      });
+    } else if (reg.active) {
+      reg.active.postMessage({
+        action,
+        delayMs,
+        title: '📄 Test Schedule Alert',
+        body: bodyMsg
+      });
+    }
+
+    if (!isDelayed && reg.showNotification) {
+      reg.showNotification('📄 Test Schedule Alert', {
+        body: bodyMsg,
+        icon: './snoozle.png',
+        badge: './snoozle_maskable.png',
+        tag: 'test-schedule-alert-' + Date.now(),
+        renotify: true
+      }).catch(e => console.log("Direct showNotification error:", e));
+    }
+
+    if (isDelayed) {
+      showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
+    } else {
+      showToast("Instant test notification triggered!", "success");
+    }
+  } catch (err) {
+    showToast("Error triggering test notification: " + err.message, "danger");
+  }
+}
+
+async function unsubscribeNotifications() {
+  closeNotificationManagerModal();
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub })
+      }).catch(e => console.log("Unsubscribe send error:", e));
+    }
+  } catch (err) {
+    console.log("Unsubscribe error:", err);
+  }
+  localStorage.removeItem("schedule_notifs_enabled");
+  syncNotificationButtonState();
+  showToast("Schedule notifications turned OFF for this device.", "warning");
+}
+
 async function setupScheduleNotifications(btnElement) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     showToast("Push notifications are not supported on this browser.", "warning");
@@ -296,79 +409,7 @@ async function setupScheduleNotifications(btnElement) {
   const isAlreadyActive = (btnElement && btnElement.classList.contains("is-success")) || (localStorage.getItem("schedule_notifs_enabled") === "true" && Notification.permission === "granted");
 
   if (isAlreadyActive) {
-    // User clicked button while alerts are active -> present prompt choices
-    const choice = prompt(
-      "Schedule alerts are currently ACTIVE on this device.\n\n" +
-      "1. Test Notification (5s Delay - Lock screen / go to Home Screen NOW!)\n" +
-      "2. Instant Test Notification\n" +
-      "3. Turn OFF notifications\n\n" +
-      "Enter 1, 2, or 3 and tap OK:",
-      "1"
-    );
-
-    if (choice === "1") {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg.active) {
-          reg.active.postMessage({
-            action: 'scheduleDelayedNotification',
-            delayMs: 5000,
-            title: '📄 Test Schedule Alert',
-            body: 'Notification system active! Delivery confirmed to notification bar.'
-          });
-        } else if (reg.showNotification) {
-          setTimeout(() => {
-            reg.showNotification("📄 Test Schedule Alert", {
-              body: "Notification system active! Delivery confirmed to notification bar.",
-              icon: "./snoozle.png",
-              badge: "./snoozle_maskable.png",
-              tag: "test-schedule-notification",
-              renotify: true
-            });
-          }, 5000);
-        }
-        showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
-      } catch (err) {
-        showToast("Error triggering delayed notification: " + err.message, "danger");
-      }
-      return;
-    } else if (choice === "2") {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg.showNotification) {
-          reg.showNotification("📄 Test Schedule Alert", {
-            body: "Test notification successful! Your device is receiving schedule alerts.",
-            icon: "./snoozle.png",
-            badge: "./snoozle_maskable.png",
-            tag: "test-schedule-alert",
-            renotify: true
-          }).catch(e => console.log("Test notification trigger error:", e));
-        }
-        showToast("Instant test notification triggered!", "success");
-      } catch (err) {
-        showToast("Error triggering test notification: " + err.message, "danger");
-      }
-      return;
-    } else if (choice === "3") {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-        if (sub) {
-          await sub.unsubscribe();
-          await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/unsubscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subscription: sub })
-          }).catch(e => console.log("Unsubscribe send error:", e));
-        }
-      } catch (err) {
-        console.log("Unsubscribe error:", err);
-      }
-      localStorage.removeItem("schedule_notifs_enabled");
-      syncNotificationButtonState();
-      showToast("Schedule notifications turned OFF for this device.", "warning");
-      return;
-    }
+    openNotificationManagerModal();
     return;
   }
 
@@ -409,15 +450,7 @@ async function setupScheduleNotifications(btnElement) {
     syncNotificationButtonState();
 
     // Trigger an immediate local system notification banner so user sees it working live
-    if (reg.showNotification) {
-      reg.showNotification("📄 Schedule Alerts Active!", {
-        body: "Push notifications are enabled for this device. You will receive alerts when a new schedule is posted.",
-        icon: "./snoozle.png",
-        badge: "./snoozle_maskable.png",
-        tag: "schedule-alert-enabled",
-        renotify: true
-      }).catch(e => console.log("System notification trigger error:", e));
-    }
+    triggerTestNotification(false);
 
     showToast("Schedule notifications enabled on this device! 🔔", "success");
   } catch (err) {

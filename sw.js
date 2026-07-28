@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v185';
+const CACHE_NAME = 'lawrence-anaesthesia-v186';
 
 const APP_SHELL = [
   './portal.html',
@@ -189,33 +189,39 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// ── Message listener for background delayed system notifications ─────────────
+// ── Message listener for background system notifications ─────────────
 self.addEventListener('message', event => {
-  if (event.data && event.data.action === 'scheduleDelayedNotification') {
-    const delayMs = event.data.delayMs || 5000;
+  if (event.data && (event.data.action === 'triggerTestNotification' || event.data.action === 'scheduleDelayedNotification')) {
+    const delayMs = event.data.delayMs || 0;
     const title = event.data.title || '📄 Test Schedule Alert';
     const options = {
       body: event.data.body || 'Test notification delivered to system notification bar!',
       icon: './snoozle.png',
       badge: './snoozle_maskable.png',
-      vibrate: [100, 50, 100],
-      tag: 'test-schedule-notification',
+      vibrate: [200, 100, 200],
+      tag: 'test-schedule-notification-' + Date.now(),
       renotify: true,
       data: { url: './snapshot.html' }
     };
 
-    event.waitUntil(
-      new Promise(resolve => {
-        setTimeout(async () => {
-          try {
-            await self.registration.showNotification(title, options);
-          } catch (err) {
-            console.error("Delayed showNotification error:", err);
-          }
-          resolve();
-        }, delayMs);
-      })
-    );
+    if (delayMs > 0) {
+      event.waitUntil(
+        new Promise(resolve => {
+          setTimeout(async () => {
+            try {
+              await self.registration.showNotification(title, options);
+            } catch (err) {
+              console.error("Delayed showNotification error:", err);
+            }
+            resolve();
+          }, delayMs);
+        })
+      );
+    } else {
+      event.waitUntil(
+        self.registration.showNotification(title, options)
+      );
+    }
   }
 });
 
