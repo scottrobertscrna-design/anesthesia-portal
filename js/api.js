@@ -293,12 +293,38 @@ async function setupScheduleNotifications(btnElement) {
     return;
   }
 
-  const isAlreadyActive = btnElement && btnElement.classList.contains("is-success");
+  const isAlreadyActive = (btnElement && btnElement.classList.contains("is-success")) || (localStorage.getItem("schedule_notifs_enabled") === "true" && Notification.permission === "granted");
 
+  if (isAlreadyActive) {
+    // User clicked button while alerts are active -> offer option to turn OFF or keep active
+    const confirmTurnOff = confirm("Schedule alerts are currently ACTIVE on this device.\n\nClick 'OK' to turn OFF notifications, or 'Cancel' to keep them enabled.");
+    if (confirmTurnOff) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/unsubscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subscription: sub })
+          }).catch(e => console.log("Unsubscribe send error:", e));
+        }
+      } catch (err) {
+        console.log("Unsubscribe error:", err);
+      }
+      localStorage.removeItem("schedule_notifs_enabled");
+      syncNotificationButtonState();
+      showToast("Schedule notifications turned OFF for this device.", "warning");
+    }
+    return;
+  }
+
+  // Enabling notifications
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      showToast("Notification permission was denied.", "warning");
+      showToast("Notification permission was denied in browser settings.", "danger");
       syncNotificationButtonState();
       return;
     }
@@ -320,7 +346,6 @@ async function setupScheduleNotifications(btnElement) {
     }
 
     if (subscription) {
-      // Send subscription to Cloudflare Worker
       await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -331,17 +356,18 @@ async function setupScheduleNotifications(btnElement) {
     localStorage.setItem("schedule_notifs_enabled", "true");
     syncNotificationButtonState();
 
-    if (isAlreadyActive) {
-      // User tapped active button -> trigger a test push notification
-      fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: subscription || {} })
-      }).catch(() => {});
-      showToast("Alerts are active! Test notification sent.", "success");
-    } else {
-      showToast("Schedule notifications enabled successfully!", "success");
+    // Trigger an immediate local system notification banner so user sees it working live
+    if (reg.showNotification) {
+      reg.showNotification("📄 Schedule Alerts Active!", {
+        body: "Push notifications are enabled for this device. You will receive alerts when a new schedule is posted.",
+        icon: "./snoozle.png",
+        badge: "./snoozle_maskable.png",
+        tag: "schedule-alert-enabled",
+        renotify: true
+      }).catch(e => console.log("System notification trigger error:", e));
     }
+
+    showToast("Schedule notifications enabled on this device! 🔔", "success");
   } catch (err) {
     console.error("Error setting up push notifications:", err);
     localStorage.setItem("schedule_notifs_enabled", "true");
