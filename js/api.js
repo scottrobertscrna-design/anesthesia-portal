@@ -296,9 +296,39 @@ async function setupScheduleNotifications(btnElement) {
   const isAlreadyActive = (btnElement && btnElement.classList.contains("is-success")) || (localStorage.getItem("schedule_notifs_enabled") === "true" && Notification.permission === "granted");
 
   if (isAlreadyActive) {
-    // User clicked button while alerts are active -> offer option to turn OFF or keep active
-    const confirmTurnOff = confirm("Schedule alerts are currently ACTIVE on this device.\n\nClick 'OK' to turn OFF notifications, or 'Cancel' to keep them enabled.");
-    if (confirmTurnOff) {
+    // User clicked button while alerts are active -> present prompt choices
+    const choice = prompt(
+      "Schedule alerts are currently ACTIVE on this device.\n\n" +
+      "1. Send a Test Notification now\n" +
+      "2. Turn OFF notifications\n\n" +
+      "Enter 1 or 2 and tap OK (or Cancel to close):",
+      "1"
+    );
+
+    if (choice === "1") {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg.showNotification) {
+          reg.showNotification("📄 Test Schedule Alert", {
+            body: "Test notification successful! Your device is receiving schedule alerts.",
+            icon: "./snoozle.png",
+            badge: "./snoozle_maskable.png",
+            tag: "test-schedule-alert",
+            renotify: true
+          }).catch(e => console.log("Test notification trigger error:", e));
+        }
+        const sub = await reg.pushManager.getSubscription();
+        fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subscription: sub || {} })
+        }).catch(() => {});
+        showToast("Test notification sent to your device screen!", "success");
+      } catch (err) {
+        showToast("Error triggering test notification: " + err.message, "danger");
+      }
+      return;
+    } else if (choice === "2") {
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
@@ -316,6 +346,7 @@ async function setupScheduleNotifications(btnElement) {
       localStorage.removeItem("schedule_notifs_enabled");
       syncNotificationButtonState();
       showToast("Schedule notifications turned OFF for this device.", "warning");
+      return;
     }
     return;
   }
@@ -384,11 +415,12 @@ async function checkLatestScheduleBadge() {
       if (data.success && data.timestamp) {
         const lastViewed = parseInt(localStorage.getItem("last_viewed_schedule_ts") || "0", 10);
         if (data.timestamp > lastViewed) {
-          document.querySelectorAll('.pdf-schedule-btn, .schedule-badge-btn').forEach(btn => {
+          const targetSelectors = '.schedule-btn, .pdf-schedule-btn, .schedule-badge-btn, #btn-open-requests, #btn-open-sheet-viewer';
+          document.querySelectorAll(targetSelectors).forEach(btn => {
             if (!btn.querySelector('.new-badge')) {
               const badge = document.createElement('span');
               badge.className = 'new-badge';
-              badge.style.cssText = 'background: #ef4444; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; display: inline-block; vertical-align: middle;';
+              badge.style.cssText = 'background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 10px; margin-left: 6px; display: inline-block; vertical-align: middle; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);';
               badge.textContent = 'NEW';
               btn.appendChild(badge);
             }
