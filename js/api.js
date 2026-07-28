@@ -489,19 +489,7 @@ async function checkLatestScheduleBadge() {
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.timestamp) {
-        const lastViewed = parseInt(localStorage.getItem("last_viewed_schedule_ts") || "0", 10);
-        if (data.timestamp > lastViewed) {
-          const targetSelectors = '.schedule-btn, .pdf-schedule-btn, .schedule-badge-btn, #btn-open-requests, #btn-open-sheet-viewer';
-          document.querySelectorAll(targetSelectors).forEach(btn => {
-            if (!btn.querySelector('.new-badge')) {
-              const badge = document.createElement('span');
-              badge.className = 'new-badge';
-              badge.style.cssText = 'background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 10px; margin-left: 6px; display: inline-block; vertical-align: middle; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);';
-              badge.textContent = 'NEW';
-              btn.appendChild(badge);
-            }
-          });
-        }
+        localStorage.setItem("latest_schedule_timestamp", data.timestamp.toString());
       }
     }
   } catch (e) {}
@@ -509,7 +497,6 @@ async function checkLatestScheduleBadge() {
 
 function markScheduleAsViewed() {
   localStorage.setItem("last_viewed_schedule_ts", Date.now().toString());
-  document.querySelectorAll('.new-badge').forEach(el => el.remove());
 }
 
 // Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
