@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v187';
+const CACHE_NAME = 'lawrence-anaesthesia-v188';
 
 const APP_SHELL = [
   './portal.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './js/api.js',
   './config.js',
   './snoozle.png',
+  './snoozle_badge.png',
   './snoozle_maskable.png',
   './snoozle_yellow.png',
   './manifest_portal.json',
@@ -159,7 +160,7 @@ self.addEventListener('push', event => {
   const options = {
     body: data.body || 'A new schedule PDF has been posted for tomorrow.',
     icon: './snoozle.png',
-    badge: './snoozle_maskable.png',
+    badge: './snoozle_badge.png',
     vibrate: [100, 50, 100],
     tag: 'schedule-notification',
     renotify: true,
@@ -197,7 +198,7 @@ self.addEventListener('message', event => {
     const options = {
       body: event.data.body || 'Test notification delivered to system notification bar!',
       icon: './snoozle.png',
-      badge: './snoozle_maskable.png',
+      badge: './snoozle_badge.png',
       vibrate: [200, 100, 200],
       tag: 'test-schedule-notification-' + Date.now(),
       renotify: true,

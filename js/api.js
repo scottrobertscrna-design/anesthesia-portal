@@ -355,7 +355,7 @@ async function triggerTestNotification(isDelayed = false) {
   const notifOptions = {
     body: bodyMsg,
     icon: './snoozle.png',
-    badge: './snoozle_maskable.png',
+    badge: './snoozle_badge.png',
     tag: 'test-schedule-alert-' + Date.now(),
     renotify: true,
     vibrate: [200, 100, 200]
