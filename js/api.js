@@ -356,55 +356,48 @@ async function triggerTestNotification(isDelayed = false) {
     body: bodyMsg,
     icon: './snoozle.png',
     badge: './snoozle_badge.png',
-    tag: 'test-schedule-alert-' + Date.now(),
+    tag: 'schedule-alert-test',
     renotify: true,
     vibrate: [200, 100, 200]
   };
 
-  let errorLogs = [];
-  let isDelivered = false;
-
-  // Method 1: SW controller postMessage
-  try {
-    const action = isDelayed ? 'scheduleDelayedNotification' : 'triggerTestNotification';
-    const delayMs = isDelayed ? 5000 : 0;
+  if (isDelayed) {
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ action, delayMs, title: notifTitle, body: bodyMsg });
+      navigator.serviceWorker.controller.postMessage({
+        action: 'scheduleDelayedNotification',
+        delayMs: 5000,
+        title: notifTitle,
+        body: bodyMsg
+      });
+    }
+    showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
+    return;
+  }
+
+  let isDelivered = false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (reg && reg.showNotification) {
+      await reg.showNotification(notifTitle, notifOptions);
       isDelivered = true;
     }
   } catch (err) {
-    errorLogs.push("SW postMessage: " + err.message);
+    console.error("reg.showNotification error:", err);
   }
 
-  // Method 2: ServiceWorker registration.showNotification
-  if (!isDelayed) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && reg.showNotification) {
-        await reg.showNotification(notifTitle, notifOptions);
-        isDelivered = true;
-      }
-    } catch (err) {
-      console.error("reg.showNotification error:", err);
-      errorLogs.push("SW showNotification: " + err.message);
-    }
-
-    // Method 3: Direct window.Notification constructor fallback
+  if (!isDelivered) {
     try {
       new Notification(notifTitle, notifOptions);
       isDelivered = true;
     } catch (err) {
       console.error("window.Notification error:", err);
-      errorLogs.push("window.Notification: " + err.message);
     }
   }
 
-  if (isDelayed) {
-    showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
-  } else if (isDelivered) {
+  if (isDelivered) {
     showToast("Test notification sent to device!", "success");
   } else {
-    alert("Could not display system notification on device.\n\nDiagnostics:\nPermission: " + currentPerm + "\nErrors:\n" + errorLogs.join("\n") + "\n\nPlease verify Android Settings -> Apps -> Chrome -> Notifications is enabled.");
+    alert("Could not display system notification on device.\n\nPlease verify Android Settings -> Apps -> Chrome -> Notifications is enabled.");
   }
 }
 

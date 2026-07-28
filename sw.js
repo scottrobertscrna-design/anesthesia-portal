@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v188';
+const CACHE_NAME = 'lawrence-anaesthesia-v189';
 
 const APP_SHELL = [
   './portal.html',
@@ -200,7 +200,7 @@ self.addEventListener('message', event => {
       icon: './snoozle.png',
       badge: './snoozle_badge.png',
       vibrate: [200, 100, 200],
-      tag: 'test-schedule-notification-' + Date.now(),
+      tag: 'schedule-alert-test',
       renotify: true,
       data: { url: './snapshot.html' }
     };
