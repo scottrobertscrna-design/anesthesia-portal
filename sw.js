@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v184';
+const CACHE_NAME = 'lawrence-anaesthesia-v185';
 
 const APP_SHELL = [
   './portal.html',
@@ -204,9 +204,18 @@ self.addEventListener('message', event => {
       data: { url: './snapshot.html' }
     };
 
-    setTimeout(() => {
-      self.registration.showNotification(title, options);
-    }, delayMs);
+    event.waitUntil(
+      new Promise(resolve => {
+        setTimeout(async () => {
+          try {
+            await self.registration.showNotification(title, options);
+          } catch (err) {
+            console.error("Delayed showNotification error:", err);
+          }
+          resolve();
+        }, delayMs);
+      })
+    );
   }
 });
 
