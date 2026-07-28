@@ -335,47 +335,76 @@ function closeNotificationManagerModal() {
 
 async function triggerTestNotification(isDelayed = false) {
   closeNotificationManagerModal();
+
+  if (!('Notification' in window)) {
+    alert("Notifications API is not supported on this browser.");
+    return;
+  }
+
+  const currentPerm = Notification.permission;
+  if (currentPerm !== 'granted') {
+    alert("Notification permission state is currently: '" + currentPerm + "'.\n\nPlease check Android Settings -> Apps -> Chrome (or PWA) -> Notifications and turn ON notifications.");
+    return;
+  }
+
+  const bodyMsg = isDelayed 
+    ? 'Notification system active! Delivery confirmed to notification bar.'
+    : 'Test notification successful! Your device is receiving schedule alerts.';
+
+  const notifTitle = '📄 Test Schedule Alert';
+  const notifOptions = {
+    body: bodyMsg,
+    icon: './snoozle.png',
+    badge: './snoozle_maskable.png',
+    tag: 'test-schedule-alert-' + Date.now(),
+    renotify: true,
+    vibrate: [200, 100, 200]
+  };
+
+  let errorLogs = [];
+  let isDelivered = false;
+
+  // Method 1: SW controller postMessage
   try {
-    const reg = await navigator.serviceWorker.ready;
     const action = isDelayed ? 'scheduleDelayedNotification' : 'triggerTestNotification';
     const delayMs = isDelayed ? 5000 : 0;
-    const bodyMsg = isDelayed 
-      ? 'Notification system active! Delivery confirmed to notification bar.'
-      : 'Test notification successful! Your device is receiving schedule alerts.';
-
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        action,
-        delayMs,
-        title: '📄 Test Schedule Alert',
-        body: bodyMsg
-      });
-    } else if (reg.active) {
-      reg.active.postMessage({
-        action,
-        delayMs,
-        title: '📄 Test Schedule Alert',
-        body: bodyMsg
-      });
-    }
-
-    if (!isDelayed && reg.showNotification) {
-      reg.showNotification('📄 Test Schedule Alert', {
-        body: bodyMsg,
-        icon: './snoozle.png',
-        badge: './snoozle_maskable.png',
-        tag: 'test-schedule-alert-' + Date.now(),
-        renotify: true
-      }).catch(e => console.log("Direct showNotification error:", e));
-    }
-
-    if (isDelayed) {
-      showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
-    } else {
-      showToast("Instant test notification triggered!", "success");
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ action, delayMs, title: notifTitle, body: bodyMsg });
+      isDelivered = true;
     }
   } catch (err) {
-    showToast("Error triggering test notification: " + err.message, "danger");
+    errorLogs.push("SW postMessage: " + err.message);
+  }
+
+  // Method 2: ServiceWorker registration.showNotification
+  if (!isDelayed) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(notifTitle, notifOptions);
+        isDelivered = true;
+      }
+    } catch (err) {
+      console.error("reg.showNotification error:", err);
+      errorLogs.push("SW showNotification: " + err.message);
+    }
+
+    // Method 3: Direct window.Notification constructor fallback
+    try {
+      new Notification(notifTitle, notifOptions);
+      isDelivered = true;
+    } catch (err) {
+      console.error("window.Notification error:", err);
+      errorLogs.push("window.Notification: " + err.message);
+    }
+  }
+
+  if (isDelayed) {
+    showToast("Lock phone or go to Home Screen NOW! Notification fires in 5s.", "warning");
+  } else if (isDelivered) {
+    showToast("Test notification sent to device!", "success");
+  } else {
+    alert("Could not display system notification on device.\n\nDiagnostics:\nPermission: " + currentPerm + "\nErrors:\n" + errorLogs.join("\n") + "\n\nPlease verify Android Settings -> Apps -> Chrome -> Notifications is enabled.");
   }
 }
 
