@@ -445,7 +445,16 @@ async function setupScheduleNotifications(btnElement) {
     }
 
     const reg = await navigator.serviceWorker.ready;
-    const publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
+    let publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
+    try {
+      const keyRes = await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/push-public-key");
+      if (keyRes.ok) {
+        const keyData = await keyRes.json();
+        if (keyData.success && keyData.publicKey) {
+          publicKey = keyData.publicKey;
+        }
+      }
+    } catch (e) {}
     const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
     let subscription = await reg.pushManager.getSubscription();
