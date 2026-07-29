@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>LAPA CRNA Portal</title>
 
+  <!-- Preconnect to API Relay -->
+  <link rel="preconnect" href="https://anesthesia-api-relay.scott-roberts-crna.workers.dev" crossorigin>
+
   <!-- Bulma and Custom Premium Stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="css/style.css">
@@ -760,8 +763,9 @@
       fetchFreshData(picker.value);
     };
 
-    // Poll for updates every 30 seconds
+    // Poll for updates every 30 seconds (only when tab is visible)
     setInterval(async () => {
+      if (document.hidden) return;
       await pollSignOffs();
       updateObTimers();
     }, 30000);
