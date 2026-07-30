@@ -422,12 +422,78 @@ async function unsubscribeNotifications() {
   showToast("Schedule notifications turned OFF for this device.", "warning");
 }
 
-async function setupScheduleNotifications(btnElement) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    showToast("Push notifications are not supported on this browser.", "warning");
-    return;
-  }
+async function ensureValidPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  if (Notification.permission !== 'granted') return null;
 
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
+    try {
+      const keyRes = await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/push-public-key");
+      if (keyRes.ok) {
+        const keyData = await keyRes.json();
+        if (keyData.success && keyData.publicKey) {
+          publicKey = keyData.publicKey;
+        }
+      }
+    } catch (e) {}
+
+    const applicationServerKey = urlBase64ToUint8Array(publicKey);
+    let subscription = await reg.pushManager.getSubscription();
+
+    // Check for VAPID key mismatch if existing subscription exists
+    if (subscription) {
+      const existingKey = subscription.options && subscription.options.applicationServerKey;
+      let keyMismatch = false;
+      if (existingKey) {
+        const existingKeyArray = new Uint8Array(existingKey);
+        if (existingKeyArray.length !== applicationServerKey.length) {
+          keyMismatch = true;
+        } else {
+          for (let i = 0; i < existingKeyArray.length; i++) {
+            if (existingKeyArray[i] !== applicationServerKey[i]) {
+              keyMismatch = true;
+              break;
+            }
+          }
+        }
+      }
+      if (keyMismatch) {
+        console.log("VAPID key mismatch detected. Resubscribing with current server key...");
+        await subscription.unsubscribe().catch(() => {});
+        subscription = null;
+      }
+    }
+
+    if (!subscription) {
+      try {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+      } catch (subErr) {
+        console.log("PushManager subscribe error:", subErr);
+      }
+    }
+
+    if (subscription) {
+      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription })
+      }).catch(e => console.log("Cloudflare subscribe send error:", e));
+    }
+
+    localStorage.setItem("schedule_notifs_enabled", "true");
+    return subscription;
+  } catch (err) {
+    console.error("Error ensuring push subscription:", err);
+    return null;
+  }
+}
+
+async function setupScheduleNotifications(btnElement) {
   const isAlreadyActive = (btnElement && btnElement.classList.contains("is-success")) || (localStorage.getItem("schedule_notifs_enabled") === "true" && Notification.permission === "granted");
 
   if (isAlreadyActive) {
@@ -444,40 +510,7 @@ async function setupScheduleNotifications(btnElement) {
       return;
     }
 
-    const reg = await navigator.serviceWorker.ready;
-    let publicKey = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDnA45dffZTJ56Zad_6A1P7N-v3g-c4K9B-1Z_2fN7A8";
-    try {
-      const keyRes = await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/push-public-key");
-      if (keyRes.ok) {
-        const keyData = await keyRes.json();
-        if (keyData.success && keyData.publicKey) {
-          publicKey = keyData.publicKey;
-        }
-      }
-    } catch (e) {}
-    const applicationServerKey = urlBase64ToUint8Array(publicKey);
-
-    let subscription = await reg.pushManager.getSubscription();
-    if (!subscription) {
-      try {
-        subscription = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey
-        });
-      } catch (subErr) {
-        console.log("PushManager subscribe details:", subErr);
-      }
-    }
-
-    if (subscription) {
-      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription })
-      }).catch(e => console.log("Cloudflare subscribe send error:", e));
-    }
-
-    localStorage.setItem("schedule_notifs_enabled", "true");
+    await ensureValidPushSubscription();
     syncNotificationButtonState();
 
     // Trigger an immediate local system notification banner so user sees it working live
@@ -509,9 +542,13 @@ function markScheduleAsViewed() {
 }
 
 // Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
-const initPageHelpers = () => {
+const initPageHelpers = async () => {
   checkLatestScheduleBadge();
   syncNotificationButtonState();
+  if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
+    await ensureValidPushSubscription();
+    syncNotificationButtonState();
+  }
 };
 
 if (document.readyState === 'loading') {
@@ -526,6 +563,3 @@ document.addEventListener('visibilitychange', () => {
     initPageHelpers();
   }
 });
-
-
-
