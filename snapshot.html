@@ -1086,6 +1086,13 @@
           manualTime: null
         });
         if (res && res.timestamp) {
+          await callApi("toggleSignOff", {
+            name: name,
+            role: role,
+            dateStr: dateStr,
+            isChecked: false,
+            manualTime: null
+          });
           showToast(`Checked in ${displayName} at ${res.timestamp}!`, "success");
           const picker = document.getElementById('entry-date-picker');
           await fetchFreshData(picker ? picker.value : '');
@@ -1467,7 +1474,12 @@
               const off = getSignOff(name, activeRole);
               const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
               const isHome = !!(off && off.time);
-              const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
+              const isStartsAtHome = isHome && (
+                off.time === '7:00 AM' ||
+                off.arrivalTime === '7:00 AM' ||
+                ['standby', 'holiday', 's', 'at home'].includes(String(activeRole).toLowerCase())
+              );
+              const canCheckIn = isToday && isStartsAtHome;
               const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
               const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
               return `
@@ -1540,7 +1552,13 @@
                 const off = getSignOff(e.name, activeRole);
                 const bl = blState[`${e.name}|${activeRole}`] || { break: false, lunch: false };
                 const isHome = !!(off && off.time);
-                const canCheckIn = isToday && (!off || !off.arrivalTime) && !isHome;
+                const isStartsAtHome = isHome && (
+                  off.time === '7:00 AM' ||
+                  off.arrivalTime === '7:00 AM' ||
+                  ['standby', 'holiday', 's', 'at home'].includes(String(e.num).toLowerCase()) ||
+                  ['standby', 'holiday', 's', 'at home'].includes(String(activeRole).toLowerCase())
+                );
+                const canCheckIn = isToday && isStartsAtHome;
                 const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
                 const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
                 return `
