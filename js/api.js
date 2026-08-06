@@ -31,15 +31,40 @@ async function callApi(action, params = {}) {
 
 // --- Shared Utility Helpers ---
 
+// Safe querySelector wrapper to prevent unescaped selector strings from throwing DOMException
+function safeQuerySelector(selector, container = document) {
+  try {
+    return container.querySelector(selector);
+  } catch (e) {
+    console.warn(`safeQuerySelector syntax error for "${selector}":`, e);
+    return null;
+  }
+}
+
+// Safe querySelectorAll wrapper to prevent unescaped selector strings from throwing DOMException
+function safeQuerySelectorAll(selector, container = document) {
+  try {
+    return container.querySelectorAll(selector);
+  } catch (e) {
+    console.warn(`safeQuerySelectorAll syntax error for "${selector}":`, e);
+    return [];
+  }
+}
+
 // Helper: decode Base64 to a binary Uint8Array in-browser
 function base64ToUint8Array(base64) {
-  const raw = window.atob(base64);
-  const rawLength = raw.length;
-  const array = new Uint8Array(new ArrayBuffer(rawLength));
-  for (let i = 0; i < rawLength; i++) {
-    array[i] = raw.charCodeAt(i);
+  try {
+    const raw = window.atob(base64);
+    const rawLength = raw.length;
+    const array = new Uint8Array(new ArrayBuffer(rawLength));
+    for (let i = 0; i < rawLength; i++) {
+      array[i] = raw.charCodeAt(i);
+    }
+    return array;
+  } catch (e) {
+    console.error("base64ToUint8Array decode failed:", e);
+    return new Uint8Array(0);
   }
-  return array;
 }
 
 // Helper: Format AM/PM string to 24h input format
@@ -245,14 +270,42 @@ if (document.readyState === 'loading') {
 
 // --- Push Notification & Schedule Badge Helpers ---
 function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+  try {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (e) {
+    console.error("urlBase64ToUint8Array decode error:", e);
+    return new Uint8Array(0);
   }
-  return outputArray;
+}
+
+/**
+ * Clears temporary local state and reloads the portal to resolve persistent browser state errors.
+ */
+async function resetPortalAppStorage() {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
+    }
+  } catch (e) {
+    console.warn("Storage reset cleanup note:", e);
+  }
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.reload(true);
 }
 
 async function syncNotificationButtonState() {

@@ -149,7 +149,7 @@
         <div class="field mb-5" id="tc-pin-field">
           <label class="label" id="tc-pin-label">Enter PIN</label>
           <div class="control">
-            <input class="input" type="password" id="tc-pin-input" placeholder="####" pattern="\d*">
+            <input class="input" type="password" id="tc-pin-input" placeholder="####" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password">
           </div>
         </div>
 
@@ -994,7 +994,26 @@
           debugFooter.textContent = `${detectedAppVersion} | Days: ${cachedData.length} | Sheet: ${d.debugSheetExists ? 'Found' : 'NOT FOUND'} (${d.debugSheetRows || 0}r x ${d.debugSheetCols || 0}c) ${codeSuffix} | NameIdx: ${d.debugNameIdx} | PhoneIdx: ${d.debugPhoneIdx} | ActivePhones: ${d.debugPhonesLength || 0} | MD: ${d.debugDocs} | Err: ${d.debugError || 'None'}`;
         }
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="notification is-danger">Critical load error: ${err.message}</div>`;
+        console.error("Critical portal load error:", err);
+        const errStr = String(err && err.message ? err.message : err);
+        document.getElementById('content').innerHTML = `
+          <div class="notification is-danger" style="margin: 20px; border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+            <h3 class="title is-4 has-text-white mb-3">⚠️ Critical Load Error</h3>
+            <p style="font-size: 0.95rem; line-height: 1.5; margin-bottom: 16px;">
+              ${errStr}
+            </p>
+            <div style="font-size: 0.85rem; background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; color: #fecaca;">
+              This can happen if network data was interrupted or browser state got out of sync.
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="button is-white is-outlined" onclick="window.location.reload()" style="font-weight: 700;">
+                🔄 Try Reloading Page
+              </button>
+              <button class="button is-warning" onclick="resetPortalAppStorage()" style="font-weight: 700; color: #1e293b;">
+                🧹 Clear Cache & Reset Session
+              </button>
+            </div>
+          </div>`;
       }
     }
 
@@ -2969,7 +2988,7 @@
       // Gather names of staff who have gone home (strikethrough in the DOM)
       const goneHomeNames = new Set();
       const dateId = dateStr.replace(/[^a-zA-Z0-9]/g, '');
-      const dayRows = document.querySelectorAll(`[id^="row-${dateId}-"]`);
+      const dayRows = safeQuerySelectorAll(`[id^="row-${dateId}-"]`);
       dayRows.forEach(row => {
         const contentEl = row.querySelector('.entry-content');
         if (contentEl && contentEl.classList.contains('strikethrough')) {
