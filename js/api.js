@@ -1,32 +1,50 @@
 /**
  * Shared API Client for Google Apps Script Web App
  */
-async function callApi(action, params = {}) {
-  try {
-    const response = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      mode: "cors",
-      keepalive: true, // Prevents iOS Safari from canceling background fetch on lock/app switch
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8" // Bypasses CORS OPTIONS preflight
-      },
-      body: JSON.stringify({ action, ...params })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP network error: ${response.status} ${response.statusText}`);
+async function callApi(action, params = {}, retries = 2) {
+  let attempt = 0;
+  let lastError = null;
+
+  while (attempt <= retries) {
+    attempt++;
+    try {
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        mode: "cors",
+        keepalive: true, // Prevents iOS Safari from canceling background fetch on lock/app switch
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8" // Bypasses CORS OPTIONS preflight
+        },
+        body: JSON.stringify({ action, ...params })
+      });
+
+      if (!response.ok) {
+        if ([404, 500, 502, 503, 504].includes(response.status) && attempt <= retries) {
+          console.warn(`callApi (${action}) returned HTTP ${response.status}. Retrying attempt ${attempt}/${retries}...`);
+          await new Promise(r => setTimeout(r, attempt * 400));
+          continue;
+        }
+        throw new Error(`HTTP network error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "An unknown API error occurred.");
+      }
+
+      return result.data;
+    } catch (error) {
+      lastError = error;
+      if (attempt <= retries && (error.name === 'TypeError' || String(error.message).includes('HTTP network error'))) {
+        console.warn(`callApi (${action}) fetch error: ${error.message}. Retrying attempt ${attempt}/${retries}...`);
+        await new Promise(r => setTimeout(r, attempt * 400));
+      } else {
+        console.error("API Call Failed (" + action + "):", error);
+        throw error;
+      }
     }
-    
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || "An unknown API error occurred.");
-    }
-    
-    return result.data;
-  } catch (error) {
-    console.error("API Call Failed (" + action + "):", error);
-    throw error;
   }
+  throw lastError || new Error("API request failed.");
 }
 
 // --- Shared Utility Helpers ---
