@@ -656,7 +656,7 @@ async function renderMobilePersonalShiftsCard() {
   `;
 
   try {
-    const result = await callApi("getLocumSchedule", { name: storedName, pin: storedPin });
+    const result = await callApi("getEmployeeSchedule", { name: storedName, pin: storedPin });
     const bodyEl = document.getElementById("mobile-shifts-body");
     if (!bodyEl) return;
 

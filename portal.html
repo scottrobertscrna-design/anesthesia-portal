@@ -106,7 +106,6 @@
       <div id="my-schedule"></div>
 
       <div class="mt-6 has-text-centered" style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-        <button class="button is-small is-light notif-bell-btn" onclick="setupScheduleNotifications(this)" style="font-weight: 600;">🔔 Enable Schedule Alerts</button>
         <button class="button is-small is-light" onclick="logoutLocum()">Logout / Disconnect</button>
       </div>
     </div>
@@ -124,16 +123,27 @@
     window.onload = async () => {
       const storedName = localStorage.getItem("tc_name");
       const storedPin = localStorage.getItem("tc_pin");
-      const isLocum = localStorage.getItem("tc_is_locum") === "true";
 
-      if (storedName && storedPin && isLocum) {
+      if (storedName && storedPin) {
         // Auto-login using the shared session
         refreshData(storedName, storedPin, false);
         return;
       }
 
       try {
-        const items = await callApi("getLocumNames");
+        let items = [];
+        try {
+          items = await callApi("getLocumNames");
+        } catch (e) {
+          items = [];
+        }
+        
+        // If items don't include regular staff, fetch full employee roster
+        if (!items || items.length === 0 || items.length < 5) {
+          const empList = await callApi("getEmployeeNames");
+          items = empList.map(e => ({ name: e.name || e, hasPin: true }));
+        }
+
         const select = document.getElementById('name-select');
         select.innerHTML = items.map(item =>
           `<option value="${item.name}" data-haspin="${item.hasPin}">${item.name}</option>`
@@ -192,7 +202,7 @@
       schedDiv.innerHTML = `<div class="loading-wrap"><button class="button is-loading is-white is-large"></button><p>${loadingText}</p></div>`;
 
       try {
-        const result = await callApi("getLocumSchedule", { name, pin });
+        const result = await callApi("getEmployeeSchedule", { name, pin });
 
         // Save session credentials
         localStorage.setItem("tc_name", name);
