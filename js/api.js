@@ -612,10 +612,149 @@ function markScheduleAsViewed() {
   localStorage.setItem("last_viewed_schedule_ts", Date.now().toString());
 }
 
-// Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
+async function renderMobilePersonalShiftsCard() {
+  const container = document.getElementById("mobile-shifts-container");
+  if (!container) return;
+
+  const storedName = localStorage.getItem("tc_name");
+  const storedPin = localStorage.getItem("tc_pin");
+
+  // If NOT logged in: Render callout card with direct link to PIN entry
+  if (!storedName || !storedPin) {
+    container.innerHTML = `
+      <div class="mobile-shifts-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 6px;">
+            📅 My Upcoming Shifts
+          </h4>
+          <span class="tag is-light is-size-7" style="font-weight: 700;">PIN Entry</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px;">
+          Log in with your PIN to view your personal shift schedule for this week and next week, or subscribe to your calendar.
+        </p>
+        <button class="button is-link is-fullwidth is-small" onclick="window.location.href='portal.html'" style="font-weight: 700; height: 34px; border-radius: 8px;">
+          🔑 Enter Portal PIN to View Shifts
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // If LOGGED IN: Fetch shifts & group by date for Current Week & Next Week
+  container.innerHTML = `
+    <div class="mobile-shifts-card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0;">
+          📅 MY SHIFTS (${storedName.toUpperCase()})
+        </h4>
+        <a href="portal.html" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-blue);">Full Portal →</a>
+      </div>
+      <div id="mobile-shifts-body" style="font-size: 0.85rem; color: var(--text-muted);">
+        <p>Loading your shifts...</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const result = await callApi("getLocumSchedule", { name: storedName, pin: storedPin });
+    const bodyEl = document.getElementById("mobile-shifts-body");
+    if (!bodyEl) return;
+
+    if (!result || !result.schedule || result.schedule.length === 0) {
+      bodyEl.innerHTML = `<p style="font-style: italic; color: var(--text-muted); text-align: center; padding: 10px 0;">No upcoming shifts found.</p>`;
+      return;
+    }
+
+    // Helper: calculate week start (Monday) for any date
+    const getWeekMonday = (d) => {
+      const dt = new Date(d);
+      const day = dt.getDay();
+      const diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(dt.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday;
+    };
+
+    const todayMonday = getWeekMonday(new Date());
+    const nextMonday = new Date(todayMonday);
+    nextMonday.setDate(todayMonday.getDate() + 7);
+    const endOfNextWeek = new Date(nextMonday);
+    endOfNextWeek.setDate(nextMonday.getDate() + 7);
+
+    // Group shifts by date (supporting multiple shifts on the same day)
+    const groupedByDate = {};
+    result.schedule.forEach(item => {
+      const shiftDate = item.sortDate ? new Date(item.sortDate) : null;
+      if (!shiftDate) return;
+
+      if (shiftDate >= todayMonday && shiftDate < endOfNextWeek) {
+        const dateKey = item.dateStr || shiftDate.toISOString().split('T')[0];
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = {
+            dateStr: item.dateStr,
+            dayName: item.dayName,
+            sortDate: item.sortDate,
+            assignments: []
+          };
+        }
+        groupedByDate[dateKey].assignments.push(item.assignment);
+      }
+    });
+
+    const dateKeys = Object.keys(groupedByDate);
+    if (dateKeys.length === 0) {
+      bodyEl.innerHTML = `<p style="font-style: italic; color: var(--text-muted); text-align: center; padding: 10px 0;">No shifts scheduled for this week or next week.</p>`;
+      return;
+    }
+
+    // Render grouped shifts
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    dateKeys.forEach(key => {
+      const dayItem = groupedByDate[key];
+      const badgesHtml = dayItem.assignments.map(assign => {
+        const cleanAssign = String(assign).trim().toUpperCase();
+        let badgeClass = "shift-badge-blue-main";
+        let icon = "🏥";
+
+        if (cleanAssign.includes("BACKUP") || cleanAssign.includes("CALL")) {
+          badgeClass = "shift-badge-purple-backup";
+          icon = "📟";
+        } else if (cleanAssign.includes("LSC")) {
+          badgeClass = "shift-badge-emerald-lsc";
+          icon = "🏥";
+        } else if (["OFF", "VACATION", "VAC", "STANDBY", "CWR", "AT HOME"].includes(cleanAssign)) {
+          badgeClass = "shift-badge-amber-off";
+          icon = "🌴";
+        }
+
+        return `<span class="shift-pill ${badgeClass}">${icon} ${assign}</span>`;
+      }).join('');
+
+      html += `
+        <div class="shift-day-row">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">${dayItem.dayName}</span>
+            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${dayItem.dateStr}</span>
+          </div>
+          <div class="shift-badges-wrap">
+            ${badgesHtml}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+
+    bodyEl.innerHTML = html;
+  } catch (err) {
+    console.error("renderMobilePersonalShiftsCard error:", err);
+  }
+}
+
+// Auto-run version detection, notification sync, schedule badge, and mobile shift card on DOM load, pageshow, and focus
 const initPageHelpers = async () => {
   checkLatestScheduleBadge();
   syncNotificationButtonState();
+  renderMobilePersonalShiftsCard();
   if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
     await ensureValidPushSubscription();
     syncNotificationButtonState();

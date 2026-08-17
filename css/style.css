@@ -235,6 +235,74 @@ h3,
   border: none !important;
 }
 
+.num-badge.badge-purple-backup,
+.shift-badge-purple-backup {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(109, 40, 217, 0.3) !important;
+}
+
+.num-badge.badge-blue-main,
+.shift-badge-blue-main {
+  background: linear-gradient(135deg, #3b82f6, #1e40af) !important;
+  color: #ffffff !important;
+}
+
+.num-badge.badge-emerald-lsc,
+.shift-badge-emerald-lsc {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+}
+
+.num-badge.badge-amber-off,
+.shift-badge-amber-off {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #ffffff !important;
+}
+
+/* Mobile Personal Shifts Card Styling */
+.mobile-shifts-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+}
+
+.mobile-shifts-card .shift-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.mobile-shifts-card .shift-day-row:last-child {
+  border-bottom: none;
+}
+
+.mobile-shifts-card .shift-badges-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mobile-shifts-card .shift-pill {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  font-family: 'Outfit', sans-serif;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
 /* Contact badge next to names */
 .contact-badge {
   display: inline-flex;
