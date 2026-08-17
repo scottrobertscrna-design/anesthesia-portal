@@ -43,9 +43,6 @@
       </div>
     </div>
 
-    <!-- Mobile Personal Shifts Container -->
-    <div id="mobile-shifts-container" class="mb-4"></div>
-
     <!-- Date selector container -->
     <div id="date-selector-container" class="mb-5 is-flex is-justify-content-center is-align-items-center"
       style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -59,6 +56,11 @@
         title="Force refresh schedule from Google Sheets"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
         🔄 Refresh
+      </button>
+      <button class="button is-small is-link" id="btn-open-personal-shifts" onclick="openPersonalShiftsModal()"
+        title="View My Upcoming Shifts (Current & Next Week)"
+        style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;">
+        📅 My Shifts
       </button>
       <button class="button is-small is-link" id="btn-open-timecard" onclick="openTimecard()"
         title="Open Personal Timecard"
@@ -865,55 +867,9 @@
           content.classList.remove('strikethrough');
         }
 
-        // Hide break/lunch buttons entirely if they are signed off (home) or not today
+        // Remove any break/lunch controls if present
         const blControls = entryRow.querySelector('.break-lunch-controls');
-        const isToday = entryRow.dataset.today === 'true';
-        if (!isToday || (data && data.time)) {
-          if (blControls) blControls.remove();
-        } else {
-          // If not home and is today, ensure break/lunch buttons exist and have correct active states
-          if (blControls) {
-            const btnBreak = blControls.querySelector('.btn-break');
-            const btnLunch = blControls.querySelector('.btn-lunch');
-            if (btnBreak) btnBreak.classList.toggle('active', !!bl.break);
-            if (btnLunch) btnLunch.classList.toggle('active', !!bl.lunch);
-
-            const btnOb = blControls.querySelector('.btn-ob');
-            if (btnOb) {
-              const isActive = !!bl.ob;
-              btnOb.classList.toggle('active', isActive);
-              if (isActive && typeof bl.ob === 'string') {
-                btnOb.dataset.obStart = bl.ob;
-              } else {
-                delete btnOb.dataset.obStart;
-              }
-            }
-          } else {
-            // Re-render controls if they were removed but signoff got cleared
-            const newControls = document.createElement('div');
-            newControls.className = 'break-lunch-controls';
-            if (role === 'MD Call') {
-              const obVal = bl.ob;
-              const isActive = !!obVal;
-              const obStartAttr = (isActive && typeof obVal === 'string') ? `data-ob-start="${obVal}"` : '';
-              newControls.innerHTML = `
-                <button class="btn-ob ${isActive ? 'active' : ''}" ${obStartAttr} onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'ob')">
-                  <span class="btn-icon">👶</span> <span class="btn-text">OB</span><span class="btn-timer"></span>
-                </button>
-              `;
-            } else {
-              newControls.innerHTML = `
-                <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'break')">
-                  <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
-                </button>
-                <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${role}', '${dateStr}', 'lunch')">
-                  <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
-                </button>
-              `;
-            }
-            entryRow.appendChild(newControls);
-          }
-        }
+        if (blControls) blControls.remove();
       });
     }
 
@@ -1452,6 +1408,9 @@
                   <span class="switch-track"><span class="switch-thumb"></span></span>
                 </label>
               </div>
+              <button class="button is-small is-rounded is-link is-light" onclick="openPersonalShiftsModal()" style="font-weight: 700; font-size: 0.78rem; height: 26px; border-radius: 8px; padding: 0 10px; margin-left: auto; display: inline-flex; align-items: center; gap: 4px;">
+                📅 My Shifts
+              </button>
             </div>
             ${day.activePhones && day.activePhones.some(ap => ap.group === 'lsc') ? `
             <div class="mb-3" style="display: flex; justify-content: flex-start;">
@@ -4352,6 +4311,22 @@
             Cancel
           </button>
         </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Personal Shifts Modal (Current & Next Week) -->
+  <div id="personal-shifts-modal" class="modal">
+    <div class="modal-background" onclick="closePersonalShiftsModal()"></div>
+    <div class="modal-card" style="max-width: 460px; width: 92%; margin: 0 auto; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);">
+      <header class="modal-card-head" style="background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 16px 20px;">
+        <p class="modal-card-title has-text-weight-bold" id="personal-shifts-modal-title" style="font-size: 1.15rem; color: var(--text-main) !important;">
+          📅 MY UPCOMING SHIFTS
+        </p>
+        <button class="delete" aria-label="close" onclick="closePersonalShiftsModal()"></button>
+      </header>
+      <section class="modal-card-body" id="personal-shifts-modal-body" style="background: var(--bg-gradient); padding: 20px; max-height: 75vh; overflow-y: auto;">
+        <!-- Dynamic content rendered by openPersonalShiftsModal() in api.js -->
       </section>
     </div>
   </div>

@@ -612,60 +612,89 @@ function markScheduleAsViewed() {
   localStorage.setItem("last_viewed_schedule_ts", Date.now().toString());
 }
 
-async function renderMobilePersonalShiftsCard() {
-  const container = document.getElementById("mobile-shifts-container");
-  if (!container) return;
+function closePersonalShiftsModal() {
+  const modal = document.getElementById("personal-shifts-modal");
+  if (modal) modal.classList.remove("is-active");
+}
+
+async function openPersonalShiftsModal() {
+  const modal = document.getElementById("personal-shifts-modal");
+  if (!modal) return;
+  modal.classList.add("is-active");
+
+  const titleEl = document.getElementById("personal-shifts-modal-title");
+  const bodyEl = document.getElementById("personal-shifts-modal-body");
+  if (!bodyEl) return;
 
   const storedName = localStorage.getItem("tc_name");
   const storedPin = localStorage.getItem("tc_pin");
 
-  // If NOT logged in: Render callout card with direct link to PIN entry
+  // If NOT logged in: Render clean login form inside the modal
   if (!storedName || !storedPin) {
-    container.innerHTML = `
-      <div class="mobile-shifts-card">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-          <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 6px;">
-            📅 My Upcoming Shifts
-          </h4>
-          <span class="tag is-light is-size-7" style="font-weight: 700;">PIN Entry</span>
-        </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px;">
-          Log in with your PIN to view your personal shift schedule for this week and next week, or subscribe to your calendar.
+    if (titleEl) titleEl.innerText = "🔐 MY UPCOMING SHIFTS";
+    bodyEl.innerHTML = `
+      <div style="text-align: center; margin-bottom: 16px;">
+        <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.4;">
+          Select your name and enter your Portal PIN to view your personal schedule for this week and next week.
         </p>
-        <button class="button is-link is-fullwidth is-small" onclick="window.location.href='portal.html'" style="font-weight: 700; height: 34px; border-radius: 8px;">
-          🔑 Enter Portal PIN to View Shifts
-        </button>
       </div>
+      <div class="field mb-3">
+        <label class="label is-small">Select Name</label>
+        <div class="control select is-fullwidth">
+          <select id="modal-shift-name-select" style="background-color: #ffffff !important; color: #0f172a !important;">
+            <option>Loading roster...</option>
+          </select>
+        </div>
+      </div>
+      <div class="field mb-4">
+        <label class="label is-small">Portal PIN</label>
+        <div class="control">
+          <input class="input" type="password" id="modal-shift-pin-input" placeholder="Enter PIN" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password">
+        </div>
+      </div>
+      <button class="button is-link is-fullwidth" id="modal-shift-login-btn" onclick="submitModalShiftLogin()" style="font-weight: 700; height: 40px; border-radius: 8px;">
+        🔑 View My Shifts
+      </button>
+      <p id="modal-shift-login-error" class="has-text-danger is-size-7 mt-2" style="display:none;"></p>
     `;
+
+    try {
+      const empList = await callApi("getEmployeeNames");
+      const sel = document.getElementById("modal-shift-name-select");
+      if (sel) {
+        sel.innerHTML = empList.map(e => {
+          const nameStr = e.name || e;
+          return `<option value="${nameStr}">${nameStr}</option>`;
+        }).join('');
+      }
+    } catch (e) {
+      console.error("Failed to load roster in modal:", e);
+    }
     return;
   }
 
-  // If LOGGED IN: Fetch shifts & group by date for Current Week & Next Week
-  container.innerHTML = `
-    <div class="mobile-shifts-card">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0;">
-          📅 MY SHIFTS (${storedName.toUpperCase()})
-        </h4>
-        <a href="portal.html" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-blue);">Full Portal →</a>
-      </div>
-      <div id="mobile-shifts-body" style="font-size: 0.85rem; color: var(--text-muted);">
-        <p>Loading your shifts...</p>
-      </div>
+  // If LOGGED IN: Fetch shifts & render modal content
+  if (titleEl) titleEl.innerText = `📅 MY SHIFTS: ${storedName.toUpperCase()}`;
+  bodyEl.innerHTML = `
+    <div style="text-align: center; padding: 24px 0;">
+      <button class="button is-loading is-white is-large"></button>
+      <p style="margin-top: 12px; font-size: 0.9rem; color: var(--text-muted);">Fetching your shifts...</p>
     </div>
   `;
 
   try {
     const result = await callApi("getEmployeeSchedule", { name: storedName, pin: storedPin });
-    const bodyEl = document.getElementById("mobile-shifts-body");
-    if (!bodyEl) return;
-
     if (!result || !result.schedule || result.schedule.length === 0) {
-      bodyEl.innerHTML = `<p style="font-style: italic; color: var(--text-muted); text-align: center; padding: 10px 0;">No upcoming shifts found.</p>`;
+      bodyEl.innerHTML = `
+        <p style="font-style: italic; color: var(--text-muted); text-align: center; padding: 20px 0;">No upcoming shifts found in schedule.</p>
+        <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px;">
+          <button class="button is-small is-light" onclick="logoutFromShiftsModal()">Switch User</button>
+          <button class="button is-small is-link" onclick="window.location.href='portal.html'">Full Portal →</button>
+        </div>
+      `;
       return;
     }
 
-    // Helper: calculate week start (Monday) for any date
     const getWeekMonday = (d) => {
       const dt = new Date(d);
       const day = dt.getDay();
@@ -681,80 +710,146 @@ async function renderMobilePersonalShiftsCard() {
     const endOfNextWeek = new Date(nextMonday);
     endOfNextWeek.setDate(nextMonday.getDate() + 7);
 
-    // Group shifts by date (supporting multiple shifts on the same day)
-    const groupedByDate = {};
+    // Group shifts by date
+    const groupedCurrentWeek = {};
+    const groupedNextWeek = {};
+
     result.schedule.forEach(item => {
       const shiftDate = item.sortDate ? new Date(item.sortDate) : null;
       if (!shiftDate) return;
 
-      if (shiftDate >= todayMonday && shiftDate < endOfNextWeek) {
-        const dateKey = item.dateStr || shiftDate.toISOString().split('T')[0];
-        if (!groupedByDate[dateKey]) {
-          groupedByDate[dateKey] = {
-            dateStr: item.dateStr,
-            dayName: item.dayName,
-            sortDate: item.sortDate,
-            assignments: []
-          };
+      const dateKey = item.dateStr || shiftDate.toISOString().split('T')[0];
+      const entryObj = {
+        dateStr: item.dateStr,
+        dayName: item.dayName,
+        sortDate: item.sortDate,
+        assignment: item.assignment
+      };
+
+      if (shiftDate >= todayMonday && shiftDate < nextMonday) {
+        if (!groupedCurrentWeek[dateKey]) {
+          groupedCurrentWeek[dateKey] = { dateStr: item.dateStr, dayName: item.dayName, assignments: [] };
         }
-        groupedByDate[dateKey].assignments.push(item.assignment);
+        groupedCurrentWeek[dateKey].assignments.push(item.assignment);
+      } else if (shiftDate >= nextMonday && shiftDate < endOfNextWeek) {
+        if (!groupedNextWeek[dateKey]) {
+          groupedNextWeek[dateKey] = { dateStr: item.dateStr, dayName: item.dayName, assignments: [] };
+        }
+        groupedNextWeek[dateKey].assignments.push(item.assignment);
       }
     });
 
-    const dateKeys = Object.keys(groupedByDate);
-    if (dateKeys.length === 0) {
-      bodyEl.innerHTML = `<p style="font-style: italic; color: var(--text-muted); text-align: center; padding: 10px 0;">No shifts scheduled for this week or next week.</p>`;
-      return;
-    }
-
-    // Render grouped shifts
-    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
-    dateKeys.forEach(key => {
-      const dayItem = groupedByDate[key];
-      const badgesHtml = dayItem.assignments.map(assign => {
-        const cleanAssign = String(assign).trim().toUpperCase();
-        let badgeClass = "shift-badge-blue-main";
-        let icon = "🏥";
-
-        if (cleanAssign.includes("BACKUP") || cleanAssign.includes("CALL")) {
-          badgeClass = "shift-badge-purple-backup";
-          icon = "📟";
-        } else if (cleanAssign.includes("LSC")) {
-          badgeClass = "shift-badge-emerald-lsc";
-          icon = "🏥";
-        } else if (["OFF", "VACATION", "VAC", "STANDBY", "CWR", "AT HOME"].includes(cleanAssign)) {
-          badgeClass = "shift-badge-amber-off";
-          icon = "🌴";
-        }
-
-        return `<span class="shift-pill ${badgeClass}">${icon} ${assign}</span>`;
-      }).join('');
-
-      html += `
-        <div class="shift-day-row">
-          <div style="display: flex; flex-direction: column;">
-            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">${dayItem.dayName}</span>
-            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${dayItem.dateStr}</span>
+    const renderWeekSection = (title, groupedData) => {
+      const keys = Object.keys(groupedData);
+      let secHtml = `
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 0.78rem; font-weight: 800; color: var(--accent-indigo); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">
+            ${title}
           </div>
-          <div class="shift-badges-wrap">
-            ${badgesHtml}
-          </div>
-        </div>
       `;
-    });
-    html += '</div>';
 
-    bodyEl.innerHTML = html;
+      if (keys.length === 0) {
+        secHtml += `<p style="font-size: 0.82rem; color: var(--text-muted); font-style: italic; padding: 4px 0;">No shifts scheduled.</p></div>`;
+        return secHtml;
+      }
+
+      keys.forEach(key => {
+        const dayItem = groupedData[key];
+        const badgesHtml = dayItem.assignments.map(assign => {
+          const cleanAssign = String(assign).trim().toUpperCase();
+          let badgeClass = "shift-badge-blue-main";
+          let icon = "🏥";
+
+          if (cleanAssign.includes("BACKUP") || cleanAssign.includes("CALL")) {
+            badgeClass = "shift-badge-purple-backup";
+            icon = "📟";
+          } else if (cleanAssign.includes("LSC")) {
+            badgeClass = "shift-badge-emerald-lsc";
+            icon = "🏥";
+          } else if (["OFF", "VACATION", "VAC", "STANDBY", "CWR", "AT HOME"].includes(cleanAssign)) {
+            badgeClass = "shift-badge-amber-off";
+            icon = "🌴";
+          }
+
+          return `<span class="shift-pill ${badgeClass}">${icon} ${assign}</span>`;
+        }).join('');
+
+        secHtml += `
+          <div class="shift-day-row" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(226,232,240,0.4);">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">${dayItem.dayName}</span>
+              <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${dayItem.dateStr}</span>
+            </div>
+            <div class="shift-badges-wrap" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end;">
+              ${badgesHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      secHtml += `</div>`;
+      return secHtml;
+    };
+
+    let modalContentHtml = '<div style="display: flex; flex-direction: column;">';
+    modalContentHtml += renderWeekSection("🗓️ This Week", groupedCurrentWeek);
+    modalContentHtml += renderWeekSection("🗓️ Next Week", groupedNextWeek);
+    modalContentHtml += `
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+        <button class="button is-small is-light" onclick="logoutFromShiftsModal()" style="font-weight: 600;">Switch User</button>
+        <button class="button is-small is-link" onclick="window.location.href='portal.html'" style="font-weight: 700;">Full Portal →</button>
+      </div>
+    </div>`;
+
+    bodyEl.innerHTML = modalContentHtml;
   } catch (err) {
-    console.error("renderMobilePersonalShiftsCard error:", err);
+    console.error("Error fetching shifts for modal:", err);
+    bodyEl.innerHTML = `<p class="has-text-danger is-size-7" style="padding: 15px 0;">Error loading shifts: ${err.message || err}</p>`;
   }
 }
 
-// Auto-run version detection, notification sync, schedule badge, and mobile shift card on DOM load, pageshow, and focus
+async function submitModalShiftLogin() {
+  const sel = document.getElementById("modal-shift-name-select");
+  const pinInput = document.getElementById("modal-shift-pin-input");
+  const errEl = document.getElementById("modal-shift-login-error");
+  const btn = document.getElementById("modal-shift-login-btn");
+
+  const name = sel ? sel.value : "";
+  const pin = pinInput ? pinInput.value.trim() : "";
+
+  if (!pin) {
+    if (errEl) { errEl.innerText = "Please enter your PIN"; errEl.style.display = "block"; }
+    return;
+  }
+
+  if (btn) btn.classList.add("is-loading");
+  if (errEl) errEl.style.display = "none";
+
+  try {
+    await callApi("getEmployeeSchedule", { name, pin });
+    localStorage.setItem("tc_name", name);
+    localStorage.setItem("tc_pin", pin);
+    if (btn) btn.classList.remove("is-loading");
+    openPersonalShiftsModal();
+  } catch (e) {
+    if (btn) btn.classList.remove("is-loading");
+    if (errEl) {
+      errEl.innerText = e.message || "Invalid PIN. Please try again.";
+      errEl.style.display = "block";
+    }
+  }
+}
+
+function logoutFromShiftsModal() {
+  localStorage.removeItem("tc_name");
+  localStorage.removeItem("tc_pin");
+  openPersonalShiftsModal();
+}
+
+// Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
 const initPageHelpers = async () => {
   checkLatestScheduleBadge();
   syncNotificationButtonState();
-  renderMobilePersonalShiftsCard();
   if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
     await ensureValidPushSubscription();
     syncNotificationButtonState();
