@@ -1585,7 +1585,7 @@
             </div>
             ${(() => {
               const hasHospText = day.activePhones && day.activePhones.some(ap => ap.group === 'hosp');
-              const showGiWorkup = !isWeekend;
+              const showGiWorkup = isToday;
               if (!hasHospText && !showGiWorkup) return '';
               
               const giStatus = (day.giWorkup && day.giWorkup.status) || 'not_started';
