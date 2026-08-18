@@ -549,10 +549,17 @@ async function ensureValidPushSubscription() {
     }
 
     if (subscription) {
+      const storedName = localStorage.getItem("tc_name") || "";
+      const isLocum = localStorage.getItem("tc_is_locum") === "true";
+      const storedRole = isLocum ? "Locum" : "Staff";
       await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription })
+        body: JSON.stringify({
+          subscription,
+          name: storedName,
+          role: storedRole
+        })
       }).catch(e => console.log("Cloudflare subscribe send error:", e));
     }
 
@@ -846,8 +853,171 @@ function logoutFromShiftsModal() {
   openPersonalShiftsModal();
 }
 
-// Auto-run version detection, notification sync, and schedule badge on DOM load, pageshow, and focus
+// --- Upfront App Login Gate & Session Management ---
+
+async function checkAppGateAuth() {
+  const gateEl = document.getElementById("app-login-gate");
+  if (!gateEl) return true;
+
+  const storedName = localStorage.getItem("tc_name");
+  const storedPin = localStorage.getItem("tc_pin");
+  const isGuest = sessionStorage.getItem("guest_mode") === "true";
+
+  if (storedName && storedPin) {
+    gateEl.style.display = "none";
+    renderUserSessionBadge(storedName, false);
+    return true;
+  } else if (isGuest) {
+    gateEl.style.display = "none";
+    renderUserSessionBadge("Guest", true);
+    return true;
+  } else {
+    showAppGateLogin();
+    return false;
+  }
+}
+
+function renderUserSessionBadge(displayName, isGuest) {
+  const badgeContainer = document.getElementById("user-session-badge-container");
+  if (!badgeContainer) return;
+
+  if (isGuest) {
+    badgeContainer.style.display = "flex";
+    badgeContainer.innerHTML = `
+      <div class="tags has-addons mb-0" style="cursor: pointer;" onclick="showAppGateLogin()" title="Click to sign in with your PIN">
+        <span class="tag is-warning is-light" style="font-weight: 700; font-size: 0.78rem;">👤 Guest View</span>
+        <span class="tag is-info" style="font-weight: 600; font-size: 0.78rem;">Sign In</span>
+      </div>`;
+  } else if (displayName) {
+    const firstName = displayName.split(" ")[0].split("(")[0].trim();
+    badgeContainer.style.display = "flex";
+    badgeContainer.innerHTML = `
+      <div class="tags has-addons mb-0" style="cursor: pointer;" onclick="promptUserSessionMenu('${displayName.replace(/'/g, "\\'")}')" title="Logged in as ${displayName}. Click to switch.">
+        <span class="tag is-dark" style="font-weight: 700; font-size: 0.78rem; background: rgba(255,255,255,0.12); color: #fff;">👤 ${firstName}</span>
+        <span class="tag is-dark" style="font-weight: 500; font-size: 0.78rem; background: rgba(255,255,255,0.06); color: var(--text-muted, #94a3b8);">Switch</span>
+      </div>`;
+  } else {
+    badgeContainer.style.display = "none";
+  }
+}
+
+async function showAppGateLogin() {
+  const gateEl = document.getElementById("app-login-gate");
+  if (!gateEl) return;
+  gateEl.style.display = "flex";
+
+  const sel = document.getElementById("gate-name-select");
+  if (sel && sel.options.length <= 1) {
+    try {
+      const items = await callApi("getEmployeeNames");
+      if (items && Array.isArray(items)) {
+        sel.innerHTML = items.map(item =>
+          `<option value="${item.name}" data-haspin="${item.hasPin}">${item.name}</option>`
+        ).join("");
+        updateGatePinPlaceholder();
+      }
+    } catch (e) {
+      console.error("Failed to load roster for gate login:", e);
+    }
+  }
+}
+
+function updateGatePinPlaceholder() {
+  const sel = document.getElementById("gate-name-select");
+  if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  const hasPin = opt.getAttribute("data-haspin") === "true";
+  const pinInput = document.getElementById("gate-pin-input");
+  const pinLabel = document.getElementById("gate-pin-label");
+
+  if (pinLabel) {
+    pinLabel.innerText = hasPin ? "Enter PIN" : "First-Time Setup: Choose 4-Digit PIN";
+  }
+  if (pinInput) {
+    pinInput.placeholder = hasPin ? "Enter existing PIN" : "Choose a 4-digit PIN";
+  }
+}
+
+async function submitGateLogin() {
+  const sel = document.getElementById("gate-name-select");
+  const pinInput = document.getElementById("gate-pin-input");
+  const btn = document.getElementById("gate-login-btn");
+  const err = document.getElementById("gate-login-error");
+
+  const name = sel ? sel.value : "";
+  const pin = pinInput ? pinInput.value.trim() : "";
+
+  if (!name || name === "Loading roster...") {
+    if (err) { err.innerText = "Please select your name."; err.style.display = "block"; }
+    return;
+  }
+  if (!pin) {
+    if (err) { err.innerText = "Please enter your 4-digit PIN."; err.style.display = "block"; }
+    return;
+  }
+
+  if (btn) btn.classList.add("is-loading");
+  if (err) err.style.display = "none";
+
+  try {
+    const res = await callApi("timecardLogin", { name, pin });
+    if (res && res.success) {
+      localStorage.setItem("tc_name", name);
+      localStorage.setItem("tc_pin", pin);
+      sessionStorage.removeItem("guest_mode");
+
+      const gateEl = document.getElementById("app-login-gate");
+      if (gateEl) gateEl.style.display = "none";
+
+      renderUserSessionBadge(name, false);
+      if (btn) btn.classList.remove("is-loading");
+
+      // Register / update push notifications in background with identity
+      if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
+        ensureValidPushSubscription();
+      }
+
+      if (typeof showToast === "function") {
+        showToast("Signed in as " + name, "success");
+      }
+    } else {
+      throw new Error((res && res.error) || "Invalid PIN. Please try again.");
+    }
+  } catch (e) {
+    if (btn) btn.classList.remove("is-loading");
+    if (err) {
+      err.innerText = e.message || "Failed to sign in. Please verify your PIN.";
+      err.style.display = "block";
+    }
+  }
+}
+
+function enterGuestMode() {
+  sessionStorage.setItem("guest_mode", "true");
+  const gateEl = document.getElementById("app-login-gate");
+  if (gateEl) gateEl.style.display = "none";
+  renderUserSessionBadge("Guest", true);
+  if (typeof showToast === "function") {
+    showToast("Guest view active (read-only)", "info");
+  }
+}
+
+function promptUserSessionMenu(currentName) {
+  const confirmLogout = confirm(`You are signed in as ${currentName}.\n\nClick OK to switch accounts or log out.`);
+  if (confirmLogout) {
+    localStorage.removeItem("tc_name");
+    localStorage.removeItem("tc_pin");
+    localStorage.removeItem("tc_sheet_id");
+    localStorage.removeItem("tc_is_locum");
+    sessionStorage.removeItem("guest_mode");
+    showAppGateLogin();
+  }
+}
+
+// Auto-run version detection, notification sync, gate auth, and schedule badge on DOM load, pageshow, and focus
 const initPageHelpers = async () => {
+  checkAppGateAuth();
   checkLatestScheduleBadge();
   syncNotificationButtonState();
   if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
