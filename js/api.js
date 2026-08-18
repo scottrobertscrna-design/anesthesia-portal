@@ -969,38 +969,43 @@ function createPortalSettingsModalDom() {
         </div>
 
         <!-- Granular Alert Categories -->
-        <div id="settings-category-container" class="box p-3 mb-4" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;">
+        <div id="settings-category-container" class="box p-3 mb-3" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;">
           <div class="is-flex is-justify-content-between is-align-items-center mb-3">
-            <div>
-              <div style="font-weight: 600; font-size: 0.85rem;">📄 Daily Schedule Releases</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When tomorrow's schedule is posted (~5:00 PM)</div>
+            <div style="padding-right: 10px;">
+              <div style="font-weight: 700; font-size: 0.85rem;">📄 Daily Schedule Releases</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8); line-height: 1.3;">Tomorrow's schedule posted (~5:00 PM) · <span style="color: #60a5fa; font-weight: 600;">All Subscribed Staff</span></div>
             </div>
             <input type="checkbox" id="pref-schedule" style="transform: scale(1.2); cursor: pointer;">
           </div>
 
           <div class="is-flex is-justify-content-between is-align-items-center mb-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-            <div>
-              <div style="font-weight: 600; font-size: 0.85rem;">⏰ Personal Shift Changes</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When your room or call assignment is updated</div>
-            </div>
-            <input type="checkbox" id="pref-shifts" style="transform: scale(1.2); cursor: pointer;">
-          </div>
-
-          <div class="is-flex is-justify-content-between is-align-items-center mb-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-            <div>
-              <div style="font-weight: 600; font-size: 0.85rem;">💩 GI Workup Activity</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When GI Workups are Started or Completed</div>
+            <div style="padding-right: 10px;">
+              <div style="font-weight: 700; font-size: 0.85rem;">💩 GI Workup Activity</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8); line-height: 1.3;">Started & Complete alerts · <span style="color: #34d399; font-weight: 600;">LMH On-Duty Only</span> (excludes LSC & gone home)</div>
             </div>
             <input type="checkbox" id="pref-giWorkups" style="transform: scale(1.2); cursor: pointer;">
           </div>
 
-          <div class="is-flex is-justify-content-between is-align-items-center" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-            <div>
-              <div style="font-weight: 600; font-size: 0.85rem;">👶 OB & Standby Calls</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When OB Tracker or Standby is activated</div>
+          <div class="is-flex is-justify-content-between is-align-items-center mb-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div style="padding-right: 10px;">
+              <div style="font-weight: 700; font-size: 0.85rem;">👶 OB Call Activity</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8); line-height: 1.3;">Activated & Returned alerts · <span style="color: #34d399; font-weight: 600;">LMH On-Duty Only</span> (excludes gone home)</div>
             </div>
             <input type="checkbox" id="pref-obStandby" style="transform: scale(1.2); cursor: pointer;">
           </div>
+
+          <div class="is-flex is-justify-content-between is-align-items-center" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div style="padding-right: 10px;">
+              <div style="font-weight: 700; font-size: 0.85rem;">⏰ Personal Shift Changes</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8); line-height: 1.3;">Room & assignment updates · <span style="color: #fbbf24; font-weight: 600;">Targeted to You</span></div>
+            </div>
+            <input type="checkbox" id="pref-shifts" style="transform: scale(1.2); cursor: pointer;">
+          </div>
+        </div>
+
+        <!-- Smart Dispatch Notice Banner -->
+        <div class="p-2 mb-3" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; font-size: 0.72rem; color: #93c5fd; line-height: 1.35;">
+          💡 <strong>Smart Dispatch:</strong> GI and OB alerts are automatically silenced if you are OFF, assigned to LSC, or have already checked out (OUT) for the day.
         </div>
 
         <!-- Test Notification Button -->
