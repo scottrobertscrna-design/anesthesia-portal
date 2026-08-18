@@ -1149,7 +1149,7 @@
       if (!btn) return;
       const cleanStatus = status || 'not_started';
       btn.dataset.status = cleanStatus;
-      btn.className = `button is-small btn-gi-workup state-${cleanStatus}`;
+      btn.className = `btn-gi-workup state-${cleanStatus}`;
       btn.title = getGiWorkupTitle(cleanStatus, updatedAt, updatedBy);
       btn.innerHTML = getGiWorkupInnerHtml(cleanStatus, updatedAt, updatedBy);
     }
@@ -1715,7 +1715,7 @@
                 </div>
                 <div class="lmh-header-right">
                   ${showGiWorkup ? `
-                  <button class="button is-small btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="${getGiWorkupTitle(giStatus, giUpdatedAt, giUpdatedBy)}">
+                  <button class="btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="${getGiWorkupTitle(giStatus, giUpdatedAt, giUpdatedBy)}">
                     ${getGiWorkupInnerHtml(giStatus, giUpdatedAt, giUpdatedBy)}
                   </button>
                   ` : ''}
