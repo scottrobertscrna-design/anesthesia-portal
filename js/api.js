@@ -901,6 +901,10 @@ function renderUserSessionBadge(displayName, isGuest) {
   }
 }
 
+function isMdPortal() {
+  return window.location.pathname.includes("timekeeper") || document.title.includes("MD Portal");
+}
+
 async function showAppGateLogin() {
   const gateEl = document.getElementById("app-login-gate");
   if (!gateEl) return;
@@ -909,7 +913,8 @@ async function showAppGateLogin() {
   const sel = document.getElementById("gate-name-select");
   if (sel && sel.options.length <= 1) {
     try {
-      const items = await callApi("getEmployeeNames");
+      const endpoint = isMdPortal() ? "getPhysicianNames" : "getEmployeeNames";
+      const items = await callApi(endpoint, { skipPinCheck: false });
       if (items && Array.isArray(items)) {
         sel.innerHTML = items.map(item =>
           `<option value="${item.name}" data-haspin="${item.hasPin}">${item.name}</option>`
@@ -961,10 +966,12 @@ async function submitGateLogin() {
   if (err) err.style.display = "none";
 
   try {
-    const res = await callApi("timecardLogin", { name, pin });
+    const loginEndpoint = isMdPortal() ? "physicianLogin" : "timecardLogin";
+    const res = await callApi(loginEndpoint, { name, pin });
     if (res && res.success) {
       localStorage.setItem("tc_name", name);
       localStorage.setItem("tc_pin", pin);
+      if (res.role) localStorage.setItem("tc_role", res.role);
       sessionStorage.removeItem("guest_mode");
 
       const gateEl = document.getElementById("app-login-gate");

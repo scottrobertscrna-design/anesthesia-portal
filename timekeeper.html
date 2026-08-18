@@ -352,22 +352,69 @@
       }
     }
 
-    function getGiWorkupInnerHtml(status) {
+    function formatShortTime(isoStr) {
+      if (!isoStr) return "";
+      try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return "";
+        let hours = d.getHours();
+        const minutes = d.getMinutes();
+        const ampm = hours >= 12 ? 'p' : 'a';
+        hours = hours % 12 || 12;
+        const minsStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${hours}:${minsStr}${ampm}`;
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function formatShortName(fullName) {
+      if (!fullName) return "";
+      const clean = fullName.replace(/^(Dr\.|Doctor)\s+/i, "");
+      const first = clean.split(" ")[0].split("(")[0].trim();
+      return first;
+    }
+
+    function getGiWorkupInnerHtml(status, updatedAt, updatedBy) {
+      const timeStr = formatShortTime(updatedAt);
+      const nameStr = formatShortName(updatedBy);
+      const stampStr = (timeStr && nameStr) ? ` · ${timeStr} (${nameStr})` : (timeStr ? ` · ${timeStr}` : "");
+
       if (status === 'started') {
-        return '<span class="btn-icon">📋</span> <span class="btn-text">GI Started</span>';
+        return `<span class="btn-icon">📋</span> <span class="btn-text">GI Started${stampStr}</span>`;
       } else if (status === 'completed') {
-        return '<span class="btn-icon">✨</span> <span class="btn-text">GI Complete</span>';
+        return `<span class="btn-icon">✨</span> <span class="btn-text">GI Complete${stampStr}</span>`;
       } else {
         return '<span class="btn-icon">💩</span> <span class="btn-text">GI Workups</span>';
       }
     }
 
-    function updateGiButtonDom(btn, status) {
+    function getGiWorkupTitle(status, updatedAt, updatedBy) {
+      if (!status || status === 'not_started') return "GI Workup Status: Not Started (Click to start)";
+      let fullDateStr = "";
+      try {
+        if (updatedAt) {
+          fullDateStr = new Date(updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+      } catch (e) {}
+      const actionLabel = status === 'started' ? 'Started' : 'Completed';
+      if (updatedBy && fullDateStr) {
+        return `GI Workup ${actionLabel} by ${updatedBy} at ${fullDateStr} (Click to advance)`;
+      } else if (updatedBy) {
+        return `GI Workup ${actionLabel} by ${updatedBy} (Click to advance)`;
+      } else if (fullDateStr) {
+        return `GI Workup ${actionLabel} at ${fullDateStr} (Click to advance)`;
+      }
+      return `GI Workup ${actionLabel} (Click to advance)`;
+    }
+
+    function updateGiButtonDom(btn, status, updatedAt, updatedBy) {
       if (!btn) return;
       const cleanStatus = status || 'not_started';
       btn.dataset.status = cleanStatus;
       btn.className = `button is-small btn-gi-workup state-${cleanStatus}`;
-      btn.innerHTML = getGiWorkupInnerHtml(cleanStatus);
+      btn.title = getGiWorkupTitle(cleanStatus, updatedAt, updatedBy);
+      btn.innerHTML = getGiWorkupInnerHtml(cleanStatus, updatedAt, updatedBy);
     }
 
     function syncGiWorkups(giWorkupStatesByDate) {
@@ -377,7 +424,9 @@
         if (!dateStr) return;
         const giState = giWorkupStatesByDate[dateStr];
         const status = (giState && giState.status) || 'not_started';
-        updateGiButtonDom(btn, status);
+        const updatedAt = (giState && giState.updatedAt) || '';
+        const updatedBy = (giState && giState.updatedBy) || '';
+        updateGiButtonDom(btn, status, updatedAt, updatedBy);
       });
     }
 
@@ -393,15 +442,22 @@
         nextStatus = 'not_started';
       }
 
-      updateGiButtonDom(btn, nextStatus);
+      const activeUserName = localStorage.getItem("tc_name") || "Guest";
+      updateGiButtonDom(btn, nextStatus, new Date().toISOString(), activeUserName);
       btn.classList.add('is-loading');
 
       try {
-        const res = await callApi("toggleGiWorkup", { dateStr: dateStr, nextState: nextStatus });
+        const res = await callApi("toggleGiWorkup", {
+          dateStr: dateStr,
+          nextState: nextStatus,
+          userName: activeUserName
+        });
         btn.classList.remove('is-loading');
         if (res && res.success) {
           const serverStatus = (res.state && res.state.status) || nextStatus;
-          updateGiButtonDom(btn, serverStatus);
+          const serverUpdatedAt = (res.state && res.state.updatedAt) || '';
+          const serverUpdatedBy = (res.state && res.state.updatedBy) || activeUserName;
+          updateGiButtonDom(btn, serverStatus, serverUpdatedAt, serverUpdatedBy);
           if (cachedDaysList) {
             const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
             if (day) {
@@ -1823,6 +1879,8 @@
               if (!hasHospText && !showGiWorkup) return '';
               
               const giStatus = (day.giWorkup && day.giWorkup.status) || 'not_started';
+              const giUpdatedAt = (day.giWorkup && day.giWorkup.updatedAt) || '';
+              const giUpdatedBy = (day.giWorkup && day.giWorkup.updatedBy) || '';
               return `
               <div class="mb-3 lmh-header-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div class="lmh-header-left">
@@ -1834,8 +1892,8 @@
                 </div>
                 <div class="lmh-header-right">
                   ${showGiWorkup ? `
-                  <button class="button is-small btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="GI Workup Status">
-                    ${getGiWorkupInnerHtml(giStatus)}
+                  <button class="button is-small btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="${getGiWorkupTitle(giStatus, giUpdatedAt, giUpdatedBy)}">
+                    ${getGiWorkupInnerHtml(giStatus, giUpdatedAt, giUpdatedBy)}
                   </button>
                   ` : ''}
                 </div>
