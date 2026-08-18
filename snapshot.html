@@ -1101,14 +1101,28 @@
     function getGiWorkupInnerHtml(status, updatedAt, updatedBy) {
       const timeStr = formatShortTime(updatedAt);
       const nameStr = formatShortName(updatedBy);
-      const stampStr = (timeStr && nameStr) ? ` · ${timeStr} (${nameStr})` : (timeStr ? ` · ${timeStr}` : "");
+      const subText = (timeStr && nameStr) ? `${timeStr} · ${nameStr}` : (timeStr || nameStr || "");
 
       if (status === 'started') {
-        return `<span class="btn-icon">📋</span> <span class="btn-text">GI Started${stampStr}</span>`;
+        return `
+          <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">📋</span>
+          <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
+            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI Started</span>
+            ${subText ? `<span style="font-size: 0.66rem; opacity: 0.9; font-weight: 500;">${subText}</span>` : ''}
+          </span>`;
       } else if (status === 'completed') {
-        return `<span class="btn-icon">✨</span> <span class="btn-text">GI Complete${stampStr}</span>`;
+        return `
+          <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">✨</span>
+          <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
+            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI Complete</span>
+            ${subText ? `<span style="font-size: 0.66rem; opacity: 0.9; font-weight: 500;">${subText}</span>` : ''}
+          </span>`;
       } else {
-        return '<span class="btn-icon">💩</span> <span class="btn-text">GI Workups</span>';
+        return `
+          <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">💩</span>
+          <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
+            <span style="font-weight: 700; font-size: 0.82rem;">GI Workups</span>
+          </span>`;
       }
     }
 
@@ -1694,7 +1708,7 @@
               <div class="mb-3 lmh-header-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div class="lmh-header-left">
                   ${hasHospText ? `
-                  <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 34px; border-radius: 8px; font-size: 0.85rem; padding: 0 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
+                  <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 38px; border-radius: 8px; font-size: 0.85rem; padding: 0 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
                     💬 Hosp Text
                   </button>
                   ` : ''}
