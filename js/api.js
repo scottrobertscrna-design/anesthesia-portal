@@ -881,8 +881,11 @@ function renderUserSessionBadge(displayName, isGuest) {
   const badgeContainer = document.getElementById("user-session-badge-container");
   if (!badgeContainer) return;
 
+  const hasNotifPermission = ('Notification' in window) && Notification.permission === 'granted';
+
   if (isGuest) {
     badgeContainer.style.display = "flex";
+    badgeContainer.style.gap = "6px";
     badgeContainer.innerHTML = `
       <div class="tags has-addons mb-0" style="cursor: pointer;" onclick="showAppGateLogin()" title="Click to sign in with your PIN">
         <span class="tag is-warning is-light" style="font-weight: 700; font-size: 0.78rem;">👤 Guest View</span>
@@ -891,13 +894,69 @@ function renderUserSessionBadge(displayName, isGuest) {
   } else if (displayName) {
     const firstName = displayName.split(" ")[0].split("(")[0].trim();
     badgeContainer.style.display = "flex";
+    badgeContainer.style.gap = "6px";
+    badgeContainer.style.alignItems = "center";
     badgeContainer.innerHTML = `
       <div class="tags has-addons mb-0" style="cursor: pointer;" onclick="promptUserSessionMenu('${displayName.replace(/'/g, "\\'")}')" title="Logged in as ${displayName}. Click to switch.">
         <span class="tag is-dark" style="font-weight: 700; font-size: 0.78rem; background: rgba(255,255,255,0.12); color: #fff;">👤 ${firstName}</span>
         <span class="tag is-dark" style="font-weight: 500; font-size: 0.78rem; background: rgba(255,255,255,0.06); color: var(--text-muted, #94a3b8);">Switch</span>
+      </div>
+      <div class="tags mb-0" style="cursor: pointer;" onclick="${hasNotifPermission ? 'testPushFromBadge()' : 'requestPushPermissionFromBadge()'}" title="${hasNotifPermission ? 'Push notifications active! Tap to send test alert to this device.' : 'Tap to enable push notifications on this device'}">
+        <span class="tag ${hasNotifPermission ? 'is-success is-light' : 'is-info is-light'}" style="font-weight: 700; font-size: 0.78rem; border-radius: 6px;">
+          ${hasNotifPermission ? '🔔 Push On (Test)' : '🔔 Enable Push'}
+        </span>
       </div>`;
   } else {
     badgeContainer.style.display = "none";
+  }
+}
+
+async function requestPushPermissionFromBadge() {
+  try {
+    if (!('Notification' in window)) {
+      alert("Push notifications are not supported on this browser.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      await ensureValidPushSubscription();
+      if (typeof showToast === "function") {
+        showToast("🔔 Push alerts enabled for " + (localStorage.getItem("tc_name") || "this device") + "!", "success");
+      }
+      renderUserSessionBadge(localStorage.getItem("tc_name"), false);
+    } else {
+      if (typeof showToast === "function") {
+        showToast("Notification permission was denied. Please allow notifications in site settings.", "danger");
+      }
+    }
+  } catch (e) {
+    console.error("Error enabling push:", e);
+  }
+}
+
+async function testPushFromBadge() {
+  const name = localStorage.getItem("tc_name") || "Scott";
+  if (typeof showToast === "function") {
+    showToast("Sending test push to " + name + "...", "info");
+  }
+  try {
+    await ensureValidPushSubscription();
+    const res = await fetch(`https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push?target=${encodeURIComponent(name)}`, { method: "POST" });
+    const data = await res.json();
+    if (data.pushResult && data.pushResult.sent > 0) {
+      if (typeof showToast === "function") {
+        showToast("🔔 Test push sent to " + data.pushResult.sent + " device(s)!", "success");
+      }
+    } else {
+      if (typeof showToast === "function") {
+        showToast("Device registered. Triggering broadcast test...", "warning");
+      }
+      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", { method: "POST" });
+    }
+  } catch (e) {
+    if (typeof showToast === "function") {
+      showToast("Push test error: " + e.message, "danger");
+    }
   }
 }
 
