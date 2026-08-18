@@ -1063,17 +1063,15 @@ input[type="date"],
 
 .btn-gi-workup.state-not_started,
 .btn-gi-workup.state-not-started {
-  background: rgba(255, 255, 255, 0.07) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: #cbd5e1 !important;
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35) !important;
 }
 
 .btn-gi-workup.state-not_started:hover,
 .btn-gi-workup.state-not-started:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.35) !important;
-  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.55) !important;
 }
 
 .btn-gi-workup.state-started {
