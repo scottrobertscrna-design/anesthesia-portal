@@ -877,20 +877,30 @@ async function checkAppGateAuth() {
   }
 }
 
+function getStoredNotificationPrefs() {
+  try {
+    const raw = localStorage.getItem("notif_prefs");
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { schedule: true, shifts: true, giWorkups: true, obStandby: true };
+}
+
 function renderUserSessionBadge(displayName, isGuest) {
   const badgeContainer = document.getElementById("user-session-badge-container");
   if (!badgeContainer) return;
 
-  const hasNotifPermission = ('Notification' in window) && Notification.permission === 'granted';
-
   if (isGuest) {
     badgeContainer.style.display = "flex";
     badgeContainer.style.gap = "6px";
+    badgeContainer.style.alignItems = "center";
     badgeContainer.innerHTML = `
       <div class="tags has-addons mb-0" style="cursor: pointer;" onclick="showAppGateLogin()" title="Click to sign in with your PIN">
         <span class="tag is-warning is-light" style="font-weight: 700; font-size: 0.78rem;">👤 Guest View</span>
         <span class="tag is-info" style="font-weight: 600; font-size: 0.78rem;">Sign In</span>
-      </div>`;
+      </div>
+      <button class="button is-small is-dark" style="height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; font-size: 0.8rem;" onclick="openPortalSettingsModal()" title="Settings & Notifications">
+        ⚙️
+      </button>`;
   } else if (displayName) {
     const firstName = displayName.split(" ")[0].split("(")[0].trim();
     badgeContainer.style.display = "flex";
@@ -901,62 +911,215 @@ function renderUserSessionBadge(displayName, isGuest) {
         <span class="tag is-dark" style="font-weight: 700; font-size: 0.78rem; background: rgba(255,255,255,0.12); color: #fff;">👤 ${firstName}</span>
         <span class="tag is-dark" style="font-weight: 500; font-size: 0.78rem; background: rgba(255,255,255,0.06); color: var(--text-muted, #94a3b8);">Switch</span>
       </div>
-      <div class="tags mb-0" style="cursor: pointer;" onclick="${hasNotifPermission ? 'testPushFromBadge()' : 'requestPushPermissionFromBadge()'}" title="${hasNotifPermission ? 'Push notifications active! Tap to send test alert to this device.' : 'Tap to enable push notifications on this device'}">
-        <span class="tag ${hasNotifPermission ? 'is-success is-light' : 'is-info is-light'}" style="font-weight: 700; font-size: 0.78rem; border-radius: 6px;">
-          ${hasNotifPermission ? '🔔 Push On (Test)' : '🔔 Enable Push'}
-        </span>
-      </div>`;
+      <button class="button is-small is-dark" style="height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; font-size: 0.8rem;" onclick="openPortalSettingsModal()" title="Settings & Notification Preferences">
+        ⚙️
+      </button>`;
   } else {
     badgeContainer.style.display = "none";
   }
 }
 
-async function requestPushPermissionFromBadge() {
-  try {
-    if (!('Notification' in window)) {
-      alert("Push notifications are not supported on this browser.");
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      await ensureValidPushSubscription();
-      if (typeof showToast === "function") {
-        showToast("🔔 Push alerts enabled for " + (localStorage.getItem("tc_name") || "this device") + "!", "success");
-      }
-      renderUserSessionBadge(localStorage.getItem("tc_name"), false);
-    } else {
-      if (typeof showToast === "function") {
-        showToast("Notification permission was denied. Please allow notifications in site settings.", "danger");
-      }
-    }
-  } catch (e) {
-    console.error("Error enabling push:", e);
+function openPortalSettingsModal() {
+  let modal = document.getElementById("portal-settings-modal");
+  if (!modal) {
+    createPortalSettingsModalDom();
+    modal = document.getElementById("portal-settings-modal");
   }
+  populatePortalSettingsValues();
+  modal.classList.add("is-active");
 }
 
-async function testPushFromBadge() {
-  const name = localStorage.getItem("tc_name") || "Scott";
-  if (typeof showToast === "function") {
-    showToast("Sending test push to " + name + "...", "info");
+function closePortalSettingsModal() {
+  const modal = document.getElementById("portal-settings-modal");
+  if (modal) modal.classList.remove("is-active");
+}
+
+function createPortalSettingsModalDom() {
+  const div = document.createElement("div");
+  div.id = "portal-settings-modal";
+  div.className = "modal";
+  div.innerHTML = `
+    <div class="modal-background" onclick="closePortalSettingsModal()"></div>
+    <div class="modal-card" style="max-width: 440px; width: 92%; border-radius: 14px; overflow: hidden; background: var(--card-bg, #1e293b); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+      <header class="modal-card-head" style="background: var(--card-bg, #1e293b); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <p class="modal-card-title has-text-weight-bold" style="color: var(--text-main, #fff); font-size: 1.05rem; margin-bottom: 0;">⚙️ Portal Settings</p>
+        <button class="delete" aria-label="close" onclick="closePortalSettingsModal()"></button>
+      </header>
+      <section class="modal-card-body" style="background: var(--card-bg, #1e293b); padding: 18px 20px; color: var(--text-main, #fff);">
+        <!-- Account Info -->
+        <div class="mb-4 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+          <label class="label is-size-7 mb-1" style="color: var(--text-muted, #94a3b8); font-weight: 600;">ACTIVE SESSION</label>
+          <div class="is-flex is-justify-content-between is-align-items-center">
+            <span id="settings-user-name" style="font-weight: 700; font-size: 0.95rem; color: var(--text-main, #fff);">Guest</span>
+            <button class="button is-small is-ghost" onclick="promptUserSessionMenu(localStorage.getItem('tc_name') || 'Guest'); closePortalSettingsModal();" style="color: #38bdf8; font-size: 0.8rem; font-weight: 600; text-decoration: none;">
+              Switch Account
+            </button>
+          </div>
+        </div>
+
+        <!-- Push Notifications Header & Master Toggle -->
+        <div class="mb-3">
+          <div class="is-flex is-justify-content-between is-align-items-center mb-2">
+            <div>
+              <span style="font-weight: 700; font-size: 0.95rem;">🔔 Push Notifications</span>
+              <p class="is-size-7" style="color: var(--text-muted, #94a3b8);">Receive live shift alerts on this device</p>
+            </div>
+            <input type="checkbox" id="settings-notifs-master" onchange="toggleMasterPush(this.checked)" style="transform: scale(1.3); cursor: pointer;">
+          </div>
+        </div>
+
+        <!-- Granular Alert Categories -->
+        <div id="settings-category-container" class="box p-3 mb-4" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;">
+          <div class="is-flex is-justify-content-between is-align-items-center mb-3">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;">📄 Daily Schedule Releases</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When tomorrow's schedule is posted (~5:00 PM)</div>
+            </div>
+            <input type="checkbox" id="pref-schedule" style="transform: scale(1.2); cursor: pointer;">
+          </div>
+
+          <div class="is-flex is-justify-content-between is-align-items-center mb-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;">⏰ Personal Shift Changes</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When your room or call assignment is updated</div>
+            </div>
+            <input type="checkbox" id="pref-shifts" style="transform: scale(1.2); cursor: pointer;">
+          </div>
+
+          <div class="is-flex is-justify-content-between is-align-items-center mb-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;">💩 GI Workup Activity</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When GI Workups are Started or Completed</div>
+            </div>
+            <input type="checkbox" id="pref-giWorkups" style="transform: scale(1.2); cursor: pointer;">
+          </div>
+
+          <div class="is-flex is-justify-content-between is-align-items-center" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;">👶 OB & Standby Calls</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted, #94a3b8);">When OB Tracker or Standby is activated</div>
+            </div>
+            <input type="checkbox" id="pref-obStandby" style="transform: scale(1.2); cursor: pointer;">
+          </div>
+        </div>
+
+        <!-- Test Notification Button -->
+        <button class="button is-small is-fullwidth mb-3" id="btn-settings-test-push" onclick="sendSettingsTestPush()" style="height: 34px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--text-main, #fff);">
+          🔔 Send Test Alert to this Device
+        </button>
+      </section>
+      <footer class="modal-card-foot" style="background: var(--card-bg, #1e293b); border-top: 1px solid rgba(255,255,255,0.08); padding: 12px 20px; justify-content: flex-end; gap: 8px;">
+        <button class="button is-small is-light" onclick="closePortalSettingsModal()" style="font-weight: 600; border-radius: 6px;">Cancel</button>
+        <button class="button is-small is-link" id="btn-save-settings" onclick="savePortalSettingsModal()" style="font-weight: 700; border-radius: 6px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">Save Settings</button>
+      </footer>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function populatePortalSettingsValues() {
+  const userName = localStorage.getItem("tc_name") || "Guest (Read-Only)";
+  const userEl = document.getElementById("settings-user-name");
+  if (userEl) userEl.innerText = userName;
+
+  const hasPermission = ('Notification' in window) && Notification.permission === 'granted';
+  const masterToggle = document.getElementById("settings-notifs-master");
+  const catContainer = document.getElementById("settings-category-container");
+
+  if (masterToggle) masterToggle.checked = hasPermission;
+  if (catContainer) catContainer.style.opacity = hasPermission ? "1" : "0.45";
+
+  const prefs = getStoredNotificationPrefs();
+  const keys = ['schedule', 'shifts', 'giWorkups', 'obStandby'];
+  keys.forEach(k => {
+    const el = document.getElementById(`pref-${k}`);
+    if (el) {
+      el.checked = prefs[k] !== false;
+      el.disabled = !hasPermission;
+    }
+  });
+}
+
+async function toggleMasterPush(enable) {
+  if (enable) {
+    try {
+      if (!('Notification' in window)) {
+        alert("Push notifications are not supported on this browser.");
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        await ensureValidPushSubscription();
+        if (typeof showToast === "function") showToast("🔔 Notifications enabled on this device!", "success");
+      } else {
+        if (typeof showToast === "function") showToast("Permission denied in site settings.", "danger");
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  } else {
+    await unsubscribeNotifications();
   }
+  populatePortalSettingsValues();
+}
+
+async function savePortalSettingsModal() {
+  const btn = document.getElementById("btn-save-settings");
+  if (btn) btn.classList.add("is-loading");
+
+  const prefs = {
+    schedule: document.getElementById("pref-schedule") ? document.getElementById("pref-schedule").checked : true,
+    shifts: document.getElementById("pref-shifts") ? document.getElementById("pref-shifts").checked : true,
+    giWorkups: document.getElementById("pref-giWorkups") ? document.getElementById("pref-giWorkups").checked : true,
+    obStandby: document.getElementById("pref-obStandby") ? document.getElementById("pref-obStandby").checked : true
+  };
+
+  localStorage.setItem("notif_prefs", JSON.stringify(prefs));
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const storedName = localStorage.getItem("tc_name") || "";
+      const isLocum = localStorage.getItem("tc_is_locum") === "true";
+      const storedRole = isLocum ? "Locum" : "Staff";
+      await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/update-prefs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscription: sub,
+          name: storedName,
+          role: storedRole,
+          prefs: prefs
+        })
+      });
+    }
+  } catch (e) {
+    console.error("Error saving prefs to Cloudflare:", e);
+  }
+
+  if (btn) btn.classList.remove("is-loading");
+  closePortalSettingsModal();
+  if (typeof showToast === "function") showToast("Notification preferences saved! ⚙️", "success");
+}
+
+async function sendSettingsTestPush() {
+  const btn = document.getElementById("btn-settings-test-push");
+  if (btn) btn.classList.add("is-loading");
+  const name = localStorage.getItem("tc_name") || "Scott";
   try {
     await ensureValidPushSubscription();
     const res = await fetch(`https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push?target=${encodeURIComponent(name)}`, { method: "POST" });
     const data = await res.json();
     if (data.pushResult && data.pushResult.sent > 0) {
-      if (typeof showToast === "function") {
-        showToast("🔔 Test push sent to " + data.pushResult.sent + " device(s)!", "success");
-      }
+      if (typeof showToast === "function") showToast("🔔 Test alert fired to " + data.pushResult.sent + " device(s)!", "success");
     } else {
-      if (typeof showToast === "function") {
-        showToast("Device registered. Triggering broadcast test...", "warning");
-      }
       await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/test-push", { method: "POST" });
+      if (typeof showToast === "function") showToast("🔔 Test alert fired!", "info");
     }
   } catch (e) {
-    if (typeof showToast === "function") {
-      showToast("Push test error: " + e.message, "danger");
-    }
+    if (typeof showToast === "function") showToast("Test alert error: " + e.message, "danger");
+  } finally {
+    if (btn) btn.classList.remove("is-loading");
   }
 }
 

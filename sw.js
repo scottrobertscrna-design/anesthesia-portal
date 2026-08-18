@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v209';
+const CACHE_NAME = 'lawrence-anaesthesia-v210';
 
 const APP_SHELL = [
   './portal.html',
@@ -157,16 +157,20 @@ self.addEventListener('push', event => {
   }
 
   const title = data.title || '📄 New Schedule Available!';
+  const cat = data.category || 'schedule';
+  const tag = `lapa-${cat}-alert`;
+
   const options = {
-    body: data.body || 'A new schedule PDF has been posted for tomorrow.',
+    body: data.body || data.message || 'A new schedule update is available.',
     icon: './snoozle.png',
     badge: './snoozle_badge.png',
     vibrate: [100, 50, 100],
-    tag: 'schedule-notification',
+    tag: tag,
     renotify: true,
     data: {
       url: data.url || './snapshot.html',
-      dateStr: data.dateStr || ''
+      dateStr: data.dateStr || '',
+      category: cat
     }
   };
 
