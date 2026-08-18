@@ -1040,6 +1040,64 @@ input[type="date"],
   text-align: center;
 }
 
+/* GI Workups Button Styling */
+.btn-gi-workup {
+  height: 34px !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  padding: 0 14px !important;
+  font-weight: 700 !important;
+  margin-bottom: 0 !important;
+  text-transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+}
+
+.btn-gi-workup:hover {
+  transform: translateY(-1px);
+}
+
+.btn-gi-workup.state-not_started,
+.btn-gi-workup.state-not-started {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.btn-gi-workup.state-not_started:hover,
+.btn-gi-workup.state-not-started:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.btn-gi-workup.state-started {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+}
+
+.btn-gi-workup.state-started:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6) !important;
+}
+
+.btn-gi-workup.state-completed {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+}
+
+.btn-gi-workup.state-completed:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.55) !important;
+}
+
 /* Responsive optimization: Hide text label on mobile screens and keep only emojis */
 @media screen and (max-width: 768px) {
   .break-lunch-controls {

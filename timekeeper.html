@@ -309,6 +309,75 @@
       }
     }
 
+    function getGiWorkupInnerHtml(status) {
+      if (status === 'started') {
+        return '<span class="btn-icon">📋</span> <span class="btn-text">GI Started</span>';
+      } else if (status === 'completed') {
+        return '<span class="btn-icon">✨</span> <span class="btn-text">GI Complete</span>';
+      } else {
+        return '<span class="btn-icon">💩</span> <span class="btn-text">GI Workups</span>';
+      }
+    }
+
+    function updateGiButtonDom(btn, status) {
+      if (!btn) return;
+      const cleanStatus = status || 'not_started';
+      btn.dataset.status = cleanStatus;
+      btn.className = `button is-small btn-gi-workup state-${cleanStatus}`;
+      btn.innerHTML = getGiWorkupInnerHtml(cleanStatus);
+    }
+
+    function syncGiWorkups(giWorkupStatesByDate) {
+      if (!giWorkupStatesByDate) return;
+      document.querySelectorAll('.btn-gi-workup').forEach(btn => {
+        const dateStr = btn.dataset.date;
+        if (!dateStr) return;
+        const giState = giWorkupStatesByDate[dateStr];
+        const status = (giState && giState.status) || 'not_started';
+        updateGiButtonDom(btn, status);
+      });
+    }
+
+    async function cycleGiWorkup(btn, dateStr) {
+      if (isScrolling) return;
+      const currentStatus = btn.dataset.status || 'not_started';
+      let nextStatus = 'started';
+      if (currentStatus === 'not_started') {
+        nextStatus = 'started';
+      } else if (currentStatus === 'started') {
+        nextStatus = 'completed';
+      } else {
+        nextStatus = 'not_started';
+      }
+
+      updateGiButtonDom(btn, nextStatus);
+      btn.classList.add('is-loading');
+
+      try {
+        const res = await callApi("toggleGiWorkup", { dateStr: dateStr, nextState: nextStatus });
+        btn.classList.remove('is-loading');
+        if (res && res.success) {
+          const serverStatus = (res.state && res.state.status) || nextStatus;
+          updateGiButtonDom(btn, serverStatus);
+          if (cachedDaysList) {
+            const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
+            if (day) {
+              day.giWorkup = res.state;
+            }
+            cachedData = cachedDaysList.filter(d => d !== null);
+          }
+          showToast("GI Workup updated!", "success");
+        } else {
+          updateGiButtonDom(btn, currentStatus);
+          showToast("Error updating GI Workup: " + (res.error || "unknown error"));
+        }
+      } catch (err) {
+        btn.classList.remove('is-loading');
+        updateGiButtonDom(btn, currentStatus);
+        showToast("Action failed: " + err.message);
+      }
+    }
+
     async function toggleBreakLunch(btn, name, role, dateStr, type) {
       if (isScrolling) return;
       const isChecked = !btn.classList.contains('active');
@@ -428,6 +497,9 @@
               if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
                 day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
               }
+              if (update.giWorkupStatesByDate && update.giWorkupStatesByDate[day.dateStr]) {
+                day.giWorkup = update.giWorkupStatesByDate[day.dateStr];
+              }
               // Sync standby tracker data from poll
               if (update.standbyTracker) {
                 day.standbyTracker = update.standbyTracker;
@@ -439,6 +511,9 @@
         }
 
         syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
+        if (update.giWorkupStatesByDate) {
+          syncGiWorkups(update.giWorkupStatesByDate);
+        }
       } catch (err) {
         console.error("Polling error:", err);
       }
@@ -1699,13 +1774,31 @@
                 <span class="out-pin-label">OUT</span>
               </div>` : ''}
             </div>
-            ${day.activePhones && day.activePhones.some(ap => ap.group === 'hosp') ? `
-            <div class="mb-3" style="display: flex; justify-content: flex-start;">
-              <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 34px; border-radius: 8px; font-size: 0.85rem; padding: 0 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
-                💬 Hosp Text
-              </button>
-            </div>
-            ` : ''}
+            ${(() => {
+              const hasHospText = day.activePhones && day.activePhones.some(ap => ap.group === 'hosp');
+              const showGiWorkup = !isWeekend;
+              if (!hasHospText && !showGiWorkup) return '';
+              
+              const giStatus = (day.giWorkup && day.giWorkup.status) || 'not_started';
+              return `
+              <div class="mb-3 lmh-header-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="lmh-header-left">
+                  ${hasHospText ? `
+                  <button class="button is-small sms-btn" onclick="triggerGroupSms('${day.dateStr}', 'hosp')" title="Send group SMS to LMH staff" style="height: 34px; border-radius: 8px; font-size: 0.85rem; padding: 0 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 8px rgba(118,75,162,0.35); margin-bottom: 0; text-transform: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(118,75,162,0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(118,75,162,0.35)';">
+                    💬 Hosp Text
+                  </button>
+                  ` : ''}
+                </div>
+                <div class="lmh-header-right">
+                  ${showGiWorkup ? `
+                  <button class="button is-small btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="GI Workup Status">
+                    ${getGiWorkupInnerHtml(giStatus)}
+                  </button>
+                  ` : ''}
+                </div>
+              </div>
+              `;
+            })()}
             ${(() => {
             const isNextWorkday = day.viewTitle === "NEXT WORKDAY" || (day.viewTitle === "MONDAY" && day.viewType === "FULL");
             const hasTracker = (!isWeekend && day.standbyTracker && day.standbyTracker.length > 0);
