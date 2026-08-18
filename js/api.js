@@ -1027,7 +1027,7 @@ const initPageHelpers = async () => {
   checkAppGateAuth();
   checkLatestScheduleBadge();
   syncNotificationButtonState();
-  if (('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem("schedule_notifs_enabled") === "true") {
+  if (('Notification' in window) && Notification.permission === 'granted') {
     await ensureValidPushSubscription();
     syncNotificationButtonState();
   }
