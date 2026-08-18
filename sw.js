@@ -7,7 +7,7 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v210';
+const CACHE_NAME = 'lawrence-anaesthesia-v211';
 
 const APP_SHELL = [
   './portal.html',
@@ -79,30 +79,39 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Always go network-first for the GAS API or Cloudflare API relay
-  if (url.hostname === 'script.google.com' || url.hostname === 'anesthesia-api-relay.scott-roberts-crna.workers.dev') {
+  // 1. Google Apps Script API calls & Cloudflare API Relay → Network-First (always live)
+  if (url.hostname.includes('script.google.com') || url.hostname.includes('workers.dev')) {
     event.respondWith(networkFirst(request));
     return;
   }
 
-  // For Google Fonts (non-critical) — stale-while-revalidate
+  // 2. Google Sheets HTML / Visualization viewer calls → Network-First
+  if (url.hostname.includes('docs.google.com') || url.hostname.includes('sheets.googleapis.com')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // 3. For Google Fonts (non-critical) — stale-while-revalidate
   if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
 
-  // For HTML pages / navigation requests → stale-while-revalidate (loads instantly, checks network in background)
+  // 4. For HTML pages / navigation requests → stale-while-revalidate
   if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
 
-  // Everything else (app shell) → cache-first with offline fallback
+  // 5. Everything else (app shell) → cache-first with offline fallback
   event.respondWith(cacheFirst(request));
 });
 
-// ── Strategy helpers ───────────────────────────────────────────────────────────
+// ── Caching Strategies ────────────────────────────────────────────────────────
 
+/**
+ * Cache-First: Serve from cache if available, else fetch from network and cache
+ */
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
@@ -114,7 +123,6 @@ async function cacheFirst(request) {
     }
     return response;
   } catch {
-    // Offline fallback for navigation requests
     if (request.mode === 'navigate') {
       return caches.match('./offline.html');
     }
@@ -122,6 +130,9 @@ async function cacheFirst(request) {
   }
 }
 
+/**
+ * Network-First: Try network, fall back to cache or offline page if available
+ */
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
@@ -135,6 +146,9 @@ async function networkFirst(request) {
   }
 }
 
+/**
+ * Stale-While-Revalidate: Return cached immediately, fetch update in background
+ */
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
@@ -142,39 +156,62 @@ async function staleWhileRevalidate(request) {
     if (response.ok) cache.put(request, response.clone());
     return response;
   }).catch(() => cached);
+
   return cached || fetchPromise;
 }
 
 // ── Web Push Notification Listeners ───────────────────────────────────────────
 self.addEventListener('push', event => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch {
-      data = { body: event.data.text() };
-    }
-  }
+  event.waitUntil(
+    (async () => {
+      let data = {};
+      if (event.data) {
+        try {
+          data = event.data.json();
+        } catch {
+          data = { body: event.data.text() };
+        }
+      }
 
-  const title = data.title || '📄 New Schedule Available!';
-  const cat = data.category || 'schedule';
-  const tag = `lapa-${cat}-alert`;
+      // If payload is empty (standard Web Push signal tickle), fetch latest notification data from Cloudflare
+      if (!data.title || !data.body) {
+        try {
+          const res = await fetch(`https://anesthesia-api-relay.scott-roberts-crna.workers.dev/latest-schedule?t=${Date.now()}`);
+          if (res.ok) {
+            const remote = await res.json();
+            if (remote && (remote.title || remote.message)) {
+              data.title = remote.title || data.title;
+              data.body = remote.message || remote.body || data.body;
+              data.category = remote.category || data.category;
+              data.dateStr = remote.dateStr || data.dateStr;
+            }
+          }
+        } catch (fetchErr) {
+          console.error("Error fetching latest notification payload in SW:", fetchErr);
+        }
+      }
 
-  const options = {
-    body: data.body || data.message || 'A new schedule update is available.',
-    icon: './snoozle.png',
-    badge: './snoozle_badge.png',
-    vibrate: [100, 50, 100],
-    tag: tag,
-    renotify: true,
-    data: {
-      url: data.url || './snapshot.html',
-      dateStr: data.dateStr || '',
-      category: cat
-    }
-  };
+      const title = data.title || '📄 New Schedule Available!';
+      const cat = data.category || 'schedule';
+      const tag = `lapa-${cat}-alert`;
 
-  event.waitUntil(self.registration.showNotification(title, options));
+      const options = {
+        body: data.body || data.message || 'A new schedule update is available.',
+        icon: './snoozle.png',
+        badge: './snoozle_badge.png',
+        vibrate: [100, 50, 100],
+        tag: tag,
+        renotify: true,
+        data: {
+          url: data.url || './snapshot.html',
+          dateStr: data.dateStr || '',
+          category: cat
+        }
+      };
+
+      await self.registration.showNotification(title, options);
+    })()
+  );
 });
 
 self.addEventListener('notificationclick', event => {
