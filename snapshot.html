@@ -80,9 +80,11 @@
     <div id="user-session-badge-container" class="is-flex is-justify-content-center mb-2" style="display:none;"></div>
 
     <div class="mb-4 is-flex is-justify-content-center">
-      <div class="is-size-7 has-text-grey-light">
-        Last updated: <span id="timestamp-display">Loading...</span> <span id="version-display"
-          style="opacity: 0.65; margin-left: 5px; cursor: pointer;" onclick="sharePortalLink()">(v161)</span>
+      <div class="is-size-7 has-text-grey-light is-flex is-align-items-center" style="gap: 6px; flex-wrap: wrap; justify-content: center;">
+        <span>Last updated: <span id="timestamp-display">Loading...</span></span>
+        <span id="sync-status-indicator" class="sync-status-tag" style="display:none;"></span>
+        <span id="version-display"
+          style="opacity: 0.65; margin-left: 2px; cursor: pointer;" onclick="sharePortalLink()">(v161)</span>
       </div>
     </div>
 
@@ -805,6 +807,47 @@
       fetchFreshData(picker.value);
     };
 
+    let isPollInProgress = false;
+    let lastRefocusSyncTime = 0;
+
+    function setSyncStatus(state) {
+      const indicator = document.getElementById('sync-status-indicator');
+      if (!indicator) return;
+      if (state === 'syncing') {
+        indicator.className = 'sync-status-tag syncing';
+        indicator.innerHTML = '<span class="sync-spinner"></span> Syncing...';
+        indicator.style.display = 'inline-flex';
+      } else if (state === 'success') {
+        indicator.className = 'sync-status-tag success';
+        indicator.innerHTML = '✓ Updated';
+        indicator.style.display = 'inline-flex';
+        setTimeout(() => {
+          if (indicator.classList.contains('success')) {
+            indicator.style.display = 'none';
+          }
+        }, 2500);
+      } else if (state === 'error') {
+        indicator.className = 'sync-status-tag error';
+        indicator.innerHTML = '⚠ Sync failed';
+        indicator.style.display = 'inline-flex';
+        setTimeout(() => {
+          if (indicator.classList.contains('error')) {
+            indicator.style.display = 'none';
+          }
+        }, 3000);
+      } else {
+        indicator.style.display = 'none';
+      }
+    }
+
+    function triggerRefocusSync() {
+      const now = Date.now();
+      if (now - lastRefocusSyncTime < 2000) return; // Prevent duplicate rapid triggers
+      lastRefocusSyncTime = now;
+      pollSignOffs();
+      updateObTimers();
+    }
+
     // Poll for updates every 30 seconds (only when tab is visible)
     setInterval(async () => {
       if (document.hidden) return;
@@ -815,17 +858,18 @@
     // Auto-sync instantly when PWA is reopened/refocused or phone is unlocked
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        pollSignOffs();
-        updateObTimers();
+        triggerRefocusSync();
       }
     });
 
     window.addEventListener('focus', () => {
-      pollSignOffs();
-      updateObTimers();
+      triggerRefocusSync();
     });
 
     async function pollSignOffs() {
+      if (isPollInProgress) return;
+      isPollInProgress = true;
+      setSyncStatus('syncing');
       try {
         const picker = document.getElementById('entry-date-picker');
         const activeDate = picker ? picker.value : '';
@@ -856,8 +900,19 @@
           syncGiWorkups(update.giWorkupStatesByDate);
         }
         updateObTimers();
+
+        // Update timestamp display with current time
+        const now = new Date();
+        const tsEl = document.getElementById('timestamp-display');
+        if (tsEl) {
+          tsEl.innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        setSyncStatus('success');
       } catch (err) {
         console.error("Polling error:", err);
+        setSyncStatus('error');
+      } finally {
+        isPollInProgress = false;
       }
     }
 
