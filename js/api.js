@@ -376,6 +376,11 @@ function openNotificationManagerModal() {
             Schedule notifications are currently <strong style="color: var(--accent-emerald);">ACTIVE</strong> on this device.
           </p>
           <div class="field mb-3">
+            <button class="button is-dark is-light is-fullwidth" onclick="closeNotificationManagerModal(); openPortalSettingsModal();" style="font-weight: 600; height: 38px;">
+              ⚙️ Customize Alert Types & Preferences
+            </button>
+          </div>
+          <div class="field mb-3">
             <button class="button is-link is-fullwidth" onclick="triggerTestNotification(false)" style="font-weight: 700; height: 38px;">
               ⚡ Send Instant Test Notification
             </button>
@@ -552,13 +557,15 @@ async function ensureValidPushSubscription() {
       const storedName = localStorage.getItem("tc_name") || "";
       const isLocum = localStorage.getItem("tc_is_locum") === "true";
       const storedRole = isLocum ? "Locum" : "Staff";
+      const currentPrefs = getStoredNotificationPrefs();
       await fetch("https://anesthesia-api-relay.scott-roberts-crna.workers.dev/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subscription,
           name: storedName,
-          role: storedRole
+          role: storedRole,
+          prefs: currentPrefs
         })
       }).catch(e => console.log("Cloudflare subscribe send error:", e));
     }
