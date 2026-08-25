@@ -1352,19 +1352,45 @@
       renderGiModalPagesList(day);
     }
 
+    function isGiPageAssignedToProvider(pageAssignee, providerName) {
+      if (!pageAssignee || !providerName) return false;
+      const a = String(pageAssignee).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+      const p = String(providerName).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+      if (!a || !p) return false;
+      if (a === p || a.includes(p) || p.includes(a)) return true;
+      const aFirst = a.split(' ')[0];
+      const pFirst = p.split(' ')[0];
+      return (aFirst.length > 2 && aFirst === pFirst);
+    }
+
     function getLmhStaffOptions(day) {
       const names = new Set();
+      const MD_TERMS = ['md locum', 'md call', 'attending', 'doctor', 'dr.', 'pain doc', 'doc4pm', 'ac', 'pc', 'holiday', 'vacation', 'sick', 'pto', 'leave', 'closed'];
+
+      function isExcluded(name, num) {
+        const n = String(name || "").trim().toLowerCase();
+        const r = String(num || "").trim().toLowerCase();
+        if (!n || n === 'none' || n === 'none assigned' || n === 'not found') return true;
+        if (MD_TERMS.some(term => n.includes(term) || r.includes(term))) return true;
+        if (/^(dr\.|doctor|md)\b/i.test(name)) return true;
+        return false;
+      }
+
       if (day) {
         (day.numbered || []).forEach(e => {
           if (e && e.name && e.num !== 'LSC' && !String(e.num).includes('LSC')) {
-            const clean = String(e.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim();
-            if (clean) names.add(clean);
+            if (!isExcluded(e.name, e.num)) {
+              const clean = String(e.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim();
+              if (clean) names.add(clean);
+            }
           }
         });
         (day.activePhones || []).forEach(ap => {
           if (ap && ap.group === 'hosp' && ap.name) {
-            const clean = String(ap.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim();
-            if (clean) names.add(clean);
+            if (!isExcluded(ap.name, ap.role || '')) {
+              const clean = String(ap.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim();
+              if (clean) names.add(clean);
+            }
           }
         });
       }
@@ -1468,9 +1494,7 @@
             }
             cachedData = cachedDaysList.filter(d => d !== null);
           }
-          const giStateMap = {};
-          giStateMap[activeModalGiDateStr] = res.state;
-          syncGiWorkups(giStateMap);
+          render(cachedData);
           closeGiPagesModal();
           showToast("GI Workup pages saved! 📑", "success");
         } else {
@@ -1972,41 +1996,45 @@
               const canCheckIn = isToday && isStartsAtHome;
               const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
               const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
+
+              const assignedGiPage = (day.giWorkup && day.giWorkup.pages) 
+                ? day.giWorkup.pages.find(p => isGiPageAssignedToProvider(p.assignee, name))
+                : null;
+
               return `
-                  <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
-                    <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                      <span class="${badgeClass}" ${badgeOnClick}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
-                      ${getContactBadgeHtml(name, day, dayIdx)}
-                      ${!isHome && canTransfer(name) ? `
-                        ${day.coverageOverrides && day.coverageOverrides[name] ? `
-                          <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
-                                  style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
-                                  onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'CLEAR')">
-                            ↔️ LMH
-                          </button>
-                        ` : `
-                          <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
-                                  style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
-                                  onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'CRNA')">
-                            ↔️ LMH
-                          </button>
-                        `}
-                      ` : ''}
-                      ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
-                      ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
-                    </div>
-                    <!-- Break/Lunch controls commented out per user request
-                    ${isToday && !isHome ? `
-                    <div class="break-lunch-controls">
-                      <button class="btn-break ${bl.break ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${activeRole}', '${day.dateStr}', 'break')">
-                        <span class="btn-icon">☕</span> <span class="btn-text">Break</span>
-                      </button>
-                      <button class="btn-lunch ${bl.lunch ? 'active' : ''}" onclick="toggleBreakLunch(this, '${name}', '${activeRole}', '${day.dateStr}', 'lunch')">
-                        <span class="btn-icon">🥪</span> <span class="btn-text">Lunch</span>
-                      </button>
-                    </div>` : ''}
-                    -->
-                  </div>`;
+                <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
+                  <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
+                    <span class="${badgeClass}" ${badgeOnClick}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
+                    ${getContactBadgeHtml(name, day, dayIdx)}
+                    ${!isHome && canTransfer(name) ? `
+                      ${day.coverageOverrides && day.coverageOverrides[name] ? `
+                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
+                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
+                                onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'CLEAR')">
+                          ↔️ LMH
+                        </button>
+                      ` : `
+                        <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-pending" 
+                                style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); display:${transferEditMode ? 'inline-flex' : 'none'}; align-items:center; gap:2px;"
+                                onclick="toggleEmployeeLocation(this, '${name}', '${day.dateStr}', 'CRNA')">
+                          ↔️ LMH
+                        </button>
+                      `}
+                    ` : ''}
+                    ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
+                    ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
+                  </div>
+                  ${assignedGiPage ? `
+                  <div class="gi-row-control" style="margin-left: auto;">
+                    <button class="button is-small btn-gi-row ${assignedGiPage.status === 'completed' ? 'is-completed' : 'is-pending'}" 
+                            data-date="${day.dateStr}" 
+                            data-page="${assignedGiPage.page}"
+                            onclick="toggleRowGiPage(this, '${day.dateStr}', ${assignedGiPage.page})"
+                            title="${assignedGiPage.status === 'completed' ? `Page ${assignedGiPage.page} complete. Click to mark pending.` : `Page ${assignedGiPage.page} assigned to you. Click to mark complete!`}">
+                      ${assignedGiPage.status === 'completed' ? `✨ GI P${assignedGiPage.page} Done` : `💩 GI Page ${assignedGiPage.page}`}
+                    </button>
+                  </div>` : ''}
+                </div>`;
             }).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
           })()}
 
@@ -2081,11 +2109,7 @@
                 const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
 
                 const assignedGiPage = (day.giWorkup && day.giWorkup.pages) 
-                  ? day.giWorkup.pages.find(p => {
-                      const a = String(p.assignee || "").trim().toLowerCase();
-                      const n = String(e.name || "").trim().toLowerCase();
-                      return a && n && (a.includes(n) || n.includes(a));
-                    })
+                  ? day.giWorkup.pages.find(p => isGiPageAssignedToProvider(p.assignee, e.name))
                   : null;
 
                 return `
@@ -2111,13 +2135,13 @@
                         ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                         ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       </div>
-                      ${isToday && !isHome && assignedGiPage ? `
+                      ${assignedGiPage ? `
                       <div class="gi-row-control" style="margin-left: auto;">
                         <button class="button is-small btn-gi-row ${assignedGiPage.status === 'completed' ? 'is-completed' : 'is-pending'}" 
                                 data-date="${day.dateStr}" 
                                 data-page="${assignedGiPage.page}"
                                 onclick="toggleRowGiPage(this, '${day.dateStr}', ${assignedGiPage.page})"
-                                title="${assignedGiPage.status === 'completed' ? `Page ${assignedGiPage.page} complete. Click to mark pending.` : `Page ${assignedGiPage.page} assigned. Click to mark complete!`}">
+                                title="${assignedGiPage.status === 'completed' ? `Page ${assignedGiPage.page} complete. Click to mark pending.` : `Page ${assignedGiPage.page} assigned to you. Click to mark complete!`}">
                           ${assignedGiPage.status === 'completed' ? `✨ GI P${assignedGiPage.page} Done` : `💩 GI Page ${assignedGiPage.page}`}
                         </button>
                       </div>` : ''}
