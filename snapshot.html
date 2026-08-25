@@ -875,6 +875,7 @@
         const activeDate = picker ? picker.value : '';
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
 
+        let needsReRender = false;
         if (cachedDaysList) {
           cachedDaysList.forEach((day, dayIdx) => {
             if (day) {
@@ -883,7 +884,18 @@
                 day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
               }
               if (update.giWorkupStatesByDate && update.giWorkupStatesByDate[day.dateStr]) {
-                day.giWorkup = update.giWorkupStatesByDate[day.dateStr];
+                const newGi = update.giWorkupStatesByDate[day.dateStr];
+                if (JSON.stringify(day.giWorkup || null) !== JSON.stringify(newGi || null)) {
+                  day.giWorkup = newGi;
+                  needsReRender = true;
+                }
+              }
+              if (update.coverageOverridesByDate) {
+                const newOverrides = update.coverageOverridesByDate[day.dateStr] || {};
+                if (JSON.stringify(day.coverageOverrides || {}) !== JSON.stringify(newOverrides || {})) {
+                  day.coverageOverrides = newOverrides;
+                  needsReRender = true;
+                }
               }
               // Sync standby tracker data from poll
               if (update.standbyTracker) {
@@ -893,6 +905,9 @@
             }
           });
           cachedData = cachedDaysList.filter(d => d !== null);
+          if (needsReRender) {
+            render(cachedData);
+          }
         }
 
         syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
@@ -1265,11 +1280,38 @@
 
     async function toggleRowGiPage(btn, dateStr, pageNum) {
       if (isScrolling) return;
-      const isCurrentlyDone = btn.classList.contains('is-completed');
+      const isCurrentlyDone = btn.classList.contains('is-done') || btn.classList.contains('is-completed') || (btn.innerText && btn.innerText.includes('✨'));
       const nextIsDone = !isCurrentlyDone;
       const activeUserName = localStorage.getItem("tc_name") || "Guest";
 
-      btn.classList.add('is-loading');
+      // Optimistic UI update on the emoji element
+      btn.innerText = nextIsDone ? '✨' : '💩';
+      btn.className = `gi-emoji-toggle ${nextIsDone ? 'is-done' : 'is-pending'}`;
+      btn.title = `GI Page ${pageNum} (${nextIsDone ? 'Done' : 'Pending'}). Click to toggle!`;
+
+      // Update in memory immediately for instantaneous local feedback
+      if (cachedDaysList) {
+        const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
+        if (day && day.giWorkup && day.giWorkup.pages) {
+          const p = day.giWorkup.pages.find(item => parseInt(item.page, 10) === parseInt(pageNum, 10));
+          if (p) {
+            p.status = nextIsDone ? 'completed' : 'pending';
+            p.completedBy = nextIsDone ? activeUserName : '';
+            p.completedAt = nextIsDone ? new Date().toISOString() : '';
+          }
+          const completedCount = day.giWorkup.pages.filter(item => item.status === 'completed').length;
+          const totalCount = day.giWorkup.totalPages || day.giWorkup.pages.length || 3;
+          if (completedCount === totalCount && totalCount > 0) {
+            day.giWorkup.status = 'completed';
+          } else if (completedCount > 0) {
+            day.giWorkup.status = 'started';
+          }
+          cachedData = cachedDaysList.filter(d => d !== null);
+          const giStateMap = {};
+          giStateMap[dateStr] = day.giWorkup;
+          syncGiWorkups(giStateMap);
+        }
+      }
 
       try {
         const res = await callApi("completeGiPage", {
@@ -1278,7 +1320,6 @@
           isComplete: nextIsDone,
           userName: activeUserName
         });
-        btn.classList.remove('is-loading');
         if (res && res.success) {
           if (cachedDaysList) {
             const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
@@ -1290,10 +1331,16 @@
           render(cachedData);
           showToast(nextIsDone ? `GI Page ${pageNum} marked Complete! ✨` : `GI Page ${pageNum} marked Pending.`, "success");
         } else {
+          // Revert optimistic update on failure
+          if (cachedDaysList) {
+            render(cachedData);
+          }
           showToast("Error updating GI Page: " + (res.error || "unknown error"), "danger");
         }
       } catch (err) {
-        btn.classList.remove('is-loading');
+        if (cachedDaysList) {
+          render(cachedData);
+        }
         showToast("Action failed: " + err.message, "danger");
       }
     }
