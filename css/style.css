@@ -1040,65 +1040,138 @@ input[type="date"],
   text-align: center;
 }
 
-/* GI Workups Button Styling */
-.btn-gi-workup {
+/* GI Workups Split Button & Progress Styling */
+.btn-gi-split {
   height: 38px !important;
   border-radius: 8px !important;
   font-size: 0.82rem !important;
-  padding: 2px 10px !important;
   font-weight: 700 !important;
   margin-bottom: 0 !important;
-  text-transform: none !important;
   display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
+  align-items: stretch !important;
+  position: relative !important;
+  overflow: hidden !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
   user-select: none !important;
   white-space: nowrap !important;
-}
-
-.btn-gi-workup:hover {
-  transform: translateY(-1px);
-}
-
-.btn-gi-workup.state-not_started,
-.btn-gi-workup.state-not-started {
+  transition: all 0.2s ease !important;
   background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   color: var(--text-muted) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
 }
 
-.btn-gi-workup.state-not_started:hover,
-.btn-gi-workup.state-not-started:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
-  color: var(--text-main) !important;
+.btn-gi-split:hover {
+  transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25) !important;
 }
 
-.btn-gi-workup.state-started {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-  border: none !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+.btn-gi-split .gi-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(217, 119, 6, 0.95));
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
 }
 
-.btn-gi-workup.state-started:hover {
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6) !important;
-}
-
-.btn-gi-workup.state-completed {
+.btn-gi-split.state-completed .gi-progress-fill {
+  width: 100% !important;
   background: linear-gradient(135deg, #10b981, #059669) !important;
-  border: none !important;
+}
+
+.btn-gi-split.state-started {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.btn-gi-split.state-completed {
+  border-color: rgba(16, 185, 129, 0.5) !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
 }
 
-.btn-gi-workup.state-completed:hover {
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.55) !important;
+.btn-gi-split .gi-split-action {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  padding: 0 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  cursor: pointer !important;
+}
+
+.btn-gi-split .gi-split-menu {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  border: none !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: inherit !important;
+  padding: 0 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.btn-gi-split .gi-split-menu:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Row-Level GI Page Button in Staff Rows */
+.btn-gi-row {
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  border-radius: 7px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  margin-left: auto !important;
+}
+
+.btn-gi-row:hover {
+  transform: scale(1.05) !important;
+}
+
+.btn-gi-row.is-pending {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35) !important;
+}
+
+.btn-gi-row.is-pending:hover {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.5) !important;
+}
+
+.btn-gi-row.is-completed {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25) !important;
+}
+
+.btn-gi-row.is-completed:hover {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
 }
 
 /* Responsive optimization: Hide text label on mobile screens and keep only emojis */
