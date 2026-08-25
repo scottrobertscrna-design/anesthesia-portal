@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LAPA CRNA Hours Audit Request</title>
+
+  <!-- Preconnect to API Relay -->
+  <link rel="preconnect" href="https://anesthesia-api-relay.scott-roberts-crna.workers.dev" crossorigin>
+
+  <!-- Bulma Framework & Fonts -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="snoozle.png">
+
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --success-green: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      color: var(--text-main);
+    }
+
+    .audit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 36px 30px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .badge-icon {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 12px;
+    }
+
+    .form-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .form-subtitle {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.4;
+    }
+
+    .custom-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .custom-date-input {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      font-weight: 700;
+      font-size: 1rem;
+      height: 46px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      width: 100%;
+      padding: 0 14px;
+      color-scheme: light;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1rem;
+      height: 48px;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.45);
+      background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 0.84rem;
+      color: #93c5fd;
+      line-height: 1.45;
+    }
+
+    .status-card {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .status-card.is-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+
+    .status-card.is-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="audit-card">
+    <div class="has-text-centered">
+      <img src="snoozle_badge.png" alt="Logo" class="badge-icon" onerror="this.style.display='none'">
+      <h1 class="form-title">CRNA Hours Audit Request</h1>
+      <p class="form-subtitle">Generate and email an Excel (.xlsx) report of all CRNA and MD Locum clockouts for a custom pay period.</p>
+    </div>
+
+    <div class="info-box">
+      📁 <strong>Report Delivery:</strong> The generated Excel workbook will be emailed directly to <strong>bhanika@law-anes.com</strong> with a copy sent to schedule administration.
+    </div>
+
+    <form id="audit-form" onsubmit="handleAuditSubmit(event)">
+      <div class="columns is-mobile mb-3">
+        <div class="column is-6">
+          <label class="custom-label" for="start-date-input">Start Date</label>
+          <input type="date" id="start-date-input" class="custom-date-input" required>
+        </div>
+        <div class="column is-6">
+          <label class="custom-label" for="end-date-input">End Date</label>
+          <input type="date" id="end-date-input" class="custom-date-input" required>
+        </div>
+      </div>
+
+      <div class="has-text-centered mt-4">
+        <button type="submit" id="btn-submit" class="btn-submit">
+          <span>📊 Email Excel Audit Report</span>
+        </button>
+      </div>
+    </form>
+
+    <div id="status-display" class="status-card has-text-centered">
+      <p id="status-text" style="font-weight: 600; font-size: 0.92rem;"></p>
+    </div>
+  </div>
+
+  <!-- Load Configuration & API Helper -->
+  <script src="config.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    // Initialize default dates on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const startInput = document.getElementById('start-date-input');
+      const endInput = document.getElementById('end-date-input');
+
+      const today = new Date();
+      const prior6Weeks = new Date(today);
+      prior6Weeks.setDate(prior6Weeks.getDate() - 42); // 6 weeks ago
+
+      endInput.value = formatIsoDate(today);
+      startInput.value = formatIsoDate(prior6Weeks);
+    });
+
+    function formatIsoDate(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function handleAuditSubmit(event) {
+      event.preventDefault();
+
+      const btn = document.getElementById('btn-submit');
+      const statusCard = document.getElementById('status-display');
+      const statusText = document.getElementById('status-text');
+
+      const startDateStr = document.getElementById('start-date-input').value;
+      const endDateStr = document.getElementById('end-date-input').value;
+
+      if (!startDateStr || !endDateStr) {
+        showStatus("Please specify both a Start Date and an End Date.", "error");
+        return;
+      }
+
+      if (new Date(startDateStr) > new Date(endDateStr)) {
+        showStatus("Start Date cannot be after End Date.", "error");
+        return;
+      }
+
+      // Set loading state
+      btn.disabled = true;
+      btn.innerHTML = `<span class="button is-loading is-ghost" style="height: 24px; width: 24px; border: none; margin: 0; padding: 0;"></span> <span>Generating & Sending...</span>`;
+      statusCard.style.display = 'none';
+
+      try {
+        const response = await callApi("generateAndEmailAudit", {
+          startDateStr: startDateStr,
+          endDateStr: endDateStr
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = `<span>📊 Email Excel Audit Report</span>`;
+
+        const msg = (response && response.message) || `✓ Audit report for ${startDateStr} to ${endDateStr} has been emailed!`;
+        showStatus(msg, "success");
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>📊 Email Excel Audit Report</span>`;
+        showStatus("Error: " + (err.message || "Failed to generate report."), "error");
+      }
+    }
+
+    function showStatus(msg, type) {
+      const statusCard = document.getElementById('status-display');
+      const statusText = document.getElementById('status-text');
+
+      statusCard.className = `status-card is-${type}`;
+      statusText.innerHTML = msg;
+      statusCard.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

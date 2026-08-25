@@ -7,12 +7,13 @@
  *  - Offline fallback                 → Show offline.html if network & cache both miss
  */
 
-const CACHE_NAME = 'lawrence-anaesthesia-v225';
+const CACHE_NAME = 'lawrence-anaesthesia-v226';
 
 const APP_SHELL = [
   './portal.html',
   './snapshot.html',
   './timekeeper.html',
+  './audit_request.html',
   './css/style.css',
   './js/api.js',
   './config.js',
