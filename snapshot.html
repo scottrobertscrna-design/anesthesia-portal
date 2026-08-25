@@ -1993,16 +1993,26 @@
               );
               const canCheckIn = isToday && isStartsAtHome;
               const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
-              const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
-
               const assignedGiPages = (day.giWorkup && day.giWorkup.pages) 
                 ? day.giWorkup.pages.filter(p => isGiPageAssignedToProvider(p.assignee, name))
                 : [];
+              const hasPendingGi = assignedGiPages.some(p => p.status !== 'completed');
+              const giBadgeContent = assignedGiPages.length > 0
+                ? assignedGiPages.map(p => `
+                    <span class="gi-emoji-toggle ${p.status === 'completed' ? 'is-done' : 'is-pending'}" 
+                          onclick="event.stopPropagation(); toggleRowGiPage(this, '${day.dateStr}', ${p.page})"
+                          title="GI Page ${p.page} (${p.status === 'completed' ? 'Done' : 'Pending'}). Click to toggle!">
+                      ${p.status === 'completed' ? '✨' : '💩'}
+                    </span>
+                  `).join('')
+                : '';
+
+              const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}${hasPendingGi ? ' has-gi-pending' : ''}`;
 
               return `
                 <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="${badgeClass}" ${badgeOnClick}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
+                    <span class="${badgeClass}" ${badgeOnClick}>${activeRole === 'LSC' ? 'CRNA' : activeRole}${giBadgeContent}</span>
                     ${getContactBadgeHtml(name, day, dayIdx)}
                     ${!isHome && canTransfer(name) ? `
                       ${day.coverageOverrides && day.coverageOverrides[name] ? `
@@ -2022,24 +2032,6 @@
                     ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                     ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                   </div>
-                  ${assignedGiPages.length > 0 ? `
-                  <div class="gi-row-control" style="margin-left: auto; display: flex; gap: 4px; align-items: center;">
-                    ${assignedGiPages.map(p => {
-                      const isDone = p.status === 'completed';
-                      const label = assignedGiPages.length > 1 
-                        ? (isDone ? `✨ P${p.page} Done` : `💩 P${p.page}`)
-                        : (isDone ? `✨ GI P${p.page} Done` : `💩 GI Page ${p.page}`);
-                      return `
-                        <button class="button is-small btn-gi-row ${isDone ? 'is-completed' : 'is-pending'}" 
-                                data-date="${day.dateStr}" 
-                                data-page="${p.page}"
-                                onclick="toggleRowGiPage(this, '${day.dateStr}', ${p.page})"
-                                title="${isDone ? `Page ${p.page} complete. Click to mark pending.` : `Page ${p.page} assigned to you. Click to mark complete!`}">
-                          ${label}
-                        </button>
-                      `;
-                    }).join('')}
-                  </div>` : ''}
                 </div>`;
             }).join('') : '<p class="italic-grey py-2">No LSC staff assigned</p>';
           })()}
@@ -2112,16 +2104,26 @@
                 );
                 const canCheckIn = isToday && isStartsAtHome;
                 const badgeOnClick = canCheckIn ? `onclick="confirmArrivalFromBadge('${e.name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}')"` : '';
-                const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}`;
-
                 const assignedGiPages = (day.giWorkup && day.giWorkup.pages) 
                   ? day.giWorkup.pages.filter(p => isGiPageAssignedToProvider(p.assignee, e.name))
                   : [];
+                const hasPendingGi = assignedGiPages.some(p => p.status !== 'completed');
+                const giBadgeContent = assignedGiPages.length > 0
+                  ? assignedGiPages.map(p => `
+                      <span class="gi-emoji-toggle ${p.status === 'completed' ? 'is-done' : 'is-pending'}" 
+                            onclick="event.stopPropagation(); toggleRowGiPage(this, '${day.dateStr}', ${p.page})"
+                            title="GI Page ${p.page} (${p.status === 'completed' ? 'Done' : 'Pending'}). Click to toggle!">
+                        ${p.status === 'completed' ? '✨' : '💩'}
+                      </span>
+                    `).join('')
+                  : '';
+
+                const badgeClass = `num-badge${canCheckIn ? ' clickable-badge' : ''}${hasPendingGi ? ' has-gi-pending' : ''}`;
 
                 return `
                     <div class="entry" id="row-${dateId}-num-${i}" data-name="${e.name}" data-role="${activeRole}" data-date="${day.dateStr}" data-today="${isToday}">
                       <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                        <span class="${badgeClass}" ${badgeOnClick}>${e.num}</span>
+                        <span class="${badgeClass}" ${badgeOnClick}>${e.num}${giBadgeContent}</span>
                         ${getContactBadgeHtml(e.name, day, dayIdx)}
                         ${!isHome && canTransfer(e.name) ? `
                           ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
@@ -2141,24 +2143,6 @@
                         ${(off && off.arrivalTime) ? `<span class="arrival-time-display"><span class="time-prefix">IN @ </span>${off.arrivalTime}</span>` : ''}
                         ${(off && off.time) ? `<span class="departure-time-display"><span class="time-prefix">OUT @ </span>${off.time}</span>` : ''}
                       </div>
-                      ${assignedGiPages.length > 0 ? `
-                      <div class="gi-row-control" style="margin-left: auto; display: flex; gap: 4px; align-items: center;">
-                        ${assignedGiPages.map(p => {
-                          const isDone = p.status === 'completed';
-                          const label = assignedGiPages.length > 1 
-                            ? (isDone ? `✨ P${p.page} Done` : `💩 P${p.page}`)
-                            : (isDone ? `✨ GI P${p.page} Done` : `💩 GI Page ${p.page}`);
-                          return `
-                            <button class="button is-small btn-gi-row ${isDone ? 'is-completed' : 'is-pending'}" 
-                                    data-date="${day.dateStr}" 
-                                    data-page="${p.page}"
-                                    onclick="toggleRowGiPage(this, '${day.dateStr}', ${p.page})"
-                                    title="${isDone ? `Page ${p.page} complete. Click to mark pending.` : `Page ${p.page} assigned to you. Click to mark complete!`}">
-                              ${label}
-                            </button>
-                          `;
-                        }).join('')}
-                      </div>` : ''}
                     </div>`;
               }).join('');
 
