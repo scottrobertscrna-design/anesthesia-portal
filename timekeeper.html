@@ -496,12 +496,36 @@
     async function toggleBreakLunch(btn, name, role, dateStr, type) {
       if (isScrolling) return;
       const isChecked = !btn.classList.contains('active');
-      btn.classList.add('is-loading');
+      const prevObStart = btn.dataset.obStart;
+
+      // Instant Optimistic UI update
+      btn.classList.toggle('active', isChecked);
+      if (type === 'ob') {
+        if (isChecked) {
+          btn.dataset.obStart = new Date().toISOString();
+        } else {
+          delete btn.dataset.obStart;
+        }
+        updateObTimers();
+      }
+
+      // Update in memory immediately
+      if (cachedDaysList) {
+        const day = cachedDaysList.find(d => d && (d.dateStr === dateStr || d.fullDateStr === dateStr));
+        if (day) {
+          if (!day.breakLunchStates) day.breakLunchStates = {};
+          const blKey = `${name}|${role}`;
+          if (!day.breakLunchStates[blKey]) {
+            day.breakLunchStates[blKey] = { break: false, lunch: false, ob: false };
+          }
+          day.breakLunchStates[blKey][type] = (type === 'ob' && isChecked) ? new Date().toISOString() : isChecked;
+        }
+        cachedData = cachedDaysList.filter(d => d !== null);
+      }
+
       try {
         const res = await callApi("toggleBreakLunch", { name, role, dateStr, type, isChecked });
-        btn.classList.remove('is-loading');
         if (res && res.success) {
-          btn.classList.toggle('active', isChecked);
           if (type === 'ob') {
             const obVal = (res.state && res.state.ob) || (isChecked ? new Date().toISOString() : false);
             if (isChecked && typeof obVal === 'string') {
@@ -511,25 +535,41 @@
             }
             updateObTimers();
           }
-          showToast("Status updated successfully!", "success");
           if (cachedDaysList) {
-            const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
-            if (day) {
-              if (!day.breakLunchStates) day.breakLunchStates = {};
+            const day = cachedDaysList.find(d => d && (d.dateStr === dateStr || d.fullDateStr === dateStr));
+            if (day && res.state) {
               const blKey = `${name}|${role}`;
-              if (!day.breakLunchStates[blKey]) {
-                day.breakLunchStates[blKey] = { break: false, lunch: false, ob: false };
-              }
-              day.breakLunchStates[blKey][type] = (type === 'ob' && isChecked) ? (res.state && res.state.ob) || new Date().toISOString() : isChecked;
+              if (!day.breakLunchStates) day.breakLunchStates = {};
+              day.breakLunchStates[blKey] = res.state;
             }
             cachedData = cachedDaysList.filter(d => d !== null);
           }
+          showToast(isChecked ? `${type.toUpperCase()} started!` : `${type.toUpperCase()} stopped.`, "success");
         } else {
-          showToast("Error: " + (res.error || "failed to update status."));
+          // Revert optimistic update on failure
+          btn.classList.toggle('active', !isChecked);
+          if (type === 'ob') {
+            if (prevObStart) {
+              btn.dataset.obStart = prevObStart;
+            } else {
+              delete btn.dataset.obStart;
+            }
+            updateObTimers();
+          }
+          showToast("Error: " + (res.error || "failed to update status."), "danger");
         }
       } catch (err) {
-        btn.classList.remove('is-loading');
-        showToast("Action failed: " + err.message);
+        // Revert optimistic update on failure
+        btn.classList.toggle('active', !isChecked);
+        if (type === 'ob') {
+          if (prevObStart) {
+            btn.dataset.obStart = prevObStart;
+          } else {
+            delete btn.dataset.obStart;
+          }
+          updateObTimers();
+        }
+        showToast("Action failed: " + err.message, "danger");
       }
     }
 
