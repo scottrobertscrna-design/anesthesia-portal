@@ -1909,13 +1909,14 @@
               ${day.lsc.length ? `
                 ${day.lsc.map((name, i) => {
           const activeRole = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'LSC';
+          const badgeText = (day.coverageOverrides && day.coverageOverrides[name]) ? day.coverageOverrides[name] : 'CRNA';
           const off = getSignOff(name, activeRole);
           const bl = blState[`${name}|${activeRole}`] || { break: false, lunch: false };
           const isHome = !!(off && off.time);
           return `
                 <div class="entry" id="row-${dateId}-lsc-${i}" data-name="${name}" data-role="${activeRole}" data-date="${day.dateStr}">
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
-                    <span class="num-badge ${isToday ? 'clickable-badge' : ''}" ${isToday ? `onclick="handleRoleClick(this, '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"` : ''}>${activeRole === 'LSC' ? 'CRNA' : activeRole}</span>
+                    <span class="num-badge ${isToday ? 'clickable-badge' : ''}" ${isToday ? `onclick="handleRoleClick(this, '${name.replace(/'/g, "\\'")}', '${activeRole.replace(/'/g, "\\'")}', '${day.dateStr}', 'row-${dateId}-lsc-${i}')"` : ''}>${badgeText}</span>
                     ${getContactBadgeHtml(name, day, dayIdx)}
                     ${!isHome && canTransfer(name) ? `
                       ${day.coverageOverrides && day.coverageOverrides[name] ? `
