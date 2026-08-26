@@ -948,7 +948,12 @@
         if (!name || !role || !dateStr) return;
 
         const key = `${name}|${role}|${dateStr}`;
-        const data = signedOffKeys.get(key);
+        const cleanRowName = String(name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+        const data = signedOffKeys.get(key) || (liveSignOffs || []).find(s => {
+          if (s.dateStr !== dateStr) return false;
+          const cleanSignoff = String(s.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+          return cleanSignoff === cleanRowName || cleanSignoff.includes(cleanRowName) || cleanRowName.includes(cleanSignoff);
+        });
 
         const blState = blStatesByDate[dateStr] || {};
         const blKey = `${name}|${role}`;
@@ -1969,9 +1974,19 @@
 
       const getSignOff = (name, role) => {
         if (!day.signOffs) return null;
-        return day.signOffs.find(s =>
-          String(s.name) === String(name) && String(s.role) === String(role)
+        // 1. Exact match (name + role)
+        const exact = day.signOffs.find(s =>
+          String(s.name).trim().toLowerCase() === String(name).trim().toLowerCase() && 
+          String(s.role).trim().toLowerCase() === String(role).trim().toLowerCase()
         );
+        if (exact) return exact;
+
+        // 2. Transferred / role mismatch fallback (match by sanitized name on this date)
+        const cleanQuery = String(name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+        return day.signOffs.find(s => {
+          const cleanSignoff = String(s.name).split('(')[0].replace(/^(Dr\.|Doctor)\s+/i, '').trim().toLowerCase();
+          return cleanSignoff === cleanQuery || cleanSignoff.includes(cleanQuery) || cleanQuery.includes(cleanSignoff);
+        }) || null;
       };
 
       let html = `
