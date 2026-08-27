@@ -1373,7 +1373,27 @@
         if (res && res.success) {
           if (cachedDaysList) {
             const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
-            if (day) {
+            if (day && day.giWorkup && day.giWorkup.pages && res.state && res.state.pages) {
+              // Smart merge: update metadata and specific page from server, preserving other locally updated pages
+              const sPage = res.state.pages.find(p => parseInt(p.page, 10) === parseInt(pageNum, 10));
+              const lPage = day.giWorkup.pages.find(p => parseInt(p.page, 10) === parseInt(pageNum, 10));
+              if (sPage && lPage) {
+                lPage.status = sPage.status;
+                lPage.completedBy = sPage.completedBy;
+                lPage.completedAt = sPage.completedAt;
+              }
+              const completedCount = day.giWorkup.pages.filter(item => item.status === 'completed').length;
+              const totalCount = day.giWorkup.totalPages || day.giWorkup.pages.length || 3;
+              if (completedCount === totalCount && totalCount > 0) {
+                day.giWorkup.status = 'completed';
+              } else if (completedCount > 0) {
+                day.giWorkup.status = 'started';
+              } else {
+                day.giWorkup.status = 'not_started';
+              }
+              day.giWorkup.updatedAt = res.state.updatedAt;
+              day.giWorkup.updatedBy = res.state.updatedBy;
+            } else if (day) {
               day.giWorkup = res.state;
             }
             cachedData = cachedDaysList.filter(d => d !== null);
