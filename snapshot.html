@@ -823,8 +823,10 @@
       const mm = String(todayLocal.getMonth() + 1).padStart(2, '0');
       const dd = String(todayLocal.getDate()).padStart(2, '0');
       picker.value = `${yyyy}-${mm}-${dd}`;
+      picker.dataset.lastViewedDate = picker.value;
 
       picker.onchange = () => {
+        picker.dataset.lastViewedDate = picker.value;
         fetchFreshData(picker.value);
       };
 
@@ -868,6 +870,26 @@
       const now = Date.now();
       if (now - lastRefocusSyncTime < 2000) return; // Prevent duplicate rapid triggers
       lastRefocusSyncTime = now;
+
+      // Auto-Rollover Detection: check if calendar date has advanced overnight
+      const picker = document.getElementById('entry-date-picker');
+      if (picker) {
+        const todayLocal = new Date();
+        const yyyy = todayLocal.getFullYear();
+        const mm = String(todayLocal.getMonth() + 1).padStart(2, '0');
+        const dd = String(todayLocal.getDate()).padStart(2, '0');
+        const actualTodayStr = `${yyyy}-${mm}-${dd}`;
+
+        // If the date picker is on yesterday's date, automatically advance to today
+        if (picker.dataset.lastViewedDate && picker.dataset.lastViewedDate !== actualTodayStr && picker.value === picker.dataset.lastViewedDate) {
+          picker.value = actualTodayStr;
+          picker.dataset.lastViewedDate = actualTodayStr;
+          fetchFreshData(actualTodayStr);
+          return;
+        }
+        picker.dataset.lastViewedDate = picker.value;
+      }
+
       pollSignOffs();
       updateObTimers();
     }
