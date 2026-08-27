@@ -944,7 +944,9 @@
               document.activeElement.tagName === 'SELECT' || 
               document.activeElement.tagName === 'TEXTAREA'
             );
-            if (!hasActiveInput) {
+            const giModalEl = document.getElementById('gi-pages-modal');
+            const isGiModalOpen = giModalEl && giModalEl.classList.contains('is-active');
+            if (!hasActiveInput && !isGiModalOpen) {
               render(cachedData);
             }
           }
