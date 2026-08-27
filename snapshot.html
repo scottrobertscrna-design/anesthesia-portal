@@ -872,12 +872,17 @@
       updateObTimers();
     }
 
-    // Poll for updates every 30 seconds (only when tab is visible)
-    setInterval(async () => {
-      if (document.hidden) return;
-      await pollSignOffs();
-      updateObTimers();
-    }, 30000);
+    let pollTimer = null;
+    function scheduleNextPoll(delayMs = 8000) {
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = setTimeout(async () => {
+        if (!document.hidden) {
+          await pollSignOffs();
+        } else {
+          scheduleNextPoll(8000);
+        }
+      }, delayMs);
+    }
 
     // Auto-sync instantly when PWA is reopened/refocused or phone is unlocked
     document.addEventListener('visibilitychange', () => {
@@ -934,7 +939,14 @@
           });
           cachedData = cachedDaysList.filter(d => d !== null);
           if (needsReRender) {
-            render(cachedData);
+            const hasActiveInput = document.activeElement && (
+              document.activeElement.tagName === 'INPUT' || 
+              document.activeElement.tagName === 'SELECT' || 
+              document.activeElement.tagName === 'TEXTAREA'
+            );
+            if (!hasActiveInput) {
+              render(cachedData);
+            }
           }
         }
 
@@ -956,6 +968,7 @@
         setSyncStatus('error');
       } finally {
         isPollInProgress = false;
+        scheduleNextPoll(8000);
       }
     }
 
@@ -967,8 +980,9 @@
         const content = entryRow.querySelector('.entry-content');
         if (!content) return;
 
-        // Skip rows that have a pending API call in progress (unused in read-only but safe)
+        // Skip rows that have a pending API call in progress or active user focus
         if (pendingRows.has(entryRow.id)) return;
+        if (entryRow.contains(document.activeElement)) return;
 
         const name = entryRow.dataset.name;
         const role = entryRow.dataset.role;
