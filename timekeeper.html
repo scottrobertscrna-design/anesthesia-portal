@@ -98,9 +98,9 @@
           style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
       </div>
       <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()"
-        title="Force refresh schedule from Google Sheets"
+        title="Force rebuild schedule from Google Sheets"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
-        🔄 Refresh
+        🔄 Rebuild Day
       </button>
       <button class="button is-small is-link" id="btn-open-preferences" onclick="openPreferences()"
         title="Surgeon Preferences & Clinical Docs"
@@ -377,120 +377,65 @@
       return first;
     }
 
-    function getGiWorkupInnerHtml(status, updatedAt, updatedBy) {
+    function getGiWorkupPercent(giWorkupObj) {
+      if (!giWorkupObj) return 0;
+      const pages = giWorkupObj.pages || [];
+      const total = giWorkupObj.totalPages || (pages.length > 0 ? pages.length : 3);
+      if (total <= 0) return 0;
+      const completed = pages.filter(p => p.status === 'completed').length;
+      return Math.min(100, Math.round((completed / total) * 100));
+    }
+
+    function getGiWorkupInnerContent(status, updatedAt, updatedBy, giWorkupObj) {
       const timeStr = formatShortTime(updatedAt);
       const nameStr = formatShortName(updatedBy);
       const subText = (timeStr && nameStr) ? `${timeStr} · ${nameStr}` : (timeStr || nameStr || "");
 
-      if (status === 'started') {
-        return `
-          <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">📋</span>
-          <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
-            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI Started</span>
-            ${subText ? `<span style="font-size: 0.66rem; opacity: 0.9; font-weight: 500;">${subText}</span>` : ''}
-          </span>`;
-      } else if (status === 'completed') {
+      const pages = (giWorkupObj && giWorkupObj.pages) || [];
+      const total = (giWorkupObj && giWorkupObj.totalPages) || (pages.length > 0 ? pages.length : 3);
+      const completed = pages.filter(p => p.status === 'completed').length;
+
+      if (status === 'completed' || (total > 0 && completed === total)) {
         return `
           <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">✨</span>
           <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
-            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI Complete</span>
+            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI Complete (${completed}/${total})</span>
+            ${subText ? `<span style="font-size: 0.66rem; opacity: 0.9; font-weight: 500;">${subText}</span>` : ''}
+          </span>`;
+      } else if (status === 'started' || completed > 0) {
+        return `
+          <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">📋</span>
+          <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
+            <span style="font-weight: 700; font-size: 0.78rem; letter-spacing: -0.2px;">GI ${completed}/${total} Pages</span>
             ${subText ? `<span style="font-size: 0.66rem; opacity: 0.9; font-weight: 500;">${subText}</span>` : ''}
           </span>`;
       } else {
         return `
           <span class="btn-icon" style="font-size: 1.05rem; line-height: 1; margin-right: 4px;">💩</span>
           <span style="display: inline-flex; flex-direction: column; justify-content: center; line-height: 1.15; text-align: left;">
-            <span style="font-weight: 700; font-size: 0.82rem;">GI Workups</span>
+            <span style="font-weight: 700; font-size: 0.82rem;">GI Workups (0/${total})</span>
           </span>`;
       }
     }
 
-    function getGiWorkupTitle(status, updatedAt, updatedBy) {
-      if (!status || status === 'not_started') return "GI Workup Status: Not Started (Click to start)";
+    function getGiWorkupTitle(status, updatedAt, updatedBy, giWorkupObj) {
+      const pages = (giWorkupObj && giWorkupObj.pages) || [];
+      const total = (giWorkupObj && giWorkupObj.totalPages) || (pages.length > 0 ? pages.length : 3);
+      const completed = pages.filter(p => p.status === 'completed').length;
+      if (!status || status === 'not_started') return `GI Workups (${completed}/${total} Pages Complete)`;
       let fullDateStr = "";
       try {
         if (updatedAt) {
           fullDateStr = new Date(updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         }
       } catch (e) {}
-      const actionLabel = status === 'started' ? 'Started' : 'Completed';
+      const actionLabel = (status === 'completed' || completed === total) ? 'Completed' : 'Started';
       if (updatedBy && fullDateStr) {
-        return `GI Workup ${actionLabel} by ${updatedBy} at ${fullDateStr} (Click to advance)`;
+        return `GI Workup ${actionLabel} by ${updatedBy} at ${fullDateStr} (${completed}/${total} pages)`;
       } else if (updatedBy) {
-        return `GI Workup ${actionLabel} by ${updatedBy} (Click to advance)`;
-      } else if (fullDateStr) {
-        return `GI Workup ${actionLabel} at ${fullDateStr} (Click to advance)`;
+        return `GI Workup ${actionLabel} by ${updatedBy} (${completed}/${total} pages)`;
       }
-      return `GI Workup ${actionLabel} (Click to advance)`;
-    }
-
-    function updateGiButtonDom(btn, status, updatedAt, updatedBy) {
-      if (!btn) return;
-      const cleanStatus = status || 'not_started';
-      btn.dataset.status = cleanStatus;
-      btn.className = `btn-gi-workup state-${cleanStatus}`;
-      btn.title = getGiWorkupTitle(cleanStatus, updatedAt, updatedBy);
-      btn.innerHTML = getGiWorkupInnerHtml(cleanStatus, updatedAt, updatedBy);
-    }
-
-    function syncGiWorkups(giWorkupStatesByDate) {
-      if (!giWorkupStatesByDate) return;
-      document.querySelectorAll('.btn-gi-workup').forEach(btn => {
-        const dateStr = btn.dataset.date;
-        if (!dateStr) return;
-        const giState = giWorkupStatesByDate[dateStr];
-        const status = (giState && giState.status) || 'not_started';
-        const updatedAt = (giState && giState.updatedAt) || '';
-        const updatedBy = (giState && giState.updatedBy) || '';
-        updateGiButtonDom(btn, status, updatedAt, updatedBy);
-      });
-    }
-
-    async function cycleGiWorkup(btn, dateStr) {
-      if (isScrolling) return;
-      const currentStatus = btn.dataset.status || 'not_started';
-      let nextStatus = 'started';
-      if (currentStatus === 'not_started') {
-        nextStatus = 'started';
-      } else if (currentStatus === 'started') {
-        nextStatus = 'completed';
-      } else {
-        nextStatus = 'not_started';
-      }
-
-      const activeUserName = localStorage.getItem("tc_name") || "Guest";
-      updateGiButtonDom(btn, nextStatus, new Date().toISOString(), activeUserName);
-      btn.classList.add('is-loading');
-
-      try {
-        const res = await callApi("toggleGiWorkup", {
-          dateStr: dateStr,
-          nextState: nextStatus,
-          userName: activeUserName
-        });
-        btn.classList.remove('is-loading');
-        if (res && res.success) {
-          const serverStatus = (res.state && res.state.status) || nextStatus;
-          const serverUpdatedAt = (res.state && res.state.updatedAt) || '';
-          const serverUpdatedBy = (res.state && res.state.updatedBy) || activeUserName;
-          updateGiButtonDom(btn, serverStatus, serverUpdatedAt, serverUpdatedBy);
-          if (cachedDaysList) {
-            const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
-            if (day) {
-              day.giWorkup = res.state;
-            }
-            cachedData = cachedDaysList.filter(d => d !== null);
-          }
-          showToast("GI Workup updated!", "success");
-        } else {
-          updateGiButtonDom(btn, currentStatus);
-          showToast("Error updating GI Workup: " + (res.error || "unknown error"));
-        }
-      } catch (err) {
-        btn.classList.remove('is-loading');
-        updateGiButtonDom(btn, currentStatus);
-        showToast("Action failed: " + err.message);
-      }
+      return `GI Workups (${completed}/${total} pages)`;
     }
 
     async function toggleBreakLunch(btn, name, role, dateStr, type) {
@@ -657,12 +602,12 @@
       updateObTimers();
     }
 
-    // Poll for updates every 30 seconds (only when tab is visible)
+    // Poll for updates every 8 seconds (only when tab is visible)
     setInterval(async () => {
       if (document.hidden) return;
       await pollSignOffs();
       updateObTimers();
-    }, 30000);
+    }, 8000);
 
     // Auto-sync instantly when PWA is reopened/refocused or phone is unlocked
     document.addEventListener('visibilitychange', () => {
@@ -686,6 +631,7 @@
 
         allSignOffsList = update.signOffs || [];
 
+        let needsReRender = false;
         // Update cachedDaysList in memory
         if (cachedDaysList) {
           cachedDaysList.forEach((day, dayIdx) => {
@@ -695,7 +641,18 @@
                 day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
               }
               if (update.giWorkupStatesByDate && update.giWorkupStatesByDate[day.dateStr]) {
-                day.giWorkup = update.giWorkupStatesByDate[day.dateStr];
+                const newGi = update.giWorkupStatesByDate[day.dateStr];
+                if (JSON.stringify(day.giWorkup || null) !== JSON.stringify(newGi || null)) {
+                  day.giWorkup = newGi;
+                  needsReRender = true;
+                }
+              }
+              if (update.coverageOverridesByDate) {
+                const newOverrides = update.coverageOverridesByDate[day.dateStr] || {};
+                if (JSON.stringify(day.coverageOverrides || {}) !== JSON.stringify(newOverrides || {})) {
+                  day.coverageOverrides = newOverrides;
+                  needsReRender = true;
+                }
               }
               // Sync standby tracker data from poll
               if (update.standbyTracker) {
@@ -705,12 +662,13 @@
             }
           });
           cachedData = cachedDaysList.filter(d => d !== null);
+          if (needsReRender) {
+            render(cachedData);
+          }
         }
 
         syncCheckboxes(update.signOffs, update.breakLunchStatesByDate);
-        if (update.giWorkupStatesByDate) {
-          syncGiWorkups(update.giWorkupStatesByDate);
-        }
+        updateObTimers();
 
         // Update timestamp display with current time
         const now = new Date();
@@ -2016,9 +1974,12 @@
                 </div>
                 <div class="lmh-header-right">
                   ${showGiWorkup ? `
-                  <button class="btn-gi-workup state-${giStatus}" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" onclick="cycleGiWorkup(this, '${day.dateStr}')" title="${getGiWorkupTitle(giStatus, giUpdatedAt, giUpdatedBy)}">
-                    ${getGiWorkupInnerHtml(giStatus, giUpdatedAt, giUpdatedBy)}
-                  </button>
+                  <div class="btn-gi-split state-${giStatus} is-readonly" id="btn-gi-${dateId}" data-date="${day.dateStr}" data-status="${giStatus}" title="${getGiWorkupTitle(giStatus, giUpdatedAt, giUpdatedBy, day.giWorkup)}" style="cursor: default; pointer-events: none; user-select: none;">
+                    <div class="gi-progress-fill" style="width: ${getGiWorkupPercent(day.giWorkup)}%;"></div>
+                    <div class="gi-split-action" style="cursor: default; pointer-events: none; border-radius: 8px; width: 100%; text-align: center; border-right: none;">
+                      ${getGiWorkupInnerContent(giStatus, giUpdatedAt, giUpdatedBy, day.giWorkup)}
+                    </div>
+                  </div>
                   ` : ''}
                 </div>
               </div>

@@ -98,9 +98,9 @@
           style="max-width: 160px; font-weight: 600; background-color: #ffffff !important; color: #0f172a !important; color-scheme: light;">
       </div>
       <button class="button is-small is-light" id="btn-force-refresh" onclick="forceRefreshSchedule()"
-        title="Force refresh schedule from Google Sheets"
+        title="Force rebuild schedule from Google Sheets"
         style="height: 28px; border-radius: 8px; font-size: 0.85rem; padding: 0 10px;">
-        🔄 Refresh
+        🔄 Rebuild Day
       </button>
       <button class="button is-small is-link" id="btn-open-timecard" onclick="openTimecard()"
         title="Open Personal Timecard"
@@ -866,6 +866,8 @@
       triggerRefocusSync();
     });
 
+    let lastGiUserActionTime = 0;
+
     async function pollSignOffs() {
       if (isPollInProgress) return;
       isPollInProgress = true;
@@ -885,9 +887,11 @@
               }
               if (update.giWorkupStatesByDate && update.giWorkupStatesByDate[day.dateStr]) {
                 const newGi = update.giWorkupStatesByDate[day.dateStr];
-                if (JSON.stringify(day.giWorkup || null) !== JSON.stringify(newGi || null)) {
-                  day.giWorkup = newGi;
-                  needsReRender = true;
+                if (Date.now() - lastGiUserActionTime >= 4000) {
+                  if (JSON.stringify(day.giWorkup || null) !== JSON.stringify(newGi || null)) {
+                    day.giWorkup = newGi;
+                    needsReRender = true;
+                  }
                 }
               }
               if (update.coverageOverridesByDate) {
@@ -1285,6 +1289,7 @@
 
     async function toggleRowGiPage(btn, dateStr, pageNum) {
       if (isScrolling) return;
+      lastGiUserActionTime = Date.now();
       const isCurrentlyDone = btn.classList.contains('is-done') || btn.classList.contains('is-completed') || (btn.innerText && btn.innerText.includes('✨'));
       const nextIsDone = !isCurrentlyDone;
       const activeUserName = localStorage.getItem("tc_name") || "Guest";
@@ -1524,6 +1529,7 @@
     }
 
     async function saveGiPagesModal() {
+      lastGiUserActionTime = Date.now();
       const btn = document.getElementById('btn-save-gi-pages');
       if (btn) btn.classList.add('is-loading');
       const activeUserName = localStorage.getItem("tc_name") || "Guest";
@@ -1558,6 +1564,7 @@
 
     async function cycleGiWorkup(btnContainer, dateStr) {
       if (isScrolling) return;
+      lastGiUserActionTime = Date.now();
       const currentStatus = btnContainer ? (btnContainer.dataset.status || 'not_started') : 'not_started';
       let nextStatus = 'started';
       if (currentStatus === 'not_started') {
