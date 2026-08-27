@@ -1142,6 +1142,9 @@
         cachedData = cachedDaysList.filter(d => d !== null);
         updateObTimers();
 
+        // Immediate background sync to overlay live sign-offs, departures, and break states over the edge layout
+        pollSignOffs();
+
         const debugFooter = document.getElementById('debug-log-footer');
         if (debugFooter && cachedData && cachedData[0]) {
           const d = cachedData[0];
