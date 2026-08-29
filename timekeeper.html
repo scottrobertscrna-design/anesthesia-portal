@@ -733,6 +733,7 @@
                 const newOverrides = update.coverageOverridesByDate[day.dateStr] || {};
                 if (JSON.stringify(day.coverageOverrides || {}) !== JSON.stringify(newOverrides || {})) {
                   day.coverageOverrides = newOverrides;
+                  applyOverridesToDayArrays(day);
                   needsReRender = true;
                 }
               }
@@ -1165,6 +1166,35 @@
       }
     }
 
+    function applyOverridesToDayArrays(day) {
+      if (!day || !day.coverageOverrides) return;
+      const overrides = day.coverageOverrides;
+      for (const name in overrides) {
+        const target = overrides[name];
+        const cleanName = String(name).trim().toLowerCase();
+        if (target === 'CRNA') {
+          // Transfer provider from LSC to numbered (LMH)
+          const lscIdx = (day.lsc || []).findIndex(n => String(n).trim().toLowerCase() === cleanName);
+          if (lscIdx !== -1) {
+            day.lsc.splice(lscIdx, 1);
+            if (!day.numbered.some(e => String(e.name).trim().toLowerCase() === cleanName)) {
+              day.numbered.push({ name: name, num: "LSC", sortVal: 0 });
+              day.numbered.sort((a, b) => b.sortVal - a.sortVal);
+            }
+          }
+        } else if (target === 'LSC') {
+          // Transfer provider from numbered (LMH) to LSC
+          const numIdx = (day.numbered || []).findIndex(e => String(e.name).trim().toLowerCase() === cleanName);
+          if (numIdx !== -1) {
+            day.numbered.splice(numIdx, 1);
+            if (!day.lsc.some(n => String(n).trim().toLowerCase() === cleanName)) {
+              day.lsc.push(name);
+            }
+          }
+        }
+      }
+    }
+
     function canTransfer(name) {
       const n = String(name || "").toLowerCase();
       return !n.includes("travis") && !n.includes("nancy");
@@ -1173,12 +1203,30 @@
     async function toggleEmployeeLocation(btn, name, dateStr, target) {
       if (isScrolling) return;
       btn.classList.add('is-loading');
+
+      // Optimistic UI update: immediately move provider in memory and render
+      if (cachedDaysList) {
+        cachedDaysList.forEach(day => {
+          if (day && (day.dateStr === dateStr || day.isoDateStr === dateStr)) {
+            if (!day.coverageOverrides) day.coverageOverrides = {};
+            if (target === 'CLEAR') {
+              delete day.coverageOverrides[name];
+            } else {
+              day.coverageOverrides[name] = target;
+            }
+            applyOverridesToDayArrays(day);
+          }
+        });
+        cachedData = cachedDaysList.filter(d => d !== null);
+        render(cachedData);
+      }
+
       try {
-        const res = await callApi("transferEmployee", { name, dateStr, target });
+        const res = await callApi("transferEmployee", { name, dateStr, target, forceRefresh: true });
         if (res && res.success) {
           showToast(`Transferred ${name} successfully!`, "success");
           const picker = document.getElementById('entry-date-picker');
-          await fetchFreshData(picker ? picker.value : '');
+          await fetchFreshData(picker ? picker.value : '', true);
         } else {
           showToast("Error: " + (res.error || "Failed to transfer employee."));
           btn.classList.remove('is-loading');
