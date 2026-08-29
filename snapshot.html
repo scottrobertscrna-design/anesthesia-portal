@@ -2256,7 +2256,7 @@
                   <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                     <span class="${badgeClass}" ${badgeOnClick}>${badgeText}${giBadgeContent}</span>
                     ${getContactBadgeHtml(name, day, dayIdx)}
-                    ${!isHome && canTransfer(name) ? `
+                    ${canTransfer(name) ? `
                       ${day.coverageOverrides && day.coverageOverrides[name] ? `
                         <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
                                 style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
@@ -2367,7 +2367,7 @@
                       <div class="entry-content ${off && off.time ? 'strikethrough' : ''}">
                         <span class="${badgeClass}" ${badgeOnClick}>${e.num}${giBadgeContent}</span>
                         ${getContactBadgeHtml(e.name, day, dayIdx)}
-                        ${!isHome && canTransfer(e.name) ? `
+                        ${canTransfer(e.name) ? `
                           ${day.coverageOverrides && day.coverageOverrides[e.name] ? `
                             <button class="button is-small is-rounded px-2 py-0 ml-2 transfer-btn-active" 
                                     style="height: 20px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; background-color: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; display:inline-flex; align-items:center; gap:2px;"
