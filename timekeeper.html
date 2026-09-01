@@ -729,6 +729,11 @@
               }
               if (update.coverageOverridesByDate) {
                 const newOverrides = update.coverageOverridesByDate[day.dateStr] || {};
+                for (let k in newOverrides) {
+                  if (newOverrides[k] === 'LSC' && day.coverageOverrides && day.coverageOverrides[k] && day.coverageOverrides[k] !== 'LSC') {
+                    newOverrides[k] = day.coverageOverrides[k];
+                  }
+                }
                 if (JSON.stringify(day.coverageOverrides || {}) !== JSON.stringify(newOverrides || {})) {
                   day.coverageOverrides = newOverrides;
                   applyOverridesToDayArrays(day);
@@ -1168,9 +1173,9 @@
       if (!day || !day.coverageOverrides) return;
       const overrides = day.coverageOverrides;
       for (const name in overrides) {
-        const target = overrides[name];
+        const overrideVal = String(overrides[name] || "").trim().toUpperCase();
         const cleanName = String(name).trim().toLowerCase();
-        if (target === 'CRNA') {
+        if (overrideVal === 'CRNA' || overrideVal === 'LMH') {
           // Transfer provider from LSC to numbered (LMH)
           const lscIdx = (day.lsc || []).findIndex(n => String(n).trim().toLowerCase() === cleanName);
           if (lscIdx !== -1) {
@@ -1180,13 +1185,17 @@
               day.numbered.sort((a, b) => b.sortVal - a.sortVal);
             }
           }
-        } else if (target === 'LSC') {
-          // Transfer provider from numbered (LMH) to LSC
+        } else {
+          // Any other value (e.g. "8", "PRN 2", "1500", "LSC") represents an LMH provider transferred to LSC
           const numIdx = (day.numbered || []).findIndex(e => String(e.name).trim().toLowerCase() === cleanName);
           if (numIdx !== -1) {
+            const emp = day.numbered[numIdx];
             day.numbered.splice(numIdx, 1);
             if (!day.lsc.some(n => String(n).trim().toLowerCase() === cleanName)) {
               day.lsc.push(name);
+            }
+            if (emp.num && overrides[name] === 'LSC') {
+              overrides[name] = emp.num;
             }
           }
         }
@@ -1202,6 +1211,12 @@
       if (isScrolling) return;
       btn.classList.add('is-loading');
 
+      let originalRole = '';
+      const row = btn.closest('.entry');
+      if (row && row.dataset.role) {
+        originalRole = row.dataset.role;
+      }
+
       // Optimistic UI update: immediately move provider in memory and render
       if (cachedDaysList) {
         cachedDaysList.forEach(day => {
@@ -1209,8 +1224,13 @@
             if (!day.coverageOverrides) day.coverageOverrides = {};
             if (target === 'CLEAR') {
               delete day.coverageOverrides[name];
+            } else if (target === 'LSC') {
+              const cleanName = String(name).trim().toLowerCase();
+              const emp = (day.numbered || []).find(e => String(e.name).trim().toLowerCase() === cleanName);
+              const resolvedRole = (emp && emp.num) ? emp.num : (originalRole || 'CRNA');
+              day.coverageOverrides[name] = resolvedRole;
             } else {
-              day.coverageOverrides[name] = target;
+              day.coverageOverrides[name] = 'LSC';
             }
             applyOverridesToDayArrays(day);
           }
@@ -1220,7 +1240,7 @@
       }
 
       try {
-        const res = await callApi("transferEmployee", { name, dateStr, target, forceRefresh: true });
+        const res = await callApi("transferEmployee", { name, dateStr, target, originalRole, forceRefresh: true });
         if (res && res.success) {
           showToast(`Transferred ${name} successfully!`, "success");
           const picker = document.getElementById('entry-date-picker');
