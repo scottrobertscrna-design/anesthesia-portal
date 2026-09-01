@@ -1019,6 +1019,24 @@ function createPortalSettingsModalDom() {
         <button class="button is-small is-fullwidth mb-3" id="btn-settings-test-push" onclick="sendSettingsTestPush()" style="height: 34px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--text-main, #fff);">
           🔔 Send Test Alert to this Device
         </button>
+
+        <!-- System Diagnostic & Discreet Link Share -->
+        <div class="box p-3 mb-2" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; box-shadow: none;">
+          <div class="is-size-7" style="color: #94a3b8; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>UI Shell Build:</span>
+              <span class="version-display has-text-weight-bold" data-raw="true" style="cursor: pointer; color: #38bdf8;" onclick="sharePortalLink()" title="Tap to share portal link">v243</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>API Relay:</span>
+              <span style="color: #4ade80; font-weight: 600;">Cloudflare Edge (Active)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Backend Engine:</span>
+              <span style="color: var(--text-main, #fff); font-weight: 600;">Google Apps Script (@359)</span>
+            </div>
+          </div>
+        </div>
       </section>
       <footer class="modal-card-foot" style="background: var(--card-bg, #1e293b); border-top: 1px solid rgba(255,255,255,0.08); padding: 12px 20px; justify-content: flex-end; gap: 8px;">
         <button class="button is-small is-light" onclick="closePortalSettingsModal()" style="font-weight: 600; border-radius: 6px;">Cancel</button>
