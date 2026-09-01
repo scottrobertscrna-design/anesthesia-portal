@@ -83,8 +83,6 @@
       <div class="is-size-7 has-text-grey-light is-flex is-align-items-center" style="gap: 6px; flex-wrap: wrap; justify-content: center;">
         <span>Last updated: <span id="timestamp-display">Loading...</span></span>
         <span id="sync-status-indicator" class="sync-status-tag" style="display:none;"></span>
-        <span id="version-display"
-          style="opacity: 0.65; margin-left: 2px; cursor: pointer;" onclick="sharePortalLink()">(v161)</span>
       </div>
     </div>
 
@@ -3336,7 +3334,7 @@
     }
 
     function switchPrefTab(tabName) {
-      const tabs = ['search', 'docs', 'form', 'ai'];
+      const tabs = ['search', 'docs', 'form', 'ai', 'about'];
       tabs.forEach(t => {
         const li = document.getElementById(`tab-li-${t}`);
         const content = document.getElementById(`pref-tab-${t}`);
@@ -4111,6 +4109,11 @@
                 <span>🤖 Clinical AI (Experimental)</span>
               </a>
             </li>
+            <li id="tab-li-about">
+              <a onclick="switchPrefTab('about')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>ℹ️ About</span>
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -4298,6 +4301,31 @@
               <button class="button is-small is-success is-fullwidth" id="btn-save-pref" onclick="savePreference()" style="font-weight: 700; border-radius: 8px; height: 32px;">
                 💾 Save Preference Data
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABOUT TAB -->
+        <div id="pref-tab-about" style="display: none; width: 100%;">
+          <div class="box p-4" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none;">
+            <div class="has-text-centered mb-4">
+              <img src="snoozle_badge.png" alt="Logo" style="width: 52px; height: 52px; margin-bottom: 8px;" onerror="this.style.display='none'">
+              <h4 class="title is-5 mb-1" style="color: var(--text-main); font-weight: 700;">LAPA CRNA Portal</h4>
+              <p class="is-size-7" style="color: var(--text-muted);">Lawrence Anesthesia Providers System</p>
+            </div>
+            <div class="is-size-7" style="color: var(--text-muted); display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>UI Shell Build:</span>
+                <span class="version-display has-text-weight-bold" data-raw="true" style="cursor: pointer; color: #38bdf8;" onclick="sharePortalLink()" title="Tap to share portal link">v242</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>API Relay:</span>
+                <span style="color: #4ade80; font-weight: 600;">Cloudflare Edge (Active)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Backend Engine:</span>
+                <span style="color: var(--text-main); font-weight: 600;">Google Apps Script (@359)</span>
+              </div>
             </div>
           </div>
         </div>
