@@ -201,7 +201,7 @@ function getLocalActiveDates(customDateStr) {
 }
 
 // --- Shared Version Detection & Portal Link Sharing ---
-let detectedAppVersion = "v165";
+let detectedAppVersion = "v245";
 
 /**
  * Shares or copies portal URL to clipboard
@@ -932,6 +932,7 @@ function openPortalSettingsModal() {
     createPortalSettingsModalDom();
     modal = document.getElementById("portal-settings-modal");
   }
+  autoDetectAppVersion();
   populatePortalSettingsValues();
   modal.classList.add("is-active");
 }
@@ -1025,7 +1026,7 @@ function createPortalSettingsModalDom() {
           <div class="is-size-7" style="color: #94a3b8; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>UI Shell Build:</span>
-              <span class="version-display has-text-weight-bold" data-raw="true" style="cursor: pointer; color: #38bdf8;" onclick="sharePortalLink()" title="Tap to share portal link">v243</span>
+              <span class="version-display has-text-weight-bold" data-raw="true" style="cursor: pointer; color: #38bdf8;" onclick="sharePortalLink()" title="Tap to share portal link">${detectedAppVersion}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>API Relay:</span>
@@ -1033,7 +1034,7 @@ function createPortalSettingsModalDom() {
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>Backend Engine:</span>
-              <span style="color: var(--text-main, #fff); font-weight: 600;">Google Apps Script (@359)</span>
+              <span style="color: var(--text-main, #fff); font-weight: 600;">Google Apps Script (@360)</span>
             </div>
           </div>
         </div>
@@ -1044,6 +1045,7 @@ function createPortalSettingsModalDom() {
       </footer>
     </div>`;
   document.body.appendChild(div);
+  autoDetectAppVersion();
 }
 
 function populatePortalSettingsValues() {
