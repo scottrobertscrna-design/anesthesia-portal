@@ -47,6 +47,85 @@ async function callApi(action, params = {}, retries = 2) {
   throw lastError || new Error("API request failed.");
 }
 
+/**
+ * Persistent Client-Side Schedule Storage via IndexedDB
+ * Caches full schedule PDF payloads locally so they render in 0ms and survive reloads & offline.
+ */
+const ScheduleStorage = {
+  _db: null,
+  async getDb() {
+    if (this._db) return this._db;
+    return new Promise((resolve) => {
+      try {
+        if (!('indexedDB' in window)) {
+          resolve(null);
+          return;
+        }
+        const req = indexedDB.open('LapaScheduleStore', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('schedules')) {
+            db.createObjectStore('schedules', { keyPath: 'dateKey' });
+          }
+        };
+        req.onsuccess = (e) => {
+          this._db = e.target.result;
+          resolve(this._db);
+        };
+        req.onerror = (e) => {
+          console.warn("IndexedDB open error:", e);
+          resolve(null);
+        };
+      } catch (err) {
+        console.warn("IndexedDB not supported:", err);
+        resolve(null);
+      }
+    });
+  },
+
+  async get(dateKey) {
+    if (!dateKey) return null;
+    const cleanKey = String(dateKey).trim().toLowerCase();
+    try {
+      const db = await this.getDb();
+      if (!db) return null;
+      return new Promise((resolve) => {
+        const tx = db.transaction('schedules', 'readonly');
+        const store = tx.objectStore('schedules');
+        const req = store.get(cleanKey);
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async set(dateKey, data) {
+    if (!dateKey || !data) return false;
+    const cleanKey = String(dateKey).trim().toLowerCase();
+    try {
+      const db = await this.getDb();
+      if (!db) return false;
+      return new Promise((resolve) => {
+        const tx = db.transaction('schedules', 'readwrite');
+        const store = tx.objectStore('schedules');
+        store.put({ dateKey: cleanKey, data: data, timestamp: Date.now() });
+        if (data.dateStr) {
+          const isoKey = String(data.dateStr).trim().toLowerCase();
+          if (isoKey !== cleanKey) {
+            store.put({ dateKey: isoKey, data: data, timestamp: Date.now() });
+          }
+        }
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+};
+
 // --- Shared Utility Helpers ---
 
 // Safe querySelector wrapper to prevent unescaped selector strings from throwing DOMException

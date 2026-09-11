@@ -3014,8 +3014,19 @@
       modal.style.display = 'block';
       document.body.style.overflow = 'hidden';
 
+      // 1. Check in-memory cache first
       if (scheduleDataCache[targetDate]) {
         renderScheduleContent(scheduleDataCache[targetDate]);
+        return;
+      }
+
+      // 2. Check persistent IndexedDB cache next (instant load)
+      const cachedPersistent = await ScheduleStorage.get(targetDate);
+      if (cachedPersistent && cachedPersistent.found) {
+        scheduleDataCache[targetDate] = cachedPersistent;
+        renderScheduleContent(cachedPersistent);
+        // Stale-while-revalidate: check in background if there is a newer update
+        fetchScheduleInBackground(targetDate);
         return;
       }
 
@@ -3030,18 +3041,43 @@
         const data = await callApi('getScheduleForDate', { dateStr: targetDate });
         if (data && data.found) {
           scheduleDataCache[targetDate] = data;
+          await ScheduleStorage.set(targetDate, data);
           renderScheduleContent(data);
         } else {
           renderSyncFailure(body, data);
           meta.textContent = 'No schedule found.';
         }
       } catch (err) {
+        // Fallback to persistent cache on network error if available
+        const fallback = await ScheduleStorage.get(targetDate);
+        if (fallback && fallback.found) {
+          scheduleDataCache[targetDate] = fallback;
+          renderScheduleContent(fallback);
+          meta.textContent = 'Loaded from offline cache';
+          return;
+        }
         body.innerHTML = `<div style="text-align:center; color:#ef4444; padding:30px;">
           <div style="font-size:1rem; font-weight:700;">Error loading schedule</div>
-          <div style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">${err.message}</div>
+          <div style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">${err.message || "Network error. Please check your connection."}</div>
         </div>`;
         meta.textContent = 'Error fetching file.';
       }
+    }
+
+    async function fetchScheduleInBackground(targetDate) {
+      try {
+        const freshData = await callApi('getScheduleForDate', { dateStr: targetDate });
+        if (freshData && freshData.found) {
+          const current = scheduleDataCache[targetDate];
+          if (!current || current.emailDate !== freshData.emailDate || current.fileId !== freshData.fileId) {
+            scheduleDataCache[targetDate] = freshData;
+            await ScheduleStorage.set(targetDate, freshData);
+            if (activeModalDate === targetDate && document.getElementById('schedule-modal').style.display === 'block') {
+              renderScheduleContent(freshData);
+            }
+          }
+        }
+      } catch (e) {}
     }
 
     function renderSyncFailure(container, data) {
@@ -3218,9 +3254,9 @@
               ⬇️ Download PDF
             </a>
             ${data.fileId ? `
-            <a href="https://drive.google.com/file/d/${data.fileId}/view?usp=drivesdk" target="_blank"
+            <a href="${CONFIG.API_URL}/doc?id=${encodeURIComponent(data.fileId)}" target="_blank"
               style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block; cursor:pointer;">
-              🔗 Open in Drive
+              📄 View in New Tab
             </a>` : ''}
             <button onclick="triggerFileUpload()"
               style="background:linear-gradient(135deg,#10b981,#059669); border:none; color:#fff; padding:9px 19px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block; cursor:pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
@@ -3237,9 +3273,9 @@
               <div style="font-size:0.82rem; color:#94a3b8; margin-top:8px;">${error.message}</div>
               <div style="margin-top:20px;">
                 ${data.fileId ? `
-                <a href="https://drive.google.com/file/d/${data.fileId}/view" target="_blank" 
+                <a href="${CONFIG.API_URL}/doc?id=${encodeURIComponent(data.fileId)}" target="_blank" 
                    style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-block;">
-                  Open directly in Google Drive
+                  Open via Secure Proxy
                 </a>` : ''}
               </div>
             </div>`;
@@ -3255,7 +3291,7 @@
       } else {
         body.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px;">
           <div style="font-size:0.9rem;">Unsupported file type: ${data.mimeType}</div>
-          <a href="${dataUri || 'https://drive.google.com/file/d/' + data.fileId + '/view'}" download="${data.fileName || 'schedule'}" style="margin-top:10px; display:inline-block; color:#a5b4fc;">⬇️ Download</a>
+          <a href="${dataUri || (data.fileId ? CONFIG.API_URL + '/doc?id=' + encodeURIComponent(data.fileId) : '#')}" download="${data.fileName || 'schedule'}" style="margin-top:10px; display:inline-block; color:#a5b4fc;">⬇️ Download</a>
         </div>`;
       }
     }
