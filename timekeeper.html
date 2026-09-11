@@ -747,6 +747,16 @@
               }
             }
           });
+
+          // Sync schedule availability from poll
+          if (update.hasScheduleByDate) {
+            for (const dStr in update.hasScheduleByDate) {
+              if (update.hasScheduleByDate[dStr]) {
+                updateScheduleButtonState(dStr);
+              }
+            }
+          }
+
           cachedData = cachedDaysList.filter(d => d !== null);
           if (needsReRender) {
             const hasActiveInput = document.activeElement && (
@@ -1878,6 +1888,18 @@
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
               cardEl.innerHTML = renderDay(day, idx);
+            }
+            // If card rendered as upload, check if schedule is already in local storage or memory cache
+            if (!day.hasSchedule && day.dateStr) {
+              if (typeof scheduleDataCache !== 'undefined' && scheduleDataCache[day.dateStr] && scheduleDataCache[day.dateStr].found) {
+                updateScheduleButtonState(day.dateStr);
+              } else if (typeof ScheduleStorage !== 'undefined') {
+                ScheduleStorage.get(day.dateStr).then(cached => {
+                  if (cached && cached.found) {
+                    updateScheduleButtonState(day.dateStr);
+                  }
+                }).catch(() => {});
+              }
             }
           }
         });
@@ -3019,6 +3041,7 @@
 
       // 1. Check in-memory cache first
       if (scheduleDataCache[targetDate]) {
+        updateScheduleButtonState(targetDate);
         renderScheduleContent(scheduleDataCache[targetDate]);
         return;
       }
@@ -3027,6 +3050,7 @@
       const cachedPersistent = await ScheduleStorage.get(targetDate);
       if (cachedPersistent && cachedPersistent.found) {
         scheduleDataCache[targetDate] = cachedPersistent;
+        updateScheduleButtonState(targetDate);
         renderScheduleContent(cachedPersistent);
         // Stale-while-revalidate: check in background if there is a newer update
         fetchScheduleInBackground(targetDate, targetIsoDate);
@@ -3052,6 +3076,7 @@
           }
           scheduleDataCache[targetDate] = data;
           await ScheduleStorage.set(targetDate, data);
+          updateScheduleButtonState(targetDate);
           renderScheduleContent(data);
         } else {
           renderSyncFailure(body, data);
@@ -3062,6 +3087,7 @@
         const fallback = await ScheduleStorage.get(targetDate);
         if (fallback && fallback.found) {
           scheduleDataCache[targetDate] = fallback;
+          updateScheduleButtonState(targetDate);
           renderScheduleContent(fallback);
           meta.textContent = 'Loaded from offline cache';
           return;
@@ -3082,6 +3108,7 @@
           if (target && !ScheduleStorage._datesMatch(targetDate, target) && (!targetIsoDate || !ScheduleStorage._datesMatch(targetIsoDate, target))) {
             return;
           }
+          updateScheduleButtonState(targetDate);
           const current = scheduleDataCache[targetDate];
           if (!current || current.emailDate !== freshData.emailDate || current.fileId !== freshData.fileId) {
             scheduleDataCache[targetDate] = freshData;
