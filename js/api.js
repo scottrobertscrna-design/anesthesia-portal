@@ -83,6 +83,18 @@ const ScheduleStorage = {
     });
   },
 
+  _datesMatch(key1, key2) {
+    if (!key1 || !key2) return false;
+    const s1 = String(key1).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const s2 = String(key2).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (s1 === s2) return true;
+    if (s1.length >= 6 && s2.length >= 6 && (s1.includes(s2) || s2.includes(s1))) return true;
+    const iso1 = String(key1).match(/\d{4}-\d{2}-\d{2}/);
+    const iso2 = String(key2).match(/\d{4}-\d{2}-\d{2}/);
+    if (iso1 && iso2 && iso1[0] === iso2[0]) return true;
+    return false;
+  },
+
   async get(dateKey) {
     if (!dateKey) return null;
     const cleanKey = String(dateKey).trim().toLowerCase();
@@ -90,10 +102,21 @@ const ScheduleStorage = {
       const db = await this.getDb();
       if (!db) return null;
       return new Promise((resolve) => {
-        const tx = db.transaction('schedules', 'readonly');
+        const tx = db.transaction('schedules', 'readwrite');
         const store = tx.objectStore('schedules');
         const req = store.get(cleanKey);
-        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onsuccess = () => {
+          const res = req.result ? req.result.data : null;
+          if (res && res.found) {
+            const target = res.dateStr || res.fileName || '';
+            if (target && !ScheduleStorage._datesMatch(dateKey, target)) {
+              try { store.delete(cleanKey); } catch (e) {}
+              resolve(null);
+              return;
+            }
+          }
+          resolve(res);
+        };
         req.onerror = () => resolve(null);
       });
     } catch (e) {
@@ -102,8 +125,13 @@ const ScheduleStorage = {
   },
 
   async set(dateKey, data) {
-    if (!dateKey || !data) return false;
+    if (!dateKey || !data || !data.found) return false;
     const cleanKey = String(dateKey).trim().toLowerCase();
+    const target = data.dateStr || data.fileName || '';
+    if (target && !ScheduleStorage._datesMatch(dateKey, target)) {
+      console.warn(`ScheduleStorage: refused to cache mismatched schedule (${target}) under key (${dateKey})`);
+      return false;
+    }
     try {
       const db = await this.getDb();
       if (!db) return false;
