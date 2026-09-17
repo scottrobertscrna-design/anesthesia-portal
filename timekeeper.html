@@ -260,18 +260,24 @@
       if (!arrivalStr || !departureStr) return 0;
       try {
         const parseTime = (timeStr) => {
-          const [time, ampm] = timeStr.split(' ');
-          let [h, m] = time.split(':');
-          h = parseInt(h, 10);
-          m = parseInt(m, 10);
+          if (!timeStr) return null;
+          const match = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+          if (!match) return null;
+          let h = parseInt(match[1], 10);
+          let m = parseInt(match[2], 10);
+          const ampm = (match[3] || '').toUpperCase();
           if (ampm === 'PM' && h !== 12) h += 12;
           if (ampm === 'AM' && h === 12) h = 0;
           return h * 60 + m; // minutes from midnight
         };
         const arrMin = parseTime(arrivalStr);
         const depMin = parseTime(departureStr);
-        if (depMin > arrMin) {
-          return (depMin - arrMin) / 60;
+        if (arrMin !== null && depMin !== null) {
+          let diff = depMin - arrMin;
+          if (diff < 0) {
+            diff += 24 * 60; // Overnight shift
+          }
+          return diff / 60;
         }
       } catch (e) {
         console.error("Error calculating hours:", e);
@@ -709,7 +715,12 @@
         const activeDate = picker ? picker.value : '';
         const update = await callApi("getSnapshotPollUpdate", { dateStr: activeDate });
 
-        allSignOffsList = update.signOffs || [];
+        if (Array.isArray(update.signOffs) && update.signOffs.length > 0) {
+          // Merge live polled sign-offs into allSignOffsList by dateStr so past days of the week are preserved
+          const updatedDates = new Set(update.signOffs.map(s => s.dateStr));
+          const retained = (allSignOffsList || []).filter(s => !updatedDates.has(s.dateStr));
+          allSignOffsList = [...retained, ...update.signOffs];
+        }
 
         let needsReRender = false;
         // Update cachedDaysList in memory
