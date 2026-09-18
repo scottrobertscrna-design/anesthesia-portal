@@ -212,6 +212,7 @@
     // background poll does not reset their visual state prematurely.
     const pendingRows = new Set();
     const pendingStandbySaves = new Set();
+    const pendingStandbyToggles = new Map();
 
     let viewMode = 'time';
     // Cache the latest data so we can re-render when toggling views
@@ -728,6 +729,31 @@
           cachedDaysList.forEach((day, dayIdx) => {
             if (day) {
               day.signOffs = (update.signOffs || []).filter(s => s.dateStr === day.dateStr);
+
+              // Preserve recent Standby sign-offs so background poll doesn't wipe them prematurely
+              const now = Date.now();
+              if (typeof pendingStandbyToggles !== 'undefined') {
+                pendingStandbyToggles.forEach(item => {
+                  if (now - item.timestamp < 15000 && item.isChecked && datesMatch(item.isoDateStr, day.isoDateStr)) {
+                    const cleanItemName = item.name.toLowerCase().split('(')[0].trim();
+                    const exists = day.signOffs.some(s => s.name.toLowerCase().split('(')[0].trim() === cleanItemName && s.role === (item.role || 'Standby'));
+                    if (!exists) {
+                      const newSignOff = {
+                        dateStr: day.dateStr,
+                        name: item.name,
+                        role: item.role || "Standby",
+                        arrivalTime: "7:00 AM",
+                        time: "7:00 AM"
+                      };
+                      day.signOffs.push(newSignOff);
+                      if (Array.isArray(allSignOffsList) && !allSignOffsList.some(s => s.name.toLowerCase().split('(')[0].trim() === cleanItemName && s.role === (item.role || 'Standby') && s.dateStr === day.dateStr)) {
+                        allSignOffsList.push(newSignOff);
+                      }
+                    }
+                  }
+                });
+              }
+
               if (update.breakLunchStatesByDate && update.breakLunchStatesByDate[day.dateStr]) {
                 day.breakLunchStates = update.breakLunchStatesByDate[day.dateStr];
               }
@@ -751,9 +777,35 @@
                   needsReRender = true;
                 }
               }
-              // Sync standby tracker data from poll
-              if (update.standbyTracker) {
-                day.standbyTracker = update.standbyTracker;
+              // Sync standby tracker data from poll with protection against stale overwrites
+              if (update.standbyTracker && Array.isArray(update.standbyTracker)) {
+                let mergedTracker = JSON.parse(JSON.stringify(update.standbyTracker));
+                if (typeof pendingStandbyToggles !== 'undefined') {
+                  pendingStandbyToggles.forEach((item, sKey) => {
+                    if (now - item.timestamp < 15000) {
+                      const cleanItemName = item.name.toLowerCase().split('(')[0].trim();
+                      let empEntry = mergedTracker.find(e => e.name.toLowerCase().split('(')[0].trim() === cleanItemName);
+                      if (!empEntry) {
+                        empEntry = { name: item.name, count: 0, dates: [] };
+                        mergedTracker.push(empEntry);
+                      }
+                      let datesArr = ensureDatesArray(empEntry.dates);
+                      const hasDate = datesArr.some(d => datesMatch(d, item.isoDateStr));
+                      if (item.isChecked && !hasDate) {
+                        const p = item.isoDateStr.split('-');
+                        datesArr.push(`${parseInt(p[1], 10)}/${parseInt(p[2], 10)}`);
+                        empEntry.count = (empEntry.count || 0) + 1;
+                      } else if (!item.isChecked && hasDate) {
+                        datesArr = datesArr.filter(d => !datesMatch(d, item.isoDateStr));
+                        empEntry.count = Math.max(0, (empEntry.count || 0) - 1);
+                      }
+                      empEntry.dates = datesArr;
+                    } else {
+                      pendingStandbyToggles.delete(sKey);
+                    }
+                  });
+                }
+                day.standbyTracker = mergedTracker;
                 updateStandbyUI(dayIdx);
               }
             }
@@ -2686,6 +2738,9 @@
       // Mark as pending save
       const saveKey = `${name}|${isoDateStr}`;
       pendingStandbySaves.add(saveKey);
+      if (typeof pendingStandbyToggles !== 'undefined') {
+        pendingStandbyToggles.set(saveKey, { name: name, isoDateStr: isoDateStr, isChecked: isChecked, role: role, timestamp: Date.now() });
+      }
 
       // 1. Create a deep copy of standbyTracker and sign-offs for rollback
       const standbyTrackerBackup = JSON.parse(JSON.stringify(day.standbyTracker || []));
@@ -2764,9 +2819,17 @@
         if (!result || result.success === false) {
           throw new Error((result && result.error) || 'Toggle failed');
         }
+
+        if (result && result.standbyTracker && Array.isArray(result.standbyTracker) && result.standbyTracker.length > 0) {
+          day.standbyTracker = result.standbyTracker;
+        }
       } catch (err) {
         console.error('toggleStandbyCandidate error:', err);
         showToast("Error updating standby: " + err.message);
+
+        if (typeof pendingStandbyToggles !== 'undefined') {
+          pendingStandbyToggles.delete(saveKey);
+        }
 
         // Rollback state in memory and UI
         day.standbyTracker = standbyTrackerBackup;
