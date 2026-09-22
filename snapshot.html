@@ -4441,6 +4441,32 @@
     }
 
     async function showRequestsDashboard(name, pin, preloadedRes = null) {
+      if (preloadedRes && preloadedRes.isLocum) {
+        localStorage.setItem("tc_is_locum", "true");
+        window.location.href = "portal.html";
+        return;
+      }
+
+      let is5Day = false;
+      let calendarUrl = "";
+      if (preloadedRes && preloadedRes.is5Day !== undefined) {
+        is5Day = preloadedRes.is5Day;
+        calendarUrl = preloadedRes.calendarUrl || "";
+      } else {
+        try {
+          const res = await callApi("timecardLogin", { name, pin });
+          if (res && res.isLocum) {
+            localStorage.setItem("tc_is_locum", "true");
+            window.location.href = "portal.html";
+            return;
+          }
+          is5Day = !!(res && res.is5Day);
+          calendarUrl = (res && res.calendarUrl) || "";
+        } catch (e) {
+          console.error("Error checking employee type:", e);
+        }
+      }
+
       const modal = document.getElementById("requests-modal");
       modal.classList.add("is-active");
 
@@ -4459,27 +4485,6 @@
       if (document.getElementById("req-custom-text-field")) {
         document.getElementById("req-custom-text-field").style.display = "none";
         document.getElementById("req-custom-text-input").value = "";
-      }
-
-      // Hide or show single vacation day based on is5Day flag
-      let is5Day = false;
-      let calendarUrl = "";
-      if (preloadedRes && preloadedRes.is5Day !== undefined) {
-        is5Day = preloadedRes.is5Day;
-        calendarUrl = preloadedRes.calendarUrl || "";
-      } else {
-        try {
-          const res = await callApi("timecardLogin", { name, pin });
-          if (res.isLocum) {
-            logoutTimecard();
-            alert("Access restricted: Your login is only authorized to access Surgeon Preferences & Clinical Documents.");
-            return;
-          }
-          is5Day = !!res.is5Day;
-          calendarUrl = res.calendarUrl || "";
-        } catch (e) {
-          console.error("Error checking employee type:", e);
-        }
       }
 
       const vacOpt = document.getElementById("req-opt-vacation");
