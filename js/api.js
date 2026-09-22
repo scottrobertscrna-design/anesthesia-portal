@@ -1333,6 +1333,18 @@ async function submitGateLogin() {
       localStorage.setItem("tc_name", name);
       localStorage.setItem("tc_pin", pin);
       if (res.role) localStorage.setItem("tc_role", res.role);
+      if (res.sheetId) localStorage.setItem("tc_sheet_id", res.sheetId);
+      if (res.isLocum) {
+        localStorage.setItem("tc_is_locum", "true");
+      } else {
+        localStorage.removeItem("tc_is_locum");
+      }
+      if (res.is5Day !== undefined) {
+        localStorage.setItem("tc_is_5day", res.is5Day ? "true" : "false");
+      }
+      if (res.calendarUrl) {
+        localStorage.setItem("tc_cal_url", res.calendarUrl);
+      }
       sessionStorage.removeItem("guest_mode");
 
       const gateEl = document.getElementById("app-login-gate");
@@ -1378,6 +1390,8 @@ function promptUserSessionMenu(currentName) {
     localStorage.removeItem("tc_pin");
     localStorage.removeItem("tc_sheet_id");
     localStorage.removeItem("tc_is_locum");
+    localStorage.removeItem("tc_is_5day");
+    localStorage.removeItem("tc_cal_url");
     sessionStorage.removeItem("guest_mode");
     showAppGateLogin();
   }

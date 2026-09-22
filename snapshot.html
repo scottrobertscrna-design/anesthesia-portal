@@ -2779,6 +2779,12 @@
         } else {
           localStorage.removeItem("tc_is_locum");
         }
+        if (res.is5Day !== undefined) {
+          localStorage.setItem("tc_is_5day", res.is5Day ? "true" : "false");
+        }
+        if (res.calendarUrl) {
+          localStorage.setItem("tc_cal_url", res.calendarUrl);
+        }
 
         closeTimecardAuthModal();
         btn.classList.remove("is-loading");
@@ -3365,6 +3371,8 @@
       localStorage.removeItem("tc_pin");
       localStorage.removeItem("tc_sheet_id");
       localStorage.removeItem("tc_is_locum");
+      localStorage.removeItem("tc_is_5day");
+      localStorage.removeItem("tc_cal_url");
       closeTimecardDashboardModal();
       closeRequestsModal();
       if (document.getElementById("preferences-modal")) {
@@ -4441,32 +4449,13 @@
     }
 
     async function showRequestsDashboard(name, pin, preloadedRes = null) {
-      if (preloadedRes && preloadedRes.isLocum) {
+      if ((preloadedRes && preloadedRes.isLocum) || localStorage.getItem("tc_is_locum") === "true") {
         localStorage.setItem("tc_is_locum", "true");
         window.location.href = "portal.html";
         return;
       }
 
-      let is5Day = false;
-      let calendarUrl = "";
-      if (preloadedRes && preloadedRes.is5Day !== undefined) {
-        is5Day = preloadedRes.is5Day;
-        calendarUrl = preloadedRes.calendarUrl || "";
-      } else {
-        try {
-          const res = await callApi("timecardLogin", { name, pin });
-          if (res && res.isLocum) {
-            localStorage.setItem("tc_is_locum", "true");
-            window.location.href = "portal.html";
-            return;
-          }
-          is5Day = !!(res && res.is5Day);
-          calendarUrl = (res && res.calendarUrl) || "";
-        } catch (e) {
-          console.error("Error checking employee type:", e);
-        }
-      }
-
+      // 1. Instant Modal Display (0ms!)
       const modal = document.getElementById("requests-modal");
       modal.classList.add("is-active");
 
@@ -4487,21 +4476,67 @@
         document.getElementById("req-custom-text-input").value = "";
       }
 
-      const vacOpt = document.getElementById("req-opt-vacation");
-      if (vacOpt) {
-        vacOpt.style.display = is5Day ? "" : "none";
+      // 2. Optimistic metadata from cache or preloadedRes (0ms)
+      let is5Day = localStorage.getItem("tc_is_5day") === "true";
+      let calendarUrl = localStorage.getItem("tc_cal_url") || "";
+
+      if (preloadedRes) {
+        if (preloadedRes.is5Day !== undefined) {
+          is5Day = !!preloadedRes.is5Day;
+          localStorage.setItem("tc_is_5day", is5Day ? "true" : "false");
+        }
+        if (preloadedRes.calendarUrl) {
+          calendarUrl = preloadedRes.calendarUrl;
+          localStorage.setItem("tc_cal_url", calendarUrl);
+        }
       }
 
-      if (calendarUrl) {
-        baseCalendarUrl = calendarUrl;
-        updateICalUrlWithOptions();
-        document.getElementById("req-calendar-section").style.display = "block";
-      } else {
-        baseCalendarUrl = "";
-        document.getElementById("req-calendar-section").style.display = "none";
-      }
+      const applyOptionsUI = () => {
+        const vacOpt = document.getElementById("req-opt-vacation");
+        if (vacOpt) {
+          vacOpt.style.display = is5Day ? "" : "none";
+        }
+        if (calendarUrl) {
+          baseCalendarUrl = calendarUrl;
+          updateICalUrlWithOptions();
+          document.getElementById("req-calendar-section").style.display = "block";
+        } else {
+          baseCalendarUrl = "";
+          document.getElementById("req-calendar-section").style.display = "none";
+        }
+      };
 
-      await refreshRequestsList(name, pin);
+      applyOptionsUI();
+
+      // 3. Asynchronously fetch requests list
+      refreshRequestsList(name, pin);
+
+      // 4. Background employee metadata validation/sync if not preloaded or if missing
+      if (!preloadedRes && (!calendarUrl || localStorage.getItem("tc_is_5day") === null)) {
+        callApi("timecardLogin", { name, pin }).then(res => {
+          if (res) {
+            if (res.isLocum) {
+              localStorage.setItem("tc_is_locum", "true");
+              modal.classList.remove("is-active");
+              window.location.href = "portal.html";
+              return;
+            } else {
+              localStorage.removeItem("tc_is_locum");
+            }
+            if (res.is5Day !== undefined) {
+              is5Day = !!res.is5Day;
+              localStorage.setItem("tc_is_5day", is5Day ? "true" : "false");
+            }
+            if (res.calendarUrl) {
+              calendarUrl = res.calendarUrl;
+              localStorage.setItem("tc_cal_url", calendarUrl);
+            }
+            applyOptionsUI();
+          }
+        }).catch(err => {
+          console.warn("Background employee metadata sync warning:", err);
+        });
+      }
     }
 
     async function refreshRequestsList(name, pin) {
