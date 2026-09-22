@@ -489,14 +489,14 @@
                 <span>🔍 Search</span>
               </a>
             </li>
-            <li id="tab-li-docs">
-              <a onclick="switchPrefTab('docs')" style="border-color: var(--border-color); font-weight: 600;">
-                <span>📁 Documents</span>
-              </a>
-            </li>
             <li id="tab-li-form">
               <a onclick="switchPrefTab('form')" style="border-color: var(--border-color); font-weight: 600;">
                 <span>📝 Add/Update</span>
+              </a>
+            </li>
+            <li id="tab-li-docs">
+              <a onclick="switchPrefTab('docs')" style="border-color: var(--border-color); font-weight: 600;">
+                <span>📁 Documents</span>
               </a>
             </li>
             <li id="tab-li-ai">
@@ -4690,13 +4690,29 @@
         }
       }
 
-      // Load database from API
-      await loadPreferences(name, pin);
-      await loadClinicalDocuments(name, pin);
+      // 1. Optimistic Render from localStorage (0ms!)
+      if (!isPrefLoaded) {
+        const cachedStr = localStorage.getItem("cached_surgeon_preferences");
+        if (cachedStr) {
+          try {
+            const parsed = JSON.parse(cachedStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              cachedPreferences = parsed;
+              isPrefLoaded = true;
+              filterPreferences();
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Load preferences from API (updates in background if cached)
+      loadPreferences(name, pin);
+      // Load documents asynchronously in the background so it doesn't block search
+      loadClinicalDocuments(name, pin);
     }
 
     function switchPrefTab(tabName) {
-      const tabs = ['search', 'docs', 'form', 'ai'];
+      const tabs = ['search', 'form', 'docs', 'ai'];
       tabs.forEach(t => {
         const li = document.getElementById(`tab-li-${t}`);
         const content = document.getElementById(`pref-tab-${t}`);
@@ -4713,6 +4729,11 @@
           content.style.display = 'none';
         }
       });
+
+      // Lazy load documents if switching to docs tab and not loaded yet
+      if (tabName === 'docs' && !isDocsLoaded) {
+        loadClinicalDocuments(null, null, false);
+      }
 
       // Focus the AI input field when tab is opened
       if (tabName === 'ai') {
@@ -4907,24 +4928,35 @@
         filterPreferences();
         return;
       }
-      
+
+      const hasOptimisticData = cachedPreferences && cachedPreferences.length > 0;
       const loading = document.getElementById("pref-search-loading");
       const listDiv = document.getElementById("pref-list");
       const emptyDiv = document.getElementById("pref-search-empty");
       
-      loading.style.display = "block";
-      listDiv.style.display = "none";
-      emptyDiv.style.display = "none";
+      // Only show the loading spinner if we don't already have optimistic cached data rendered
+      if (!hasOptimisticData) {
+        loading.style.display = "block";
+        listDiv.style.display = "none";
+        emptyDiv.style.display = "none";
+      }
 
       try {
-        const res = await callApi("getSurgeonPreferences", { bypassAuth: true });
-        cachedPreferences = res || [];
-        isPrefLoaded = true;
-        filterPreferences();
+        const res = await callApi("getSurgeonPreferences", { bypassAuth: true, forceRefresh: force });
+        if (Array.isArray(res)) {
+          cachedPreferences = res;
+          isPrefLoaded = true;
+          try {
+            localStorage.setItem("cached_surgeon_preferences", JSON.stringify(res));
+          } catch (e) {}
+          filterPreferences();
+        }
       } catch (err) {
         console.error("Error loading preferences:", err);
-        emptyDiv.innerText = "Error loading preferences: " + err.message;
-        emptyDiv.style.display = "block";
+        if (!hasOptimisticData) {
+          emptyDiv.innerText = "Error loading preferences: " + err.message;
+          emptyDiv.style.display = "block";
+        }
       } finally {
         loading.style.display = "none";
       }
@@ -5172,23 +5204,47 @@
     async function loadClinicalDocuments(name, pin, force = false) {
       if (isDocsLoaded && !force) return;
 
+      // 1. Optimistic load from localStorage
+      if (!isDocsLoaded) {
+        const cachedDocStr = localStorage.getItem("cached_clinical_documents");
+        if (cachedDocStr) {
+          try {
+            const parsed = JSON.parse(cachedDocStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              cachedDocuments = parsed;
+              renderClinicalDocuments();
+            }
+          } catch (e) {}
+        }
+      }
+
+      const hasOptimisticDocs = cachedDocuments && cachedDocuments.length > 0;
       const loading = document.getElementById("pref-docs-loading");
       const listDiv = document.getElementById("pref-docs-list");
       const emptyDiv = document.getElementById("pref-docs-empty");
 
-      loading.style.display = "block";
-      listDiv.style.display = "none";
-      emptyDiv.style.display = "none";
+      if (!hasOptimisticDocs) {
+        loading.style.display = "block";
+        listDiv.style.display = "none";
+        emptyDiv.style.display = "none";
+      }
 
       try {
-        const res = await callApi("getClinicalDocuments", { bypassAuth: true });
-        cachedDocuments = res || [];
-        isDocsLoaded = true;
-        renderClinicalDocuments();
+        const res = await callApi("getClinicalDocuments", { bypassAuth: true, forceRefresh: force });
+        if (Array.isArray(res)) {
+          cachedDocuments = res;
+          isDocsLoaded = true;
+          try {
+            localStorage.setItem("cached_clinical_documents", JSON.stringify(res));
+          } catch (e) {}
+          renderClinicalDocuments();
+        }
       } catch (err) {
         console.error("Error loading clinical documents:", err);
-        emptyDiv.innerText = "Error loading files: " + err.message;
-        emptyDiv.style.display = "block";
+        if (!hasOptimisticDocs) {
+          emptyDiv.innerText = "Error loading files: " + err.message;
+          emptyDiv.style.display = "block";
+        }
       } finally {
         loading.style.display = "none";
       }
