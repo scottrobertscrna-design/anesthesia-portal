@@ -685,13 +685,13 @@
     }
 
     let pollTimer = null;
-    function scheduleNextPoll(delayMs = 8000) {
+    function scheduleNextPoll(delayMs = 12000) {
       if (pollTimer) clearTimeout(pollTimer);
       pollTimer = setTimeout(async () => {
         if (!document.hidden) {
           await pollSignOffs();
         } else {
-          scheduleNextPoll(8000);
+          scheduleNextPoll(12000);
         }
       }, delayMs);
     }
@@ -806,7 +806,7 @@
                   });
                 }
                 day.standbyTracker = mergedTracker;
-                updateStandbyUI(dayIdx);
+                updateStandbyUI(dayIdx, true);
               }
             }
           });
@@ -851,7 +851,7 @@
         setSyncStatus('error');
       } finally {
         isPollInProgress = false;
-        scheduleNextPoll(8000);
+        scheduleNextPoll(12000);
       }
     }
 
@@ -2457,7 +2457,7 @@
       }).join('');
     }
 
-    function updateStandbyUI(dayIdx) {
+    function updateStandbyUI(dayIdx, fromPoll = false) {
       const day = cachedDaysList[dayIdx];
       if (!day) return;
 
@@ -2467,11 +2467,13 @@
         standbyListEl.innerHTML = renderStandbyListForDay(day);
       }
 
-      const modal = document.getElementById("standby-tracker-modal");
-      if (modal && modal.classList.contains("is-active")) {
-        const modalTitleEl = modal.querySelector(".modal-card-title");
-        if (modalTitleEl && modalTitleEl.textContent.includes(day.dateStr)) {
-          openStandbyTrackerModal(dateId);
+      if (!fromPoll) {
+        const modal = document.getElementById("standby-tracker-modal");
+        if (modal && modal.classList.contains("is-active")) {
+          const modalTitleEl = modal.querySelector(".modal-card-title");
+          if (modalTitleEl && modalTitleEl.textContent.includes(day.dateStr)) {
+            openStandbyTrackerModal(dateId);
+          }
         }
       }
     }
@@ -2808,6 +2810,17 @@
         syncCheckboxes(allSignOffsList);
       }
 
+      // Safety release timeout (max 5s) so hourglass ⏳ can NEVER get stuck
+      const safetyTimer = setTimeout(() => {
+        if (pendingStandbySaves.has(saveKey)) {
+          pendingStandbySaves.delete(saveKey);
+          updateStandbyUI(dayIdx);
+          if (typeof syncCheckboxes === 'function') {
+            syncCheckboxes(allSignOffsList);
+          }
+        }
+      }, 5000);
+
       // 4. Send backend API call in background
       try {
         const result = await callApi('toggleStandbyAssignment', {
@@ -2827,16 +2840,16 @@
         console.error('toggleStandbyCandidate error:', err);
         showToast("Error updating standby: " + err.message);
 
-        if (typeof pendingStandbyToggles !== 'undefined') {
-          pendingStandbyToggles.delete(saveKey);
-        }
-
         // Rollback state in memory and UI
         day.standbyTracker = standbyTrackerBackup;
         day.signOffs = signOffsBackup;
         allSignOffsList = allSignOffsBackup;
       } finally {
+        clearTimeout(safetyTimer);
         pendingStandbySaves.delete(saveKey);
+        if (typeof pendingStandbyToggles !== 'undefined') {
+          pendingStandbyToggles.delete(saveKey);
+        }
         updateStandbyUI(dayIdx);
         if (typeof syncCheckboxes === 'function') {
           syncCheckboxes(allSignOffsList);

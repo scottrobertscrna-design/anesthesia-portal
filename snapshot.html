@@ -894,13 +894,13 @@
     }
 
     let pollTimer = null;
-    function scheduleNextPoll(delayMs = 8000) {
+    function scheduleNextPoll(delayMs = 12000) {
       if (pollTimer) clearTimeout(pollTimer);
       pollTimer = setTimeout(async () => {
         if (!document.hidden) {
           await pollSignOffs();
         } else {
-          scheduleNextPoll(8000);
+          scheduleNextPoll(12000);
         }
       }, delayMs);
     }
@@ -1007,7 +1007,7 @@
                   });
                 }
                 day.standbyTracker = mergedTracker;
-                updateStandbyUI(dayIdx);
+                updateStandbyUI(dayIdx, true);
               }
             }
           });
@@ -1016,12 +1016,23 @@
           if (update.hasScheduleByDate) {
             for (const dStr in update.hasScheduleByDate) {
               if (update.hasScheduleByDate[dStr]) {
-                updateScheduleButtonState(dStr);
+                const dateId = dStr.replace(/[^a-zA-Z0-9]/g, '');
+                const btn = document.getElementById(`sched-btn-${dateId}`);
+                if (btn && btn.classList.contains('button') && !btn.innerHTML.includes('Schedule')) {
+                  btn.className = "button is-small schedule-btn";
+                  btn.title = `View schedule for ${dStr}`;
+                  btn.style.background = "linear-gradient(135deg, #667eea, #764ba2)";
+                  btn.style.color = "#fff";
+                  btn.style.border = "none";
+                  btn.style.fontWeight = "700";
+                  btn.style.boxShadow = "0 2px 8px rgba(118,75,162,0.35)";
+                  btn.style.marginBottom = "0";
+                  btn.innerHTML = "📄 Schedule";
+                }
               }
             }
           }
 
-          cachedData = cachedDaysList.filter(d => d !== null);
           if (needsReRender) {
             const hasActiveInput = document.activeElement && (
               document.activeElement.tagName === 'INPUT' || 
@@ -1054,7 +1065,7 @@
         setSyncStatus('error');
       } finally {
         isPollInProgress = false;
-        scheduleNextPoll(8000);
+        scheduleNextPoll(12000);
       }
     }
 
@@ -1848,6 +1859,25 @@
       const confirmCheckIn = confirm(`Mark ${displayName} (${role === 'LSC' ? 'CRNA' : role}) as arrived now?`);
       if (!confirmCheckIn) return;
 
+      // 1. Instant Optimistic UI Update (<1ms): remove strikethrough and make badge active blue
+      const cleanTargetName = displayName.toLowerCase();
+      document.querySelectorAll('.entry').forEach(entryRow => {
+        if (entryRow.dataset.date === dateStr) {
+          const rowName = (entryRow.dataset.name || '').split('(')[0].trim().toLowerCase();
+          if (rowName === cleanTargetName) {
+            const content = entryRow.querySelector('.entry-content');
+            if (content) content.classList.remove('strikethrough');
+            const badge = entryRow.querySelector('.num-badge');
+            if (badge) {
+              badge.classList.remove('clickable-badge');
+              badge.removeAttribute('onclick');
+            }
+          }
+        }
+      });
+
+      const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
       try {
         const res = await callApi("toggleArrival", {
           name: name,
@@ -1856,22 +1886,47 @@
           isChecked: true,
           manualTime: null
         });
-        if (res && res.timestamp) {
-          await callApi("toggleSignOff", {
-            name: name,
-            role: role,
-            dateStr: dateStr,
-            isChecked: false,
-            manualTime: null
-          });
-          showToast(`Checked in ${displayName} at ${res.timestamp}!`, "success");
-          const picker = document.getElementById('entry-date-picker');
-          await fetchFreshData(picker ? picker.value : '');
-        } else {
-          showToast("Error checking in: " + (res.error || "Unknown error"));
+
+        const arrivalTimestamp = (res && res.timestamp) || nowTimeStr;
+
+        await callApi("toggleSignOff", {
+          name: name,
+          role: role,
+          dateStr: dateStr,
+          isChecked: false,
+          manualTime: null
+        });
+
+        // 2. Update local signoffs cache in memory
+        if (cachedDaysList) {
+          const day = cachedDaysList.find(d => d && d.dateStr === dateStr);
+          if (day) {
+            if (!day.signOffs) day.signOffs = [];
+            let existing = day.signOffs.find(s => s.name.toLowerCase().split('(')[0].trim() === cleanTargetName);
+            if (existing) {
+              existing.arrivalTime = arrivalTimestamp;
+              existing.time = "";
+            } else {
+              day.signOffs.push({
+                dateStr: dateStr,
+                name: name,
+                role: role,
+                arrivalTime: arrivalTimestamp,
+                time: ""
+              });
+            }
+          }
         }
+
+        showToast(`Checked in ${displayName} at ${arrivalTimestamp}!`, "success");
+
+        // 3. In-place DOM update (no full layout fetch to prevent stale KV cache reads)
+        const allLive = [];
+        cachedDaysList.forEach(d => { if (d && d.signOffs) allLive.push(...d.signOffs); });
+        syncCheckboxes(allLive);
       } catch (err) {
         showToast("Check-in failed: " + err.message);
+        pollSignOffs();
       }
     }
 
@@ -2612,7 +2667,7 @@
       }).join('');
     }
 
-    function updateStandbyUI(dayIdx) {
+    function updateStandbyUI(dayIdx, fromPoll = false) {
       const day = cachedDaysList[dayIdx];
       if (!day) return;
 
@@ -2622,11 +2677,13 @@
         standbyListEl.innerHTML = renderStandbyListForDay(day);
       }
 
-      const modal = document.getElementById("standby-tracker-modal");
-      if (modal && modal.classList.contains("is-active")) {
-        const modalTitleEl = modal.querySelector(".modal-card-title");
-        if (modalTitleEl && modalTitleEl.textContent.includes(day.dateStr)) {
-          openStandbyTrackerModal(dateId);
+      if (!fromPoll) {
+        const modal = document.getElementById("standby-tracker-modal");
+        if (modal && modal.classList.contains("is-active")) {
+          const modalTitleEl = modal.querySelector(".modal-card-title");
+          if (modalTitleEl && modalTitleEl.textContent.includes(day.dateStr)) {
+            openStandbyTrackerModal(dateId);
+          }
         }
       }
     }
@@ -3658,6 +3715,15 @@
       updateStandbyUI(dayIdx);
       triggerCheckboxSync();
 
+      // Safety release timeout (max 5s) so hourglass ⏳ can NEVER get stuck
+      const safetyTimer = setTimeout(() => {
+        if (pendingStandbySaves.has(saveKey)) {
+          pendingStandbySaves.delete(saveKey);
+          updateStandbyUI(dayIdx);
+          triggerCheckboxSync();
+        }
+      }, 5000);
+
       // 4. Send backend API call in background
       try {
         const result = await callApi('toggleStandbyAssignment', {
@@ -3677,15 +3743,15 @@
         console.error('toggleStandbyCandidate error:', err);
         showToast("Error updating standby: " + err.message);
 
-        if (typeof pendingStandbyToggles !== 'undefined') {
-          pendingStandbyToggles.delete(saveKey);
-        }
-
         // Rollback state in memory and UI
         day.standbyTracker = standbyTrackerBackup;
         day.signOffs = signOffsBackup;
       } finally {
+        clearTimeout(safetyTimer);
         pendingStandbySaves.delete(saveKey);
+        if (typeof pendingStandbyToggles !== 'undefined') {
+          pendingStandbyToggles.delete(saveKey);
+        }
         updateStandbyUI(dayIdx);
         triggerCheckboxSync();
       }
