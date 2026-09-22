@@ -2816,6 +2816,29 @@
 
       document.getElementById("tc-dash-title").innerText = `TIMECARD: ${name.toUpperCase()}`;
 
+      // 1. Optimistic Render: If sheetId and cached clock status exist, render immediately in 0ms!
+      const cachedSheetId = localStorage.getItem("tc_sheet_id");
+      const cachedClockStatusStr = localStorage.getItem("tc_cached_clock_status_" + name);
+      if (cachedSheetId) {
+        document.getElementById("tc-link-section").style.display = "none";
+        document.getElementById("tc-main-section").style.display = "block";
+
+        const sheetLink = document.getElementById("tc-sheet-link");
+        if (sheetLink) {
+          sheetLink.href = `https://docs.google.com/spreadsheets/d/${cachedSheetId}/edit#gid=1008779951`;
+          sheetLink.style.display = "flex";
+        }
+
+        startLiveTimeClock();
+
+        if (cachedClockStatusStr) {
+          try {
+            const cachedClockStatus = JSON.parse(cachedClockStatusStr);
+            updateClockStatusUI(cachedClockStatus);
+          } catch (e) {}
+        }
+      }
+
       let res = preloadedRes;
       if (!res) {
         try {
@@ -2848,7 +2871,12 @@
 
         startLiveTimeClock();
 
-        refreshClockStatus(res.sheetId);
+        // If clockStatus was bundled in the response, render immediately without a second network call!
+        if (res.clockStatus) {
+          updateClockStatusUI(res.clockStatus);
+        } else {
+          refreshClockStatus(res.sheetId);
+        }
       } else {
         document.getElementById("tc-link-section").style.display = "block";
         document.getElementById("tc-main-section").style.display = "none";
@@ -3163,6 +3191,13 @@
 
       updateFillButtonLabel();
       updatePullButtonLabel();
+
+      try {
+        const storedName = localStorage.getItem("tc_name");
+        if (storedName && res) {
+          localStorage.setItem("tc_cached_clock_status_" + storedName, JSON.stringify(res));
+        }
+      } catch (e) {}
     }
 
     function updateLiveTime() {
