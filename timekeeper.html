@@ -1141,6 +1141,9 @@
         dates.forEach((d, idx) => {
           const dayData = daysData[idx];
           if (dayData && !dayData.error) {
+            if (!dayData.signOffs || dayData.signOffs.length === 0) {
+              dayData.signOffs = allSignOffsList.filter(s => s.dateStr === dayData.dateStr);
+            }
             cachedDaysList[idx] = dayData;
             const cardEl = document.getElementById(`day-card-${idx}`);
             if (cardEl) {
@@ -1164,9 +1167,10 @@
         document.getElementById('timestamp-display').innerText = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
         cachedData = cachedDaysList.filter(d => d !== null);
+        syncCheckboxes(allSignOffsList);
         updateObTimers();
 
-        // Immediate background sync to overlay live sign-offs, departures, and break states over the edge layout
+        // Background sync to ensure secondary state stays updated
         pollSignOffs();
 
         const debugFooter = document.getElementById('debug-log-footer');
