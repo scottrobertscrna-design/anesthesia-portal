@@ -1262,6 +1262,15 @@
               day.numbered.sort((a, b) => b.sortVal - a.sortVal);
             }
           }
+          // Update activePhones group to 'hosp' so group SMS excludes/includes properly
+          if (Array.isArray(day.activePhones)) {
+            day.activePhones.forEach(ap => {
+              const apClean = String(ap.name || "").split('(')[0].trim().toLowerCase();
+              if (apClean === cleanName) {
+                ap.group = 'hosp';
+              }
+            });
+          }
         } else {
           // Any other value (e.g. "8", "PRN 2", "1500", "LSC") represents an LMH provider transferred to LSC
           const numIdx = (day.numbered || []).findIndex(e => String(e.name).trim().toLowerCase() === cleanName);
@@ -1274,6 +1283,15 @@
             if (emp.num && overrides[name] === 'LSC') {
               overrides[name] = emp.num;
             }
+          }
+          // Update activePhones group to 'lsc' so group SMS excludes/includes properly
+          if (Array.isArray(day.activePhones)) {
+            day.activePhones.forEach(ap => {
+              const apClean = String(ap.name || "").split('(')[0].trim().toLowerCase();
+              if (apClean === cleanName) {
+                ap.group = 'lsc';
+              }
+            });
           }
         }
       }
@@ -1300,7 +1318,16 @@
           if (day && (day.dateStr === dateStr || day.isoDateStr === dateStr)) {
             if (!day.coverageOverrides) day.coverageOverrides = {};
             if (target === 'CLEAR') {
+              const cleanName = String(name).trim().toLowerCase();
               delete day.coverageOverrides[name];
+              if (Array.isArray(day.activePhones)) {
+                day.activePhones.forEach(ap => {
+                  const apClean = String(ap.name || "").split('(')[0].trim().toLowerCase();
+                  if (apClean === cleanName) {
+                    ap.group = (originalRole === 'LSC') ? 'lsc' : 'hosp';
+                  }
+                });
+              }
             } else if (target === 'LSC') {
               const cleanName = String(name).trim().toLowerCase();
               const emp = (day.numbered || []).find(e => String(e.name).trim().toLowerCase() === cleanName);
