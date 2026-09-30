@@ -1161,11 +1161,12 @@ function populatePortalSettingsValues() {
   if (userEl) userEl.innerText = userName;
 
   const hasPermission = ('Notification' in window) && Notification.permission === 'granted';
+  const isEnabled = hasPermission && (localStorage.getItem("schedule_notifs_enabled") === "true");
   const masterToggle = document.getElementById("settings-notifs-master");
   const catContainer = document.getElementById("settings-category-container");
 
-  if (masterToggle) masterToggle.checked = hasPermission;
-  if (catContainer) catContainer.style.opacity = hasPermission ? "1" : "0.45";
+  if (masterToggle) masterToggle.checked = isEnabled;
+  if (catContainer) catContainer.style.opacity = isEnabled ? "1" : "0.45";
 
   const prefs = getStoredNotificationPrefs();
   const keys = ['schedule', 'shifts', 'giWorkups', 'obStandby'];
@@ -1173,37 +1174,49 @@ function populatePortalSettingsValues() {
     const el = document.getElementById(`pref-${k}`);
     if (el) {
       el.checked = prefs[k] !== false;
-      el.disabled = !hasPermission;
+      el.disabled = !isEnabled;
     }
   });
 }
 
 async function toggleMasterPush(enable) {
+  const masterToggle = document.getElementById("settings-notifs-master");
   if (enable) {
     try {
       if (!('Notification' in window)) {
         alert("Push notifications are not supported on this browser.");
+        if (masterToggle) masterToggle.checked = false;
         return;
       }
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         await ensureValidPushSubscription();
+        localStorage.setItem("schedule_notifs_enabled", "true");
         if (typeof showToast === "function") showToast("🔔 Notifications enabled on this device!", "success");
       } else {
+        localStorage.setItem("schedule_notifs_enabled", "false");
+        if (masterToggle) masterToggle.checked = false;
         if (typeof showToast === "function") showToast("Permission denied in site settings.", "danger");
       }
     } catch(e) {
       console.error(e);
+      localStorage.setItem("schedule_notifs_enabled", "false");
+      if (masterToggle) masterToggle.checked = false;
     }
   } else {
     await unsubscribeNotifications();
+    localStorage.setItem("schedule_notifs_enabled", "false");
   }
   populatePortalSettingsValues();
+  syncNotificationButtonState();
 }
 
 async function savePortalSettingsModal() {
   const btn = document.getElementById("btn-save-settings");
   if (btn) btn.classList.add("is-loading");
+
+  const masterToggle = document.getElementById("settings-notifs-master");
+  const isMasterEnabled = masterToggle ? masterToggle.checked : false;
 
   const prefs = {
     schedule: document.getElementById("pref-schedule") ? document.getElementById("pref-schedule").checked : true,
@@ -1214,10 +1227,19 @@ async function savePortalSettingsModal() {
 
   localStorage.setItem("notif_prefs", JSON.stringify(prefs));
 
+  const wasEnabled = localStorage.getItem("schedule_notifs_enabled") === "true";
+  if (isMasterEnabled && !wasEnabled) {
+    await ensureValidPushSubscription();
+    localStorage.setItem("schedule_notifs_enabled", "true");
+  } else if (!isMasterEnabled && wasEnabled) {
+    await unsubscribeNotifications();
+    localStorage.setItem("schedule_notifs_enabled", "false");
+  }
+
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    if (sub) {
+    if (sub && isMasterEnabled) {
       const storedName = localStorage.getItem("tc_name") || "";
       const isLocum = localStorage.getItem("tc_is_locum") === "true";
       const storedRole = isLocum ? "Locum" : "Staff";
@@ -1236,6 +1258,7 @@ async function savePortalSettingsModal() {
     console.error("Error saving prefs to Cloudflare:", e);
   }
 
+  syncNotificationButtonState();
   if (btn) btn.classList.remove("is-loading");
   closePortalSettingsModal();
   if (typeof showToast === "function") showToast("Notification preferences saved! ⚙️", "success");
